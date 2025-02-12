@@ -118,83 +118,6 @@ const NotifScreen = ({ navigation, isDarkMode }) => {
       return `${productName} vencerá em ${days} dias (${expirationDate})`;
     }
   };
-
-  const testNotification = async () => {
-    try {
-      const currentDate = new Date();
-      const exampleDate = new Date();
-      exampleDate.setDate(currentDate.getDate() + notificationDays);
-      
-      const style = getNotificationStyle(alertLevel);
-      const formattedDate = exampleDate.toLocaleDateString('pt-BR');
-      
-      let title, subtitle, body;
-
-      switch (alertLevel) {
-        case 'normal':
-          title = `${style.icon} Lembrete de Validade`;
-          subtitle = 'Acompanhamento de produto';
-          break;
-        case 'warning':
-          title = `${style.icon} Atenção: Produto Próximo do Vencimento`;
-          subtitle = 'Verificação necessária';
-          break;
-        case 'critical':
-          title = `${style.icon} URGENTE: Risco de Vencimento`;
-          subtitle = 'Ação imediata necessária';
-          break;
-      }
-
-      body = formatExpirationMessage(notificationDays, 'Produto Teste', formattedDate);
-
-      // Configurar canal de notificação (Android)
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync(style.channelId, {
-          name: `${alertLevel.charAt(0).toUpperCase() + alertLevel.slice(1)} Alerts`,
-          importance: style.importance,
-          vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : null,
-          lightColor: style.color,
-        });
-      }
-
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          subtitle, // iOS only
-          body,
-          data: { 
-            test: true,
-            alertLevel,
-            productId: 'test-product'
-          },
-          priority: style.priority,
-          color: style.color,
-          vibrate: vibrationEnabled ? [0, 250, 250, 250] : null,
-          // Android specific
-          channelId: style.channelId,
-          smallIcon: "./assets/Image/LOGO432.png", // Certifique-se de ter este ícone em seu projeto
-          largeIcon: "./assets/Image/LOGO432.png", // Ícone grande para Android
-          // iOS specific
-          threadId: alertLevel,
-          categoryIdentifier: "product_expiration",
-          interruptionLevel: style.priority,
-        },
-        trigger: {
-          seconds: 2,
-        },
-      });
-
-      Alert.alert(
-        'Notificação Enviada',
-        'Uma notificação de teste será exibida em alguns segundos.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Erro ao enviar notificação de teste:', error);
-      Alert.alert('Erro', 'Não foi possível enviar a notificação de teste');
-    }
-  };
-
   const updateNotificationSchedule = async () => {
     try {
       await Notifications.cancelAllScheduledNotificationsAsync();
@@ -570,25 +493,6 @@ const NotifScreen = ({ navigation, isDarkMode }) => {
         )}
       </View>
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>
-          Testar Notificações
-        </Text>
-        
-        <TouchableOpacity 
-          style={[styles.testButton, isDarkMode ? styles.darkButton : styles.lightButton]}
-          onPress={testNotification}
-        >
-          <View style={styles.testButtonContent}>
-            <MaterialIcons name="notifications" size={24} color="#FFFFFF" />
-            <Text style={styles.testButtonText}>Testar Notificação</Text>
-          </View>
-          <Text style={styles.testButtonSubtext}>
-            Enviar uma notificação de teste para verificar as configurações
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       <TouchableOpacity 
         style={[styles.saveButton, isDarkMode ? styles.darkButton : styles.lightButton]}
         onPress={saveSettings}
@@ -719,33 +623,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
-  },
-  testButton: {
-    padding: 15,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-  },
-  testButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginBottom: 5,
-  },
-  testButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  testButtonSubtext: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    textAlign: 'center',
-    opacity: 0.8,
   },
   alertLevelsContainer: {
     flexDirection: 'row',
