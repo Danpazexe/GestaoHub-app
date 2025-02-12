@@ -15,7 +15,7 @@ import {
   Animated,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { List, Menu, Divider, FAB, Portal } from 'react-native-paper';
+import { List, Menu, Divider, FAB, Portal, Provider } from 'react-native-paper';
 import dadosIniciais from '../../assets/Dados.json';
 import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
@@ -138,7 +138,7 @@ const FilterBar = React.memo(({
     { label: "Código", value: "CODE", icon: "pin" },
     { label: "Descrição", value: "DESC", icon: "description" },
     { label: "Marca", value: "BRAND", icon: "local-offer" },
-    { label: "EAN/DUN", value: "BARCODE", icon: "qr-code" }
+    { label: "EAN/DUN", value: "BARCODE", icon: "qr-code" },
   ];
 
   const getFilterIcon = () => {
@@ -457,6 +457,195 @@ const SkeletonItem = ({ isDarkMode }) => {
   );
 };
 
+const ClearDatabaseModal = ({ visible, onClose, onConfirm, isDarkMode }) => {
+  const [countdown, setCountdown] = useState(3);
+  const [isButtonEnabled, setIsButtonEnabled] = useState(false);
+
+  useEffect(() => {
+    let timer;
+
+    if (visible) {
+      // Reseta estados quando modal abre
+      setCountdown(3);
+      setIsButtonEnabled(false);
+
+      // Inicia o timer
+      timer = setInterval(() => {
+        setCountdown((prevCount) => {
+          if (prevCount <= 1) {
+            clearInterval(timer);
+            setIsButtonEnabled(true);
+            return 0;
+          }
+          return prevCount - 1;
+        });
+      }, 1000);
+    }
+
+    // Cleanup function
+    return () => {
+      if (timer) clearInterval(timer);
+      setCountdown(3);
+      setIsButtonEnabled(false);
+    };
+  }, [visible]); // Dependência apenas do visible
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[
+          styles.clearModalContent,
+          isDarkMode ? styles.modalContentDark : styles.modalContentLight
+        ]}>
+          <View style={styles.clearModalHeader}>
+            <MaterialIcons 
+              name="warning" 
+              size={48} 
+              color="#DC2626" 
+            />
+            <Text style={[styles.clearModalTitle, { color: '#DC2626' }]}>
+              Atenção!
+            </Text>
+          </View>
+
+          <Text style={[
+            styles.clearModalText,
+            { color: isDarkMode ? '#FFFFFF' : '#000000' }
+          ]}>
+            Você está prestes a limpar todos os dados do banco. Esta ação não pode ser desfeita.
+          </Text>
+
+          <View style={styles.clearModalButtons}>
+            <TouchableOpacity
+              style={[styles.clearModalButton, styles.cancelButton]}
+              onPress={onClose}
+            >
+              <MaterialIcons name="close" size={20} color="#FFFFFF" />
+              <Text style={styles.clearModalButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.clearModalButton,
+                styles.confirmButton,
+                !isButtonEnabled && styles.confirmButtonDisabled
+              ]}
+              onPress={onConfirm}
+              disabled={!isButtonEnabled}
+            >
+              <MaterialIcons name="delete-outline" size={20} color="#FFFFFF" />
+              <Text style={[
+                styles.clearModalButtonText,
+                !isButtonEnabled && styles.clearModalButtonTextDisabled
+              ]}>
+                Limpar {countdown > 0 ? `(${countdown})` : ''}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const fabIconStyle = {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  };
+
+  return (
+    <Portal>
+      <FAB.Group
+        open={isOpen}
+        visible={true}
+        icon={isOpen ? 'close' : 'plus'}
+        actions={[
+          {
+            icon: () => (
+              <View style={fabIconStyle}>
+                <MaterialIcons 
+                  name="cloud-upload" 
+                  size={24} 
+                  color="#FFFFFF"
+                />
+              </View>
+            ),
+            label: 'IMPORTAR',
+            onPress: onImport,
+            style: { 
+              backgroundColor: isDarkMode ? '#134E4A' : '#115E59',
+            },
+            labelStyle: {
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: isDarkMode ? '#E5E7EB' : '#1F2937',
+            }
+          },
+          {
+            icon: () => (
+              <View style={fabIconStyle}>
+                <MaterialIcons 
+                  name="cloud-download" 
+                  size={24} 
+                  color="#FFFFFF"
+                />
+              </View>
+            ),
+            label: 'EXPORTAR',
+            onPress: onExport,
+            style: { 
+              backgroundColor: isDarkMode ? '#134E4A' : '#115E59',
+            },
+            labelStyle: {
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: isDarkMode ? '#E5E7EB' : '#1F2937',
+            }
+          },
+          {
+            icon: () => (
+              <View style={fabIconStyle}>
+                <MaterialIcons 
+                  name="delete-forever" 
+                  size={24} 
+                  color="#FFFFFF"
+                  
+                />
+              </View>
+            ),
+            label: 'LIMPAR',
+            onPress: onClear,
+            style: { 
+              backgroundColor: '#DC2626',
+            },
+            labelStyle: {
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: isDarkMode ? '#E5E7EB' : '#1F2937',
+            }
+          },
+        ]}
+        onStateChange={({ open }) => setIsOpen(open)}
+        fabStyle={{
+          backgroundColor: isDarkMode ? '#0F766E' : '#0D9488',
+          height: 56,
+          width: 56,
+        }}
+      />
+    </Portal>
+  );
+};
+
 const SqlScreen = ({ isDarkMode, navigation }) => {
   const [dados, setDados] = useState(dadosIniciais);
   const [filteredDados, setFilteredDados] = useState(dadosIniciais);
@@ -472,6 +661,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const departamentos = useMemo(() => {
     return [...new Set(dados.map(item => item.DEPARTAMENTO))].sort();
@@ -729,48 +919,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
   );
 
   useEffect(() => {
-    const headerButtonStyle = {
-      ...styles.headerButton,
-      backgroundColor: isDarkMode ? '#134E4A' : '#115E59',
-      borderColor: isDarkMode ? '#0F766E33' : '#0D948833',
-    };
-
     navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 10 }}>
-          <TouchableOpacity
-            style={headerButtonStyle}
-            onPress={importData}
-          >
-            <View style={styles.headerButtonContent}>
-              <MaterialIcons 
-                name="file-upload" 
-                size={22} 
-                color="#FFFFFF"
-              />
-              <Text style={styles.headerButtonText}>
-                Importar
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={headerButtonStyle}
-            onPress={exportFilteredData}
-          >
-            <View style={styles.headerButtonContent}>
-              <MaterialIcons 
-                name="file-download" 
-                size={22} 
-                color="#FFFFFF"
-              />
-              <Text style={styles.headerButtonText}>
-                Exportar
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      ),
       headerTitle: 'Produtos',
       headerTitleStyle: {
         color: isDarkMode ? '#FFFFFF' : '#000000',
@@ -787,6 +936,8 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       },
       headerTintColor: '#FFFFFF',
       headerShadowVisible: true,
+      // Removendo headerRight para eliminar os botões
+      headerRight: null
     });
   }, [navigation, isDarkMode]);
 
@@ -847,8 +998,29 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     loadInitialData();
   }, []);
 
+  const clearDatabase = async () => {
+    try {
+      setDados([]);
+      setFilteredDados([]);
+      await AsyncStorage.setItem('cached_products', JSON.stringify([]));
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso',
+        text2: 'Banco de dados limpo com sucesso!'
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível limpar o banco de dados'
+      });
+    } finally {
+      setShowClearModal(false);
+    }
+  };
+
   return (
-    <>
+    <Provider>
       <SafeAreaView style={[styles.container, isDarkMode ? styles.containerDark : styles.containerLight]}>
         <View style={styles.header}>
           <SearchBar 
@@ -926,8 +1098,22 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
+
+        <FabGroup 
+          onImport={importData}
+          onExport={exportFilteredData}
+          onClear={() => setShowClearModal(true)}
+          isDarkMode={isDarkMode}
+        />
+
+        <ClearDatabaseModal 
+          visible={showClearModal}
+          onClose={() => setShowClearModal(false)}
+          onConfirm={clearDatabase}
+          isDarkMode={isDarkMode}
+        />
       </SafeAreaView>
-    </>
+    </Provider>
   );
 };
 
@@ -1146,7 +1332,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    justifyContent: 'center', 
+    alignItems: 'center', 
     padding: 20,
   },
   modalContent: {
@@ -1228,6 +1415,78 @@ const styles = StyleSheet.create({
   skeletonItem: {
     opacity: 0.7,
   },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    elevation: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  clearModalContent: {
+    width: '85%',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    alignSelf: 'center', 
+    maxWidth: 400, 
+  },
+  clearModalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  clearModalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 8,
+  },
+  clearModalText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  clearModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  clearModalButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#6B7280',
+  },
+  confirmButton: {
+    backgroundColor: '#DC2626',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#DC262660',
+  },
+  clearModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  clearModalButtonTextDisabled: {
+    opacity: 0.7,
+  },
 });
 
-export default SqlScreen; 
+export default SqlScreen;

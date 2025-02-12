@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Notifications from 'expo-notifications';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message'; // Adicionar esta importação
 
 // Configuração das notificações
 Notifications.setNotificationHandler({
@@ -200,6 +201,45 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
     }
   };
 
+  const testNotification = async () => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permissão Necessária',
+          'Para receber notificações, você precisa permitir nas configurações do dispositivo.'
+        );
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Teste de Notificação",
+          body: "Se você está vendo isto, as notificações estão funcionando!",
+          data: { test: true },
+        },
+        trigger: {
+          seconds: 5,
+          channelId: 'default'
+        },
+      });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Notificação Agendada',
+        text2: 'Você receberá uma notificação em 5 segundos',
+        visibilityTime: 3000,
+      });
+    } catch (error) {
+      console.error('Erro ao enviar notificação:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível enviar a notificação de teste. Verifique as permissões do app.'
+      );
+    }
+  };
+
   const SettingItem = ({ icon, title, value, onToggle, iconColor }) => (
     <View style={[styles.settingGroup, isDarkMode ? styles.darkContainer : styles.lightContainer]}>
       <View style={styles.settingItem}>
@@ -255,6 +295,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {/* Seção Aparência */}
         <Text style={[styles.sectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>
           Aparência e Interface
         </Text>
@@ -266,6 +307,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
           onToggle={toggleDarkMode}
         />
 
+        {/* Seção Notificações */}
         <Text style={[styles.sectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>
           Notificações e Alertas
         </Text>
@@ -276,6 +318,15 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
           value={isNotificationsEnabled}
           onToggle={toggleNotifications}
         />
+
+        {/* Botão de teste de notificação */}
+        <TouchableOpacity 
+          style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton]}
+          onPress={testNotification}
+        >
+          <MaterialCommunityIcons name="bell-ring" size={24} color="#FFFFFF" />
+          <Text style={styles.buttonText}>Testar Notificações</Text>
+        </TouchableOpacity>
 
         <NavigationItem
           icon="clock-outline"
