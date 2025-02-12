@@ -58,7 +58,11 @@
           "icon": "./assets/Image/LOGO432.png",
           "color": "#ffffff",
           "sounds": ["./assets/Sound/notification.wav"],
-          "mode": "production"
+          "mode": "production",
+          "channelId": "default",
+          "androidMode": "default",
+          "androidCollapsedTitle": "Notificação de Validade",
+          "androidImportance": "max"
         }
       ]
     ],
@@ -67,7 +71,7 @@
       "color": "#ffffff",
       "iosDisplayInForeground": true,
       "androidMode": "default",
-      "androidCollapsedTitle": "Nova notificação"
+      "androidCollapsedTitle": "Notificação de Validade"
     }
   }
 }

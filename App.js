@@ -15,7 +15,7 @@ import ListScreen from './Screen/CardScreen/ListScreen';
 import HomeScreen from './Screen/Menu/HomeScreen';
 import AddProductScreen from './Screen/Additem/AddProductScreen';
 import BarcodeScannerScreen from './Screen/Additem/BarcodeScannerScreen';
-import SettingsScreen from './Screen/Opçoes/SettingsScreen';
+import SettingsScreen from './Screen/Opcoes/SettingsScreen';
 import DashboardScreen from './Screen/Dashboard/DashboardScreen';
 import ExcelScreen from './Screen/Excel/ExcelScreen';
 import LoginScreen from './Screen/Entrada/LoginScreen';
@@ -23,6 +23,7 @@ import ProfileScreen from "./Screen/Perfil/ProfileScreen";
 import TratarScreen from './Screen/Tratativas/TratarScreen';
 import NotifScreen from './Screen/Components/NotifScreen';
 import SqlScreen from './Screen/SQL/SqlScreen';
+import RegisterScreen from './Screen/Entrada/RegisterScreen';
 
 const Stack = createStackNavigator();
 
@@ -66,6 +67,15 @@ const configurePushNotifications = async () => {
   return true;
 };
 
+// Configuração do handler de notificações (adicionar antes do App component)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(Appearance.getColorScheme() === 'dark');
   const [lastBackPress, setLastBackPress] = useState(0);
@@ -74,6 +84,45 @@ export default function App() {
 
   useEffect(() => {
     configurePushNotifications();
+  }, []);
+
+  useEffect(() => {
+    const configureNotifications = async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        Alert.alert(
+          'Permissão Necessária',
+          'As notificações são necessárias para alertar sobre produtos próximos do vencimento.'
+        );
+        return;
+      }
+
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Validade de Produtos',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+          sound: true,
+        });
+      }
+
+      // Adicionar listener para notificações
+      const subscription = Notifications.addNotificationReceivedListener(notification => {
+        console.log('Notificação recebida:', notification);
+      });
+
+      return () => subscription.remove();
+    };
+
+    configureNotifications();
   }, []);
 
   useEffect(() => {
@@ -179,6 +228,10 @@ export default function App() {
 
             <Stack.Screen name="LoginScreen" options={{ headerShown: false }}>
               {props => <LoginScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="RegisterScreen" options={{ headerShown: false }}>
+              {props => <RegisterScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
             <Stack.Screen name="BarcodeScannerScreen">
