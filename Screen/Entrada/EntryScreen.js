@@ -1,63 +1,140 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Animated, ImageBackground, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, Image, StyleSheet, Animated, ImageBackground, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import appInfo from '../../app.json';
 
-const LoadingIndicator = () => (
-  <View style={styles.loadingContainer}>
-    {[...Array(3)].map((_, i) => (
-      <Animatable.View
-        key={i}
-        animation={{
-          0: { scale: 1, opacity: 0.3 },
-          0.5: { scale: 1.3, opacity: 1 },
-          1: { scale: 1, opacity: 0.3 }
-        }}
-        duration={1500}
-        delay={i * 300}
-        easing="ease-in-out"
-        iterationCount="infinite"
-        style={[styles.loadingDot]}
-      >
-        <LinearGradient
-          colors={['#4a90e2', '#357abd', '#1e5799']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.dot}
-        />
-      </Animatable.View>
-    ))}
-  </View>
-);
+const { width, height } = Dimensions.get('window');
+
+// Componente de sequência de ícones simplificado
+const SystemIconsSequence = () => {
+  const [currentIcon, setCurrentIcon] = useState(0);
+  const [showLogo, setShowLogo] = useState(false);
+  const [showTitle, setShowTitle] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  const icons = [
+    { emoji: '📦', label: 'Produtos', colors: ['#E74C3C', '#C0392B', '#A93226'] },
+    { emoji: '📋', label: 'Inventário', colors: ['#F39C12', '#E67E22', '#D35400'] },
+    { emoji: '📅', label: 'Validades', colors: ['#27AE60', '#229954', '#1E8449'] },
+    { emoji: '📊', label: 'Relatórios', colors: ['#9B59B6', '#8E44AD', '#7D3C98'] },
+    { emoji: '🔔', label: 'Alertas', colors: ['#E67E22', '#D35400', '#BA4A00'] },
+  ];
+
+  useEffect(() => {
+    const iconInterval = setInterval(() => {
+      setCurrentIcon(prev => {
+        if (prev < icons.length - 1) {
+          return prev + 1;
+        } else {
+          clearInterval(iconInterval);
+          setTimeout(() => setShowLogo(true), 800);
+          return prev;
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(iconInterval);
+  }, []);
+
+  useEffect(() => {
+    if (showLogo) {
+      setTimeout(() => setShowTitle(true), 1500);
+    }
+  }, [showLogo]);
+
+  useEffect(() => {
+    if (showTitle) {
+      setTimeout(() => setShowWelcome(true), 1200);
+    }
+  }, [showTitle]);
+
+  return (
+    <View style={styles.sequenceContainer}>
+      {!showLogo ? (
+        <Animatable.View 
+          key={currentIcon}
+          animation="zoomIn"
+          duration={600}
+          style={styles.sequenceIconContainer}
+        >
+          <LinearGradient
+            colors={icons[currentIcon].colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sequenceIconCircle}
+          >
+            <Text style={styles.sequenceIconText}>{icons[currentIcon].emoji}</Text>
+          </LinearGradient>
+          <Text style={styles.sequenceIconLabel}>
+            {icons[currentIcon].label}
+          </Text>
+        </Animatable.View>
+      ) : (
+        <Animatable.View 
+          animation="zoomIn"
+          duration={800}
+          style={styles.finalLogoContainer}
+        >
+          <Animatable.Image
+            animation="fadeIn"
+            duration={1200}
+            source={require('../../assets/Image/LOGO.png')}
+            style={styles.finalLogo}
+          />
+          {showTitle && (
+            <Animatable.Text 
+              animation="fadeInUp"
+              duration={2000}
+              easing="ease-out"
+              style={styles.finalLogoText}
+            >
+              Gestão de Validades
+            </Animatable.Text>
+          )}
+          {showWelcome && (
+            <Animatable.Text 
+              animation="fadeInUp"
+              duration={1500}
+              easing="ease-out"
+              style={styles.welcomeText}
+            >
+              Seja bem-vindo!
+            </Animatable.Text>
+          )}
+        </Animatable.View>
+      )}
+    </View>
+  );
+};
 
 const EntryScreen = () => {
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(true);
-  const fadeAnim = new Animated.Value(0);
+  const [showSequence, setShowSequence] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
 
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1500,
-        useNativeDriver: true,
-      })
-    ]).start();
+    // Animação inicial simples
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1500,
+      useNativeDriver: true,
+    }).start();
 
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3500);
+    // Sequência simplificada
+    setTimeout(() => setShowSequence(true), 1000);
+    setTimeout(() => setIsLoading(false), 12000);
   }, []);
 
   useEffect(() => {
     if (!isLoading) {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 500,
+        duration: 1000,
         useNativeDriver: true,
       }).start(() => {
         navigation.navigate('LoginScreen');
@@ -70,44 +147,36 @@ const EntryScreen = () => {
       <ImageBackground
         source={require('../../assets/Image/FUNDOAPP.png')}
         style={styles.backgroundImage}
-        blurRadius={4}
+        blurRadius={0.5}
       >
         <LinearGradient
-          colors={['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.9)']}
+          colors={[
+            'rgba(255, 255, 255, 0.92)',
+            'rgba(240, 248, 255, 0.95)',
+            'rgba(255, 255, 255, 0.92)',
+          ]}
           style={styles.gradient}
         >
-          <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-            <Animatable.Image
-              animation="bounceIn"
-              duration={1500}
-              source={require('../../assets/Image/LOGO.png')}
-              style={styles.logo}
-            />
-            <Animatable.Text
-              animation="fadeInUp"
-              delay={800}
-              style={styles.title}
-            >
-              Bem-vindo ao Gestão+
-            </Animatable.Text>
-
-            {isLoading && (
-              <>
-                <LoadingIndicator />
-                <Animatable.View
-                  animation="fadeIn"
-                  delay={1200}
-                  style={styles.infoContainer}
-                >
-                  <Text style={styles.versionInfo}>
-                    Versão {appInfo.expo.version}
-                  </Text>
-                  <Text style={styles.developerInfo}>
-                    Desenvolvido por Daniel Paz
-                  </Text>
-                </Animatable.View>
-              </>
+          <Animated.View 
+            style={[
+              styles.content, 
+              { opacity: fadeAnim }
+            ]}
+          >
+            {/* Sequência de ícones centralizada */}
+            {showSequence && (
+              <SystemIconsSequence />
             )}
+
+            {/* Informação simples */}
+            <View style={styles.infoContainer}>
+              <Text style={styles.versionInfo}>
+                v{appInfo.expo.version}
+              </Text>
+              <Text style={styles.developerInfo}>
+                Desenvolvido por Daniel Paz
+              </Text>
+            </View>
           </Animated.View>
         </LinearGradient>
       </ImageBackground>
@@ -118,7 +187,7 @@ const EntryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
   backgroundImage: {
     flex: 1,
@@ -129,63 +198,85 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   content: {
     alignItems: 'center',
-    width: '90%',
+    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
     paddingHorizontal: 20,
   },
-  logo: {
-    width: '80%',
-    height: undefined,
-    aspectRatio: 1,
-    resizeMode: 'contain',
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 30,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    marginTop: 50,
-    height: 40,
+  sequenceContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-  },
-  loadingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  dot: {
     flex: 1,
-    borderRadius: 6,
+  },
+  sequenceIconContainer: {
+    alignItems: 'center',
+  },
+  sequenceIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sequenceIconText: {
+    fontSize: 50,
+  },
+  sequenceIconLabel: {
+    fontSize: 20,
+    color: '#2C3E50',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  finalLogoContainer: {
+    alignItems: 'center',
+  },
+  finalLogo: {
+    width: 140,
+    height: 140,
+    resizeMode: 'contain',
+    marginBottom: 40,
+  },
+  finalLogoText: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#2C3E50',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    marginBottom: 20,
+  },
+  welcomeText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2C3E50',
+    textAlign: 'center',
+    marginTop: 20,
   },
   infoContainer: {
-    marginTop: 40,
+    position: 'absolute',
+    bottom: 40,
     alignItems: 'center',
   },
   versionInfo: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    textAlign: 'center',
+    fontSize: 12,
+    color: '#95A5A6',
+    fontWeight: '500',
   },
   developerInfo: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginTop: 8,
-    opacity: 0.8,
-    textAlign: 'center',
+    fontSize: 11,
+    color: '#BDC3C7',
+    marginTop: 4,
     fontStyle: 'italic',
   },
 });
