@@ -15,11 +15,42 @@ const SystemIconsSequence = () => {
   const [showWelcome, setShowWelcome] = useState(false);
 
   const icons = [
-    { emoji: '📦', label: 'Produtos', colors: ['#E74C3C', '#C0392B', '#A93226'] },
-    { emoji: '📋', label: 'Inventário', colors: ['#F39C12', '#E67E22', '#D35400'] },
-    { emoji: '📅', label: 'Validades', colors: ['#27AE60', '#229954', '#1E8449'] },
-    { emoji: '📊', label: 'Relatórios', colors: ['#9B59B6', '#8E44AD', '#7D3C98'] },
-    { emoji: '🔔', label: 'Alertas', colors: ['#E67E22', '#D35400', '#BA4A00'] },
+    { 
+      emoji: '📦', 
+      label: 'Produtos', 
+      colors: ['#FF6B6B', '#FF5252', '#FF1744'],
+      description: 'Gerencie seu estoque'
+    },
+    { 
+      emoji: '📋', 
+      label: 'Inventário', 
+      colors: ['#4ECDC4', '#26C6DA', '#00BCD4'],
+      description: 'Controle total'
+    },
+    { 
+      emoji: '📅', 
+      label: 'Validades', 
+      colors: ['#FFD93D', '#FFC107', '#FF9800'],
+      description: 'Acompanhe prazos'
+    },
+    { 
+      emoji: '📈', 
+      label: 'Relatórios', 
+      colors: ['#6C5CE7', '#5F27CD', '#4834D4'],
+      description: 'Análises detalhadas'
+    },
+    { 
+      emoji: '🔔', 
+      label: 'Alertas', 
+      colors: ['#FD79A8', '#E84393', '#D63384'],
+      description: 'Notificações inteligentes'
+    },
+    { 
+      emoji: '⚡', 
+      label: 'Rápido', 
+      colors: ['#00B894', '#00A085', '#00A085'],
+      description: 'Eficiência garantida'
+    },
   ];
 
   useEffect(() => {
@@ -69,6 +100,9 @@ const SystemIconsSequence = () => {
           </LinearGradient>
           <Text style={styles.sequenceIconLabel}>
             {icons[currentIcon].label}
+          </Text>
+          <Text style={styles.sequenceIconDescription}>
+            {icons[currentIcon].description}
           </Text>
         </Animatable.View>
       ) : (
@@ -127,7 +161,7 @@ const EntryScreen = () => {
 
     // Sequência simplificada
     setTimeout(() => setShowSequence(true), 1000);
-    setTimeout(() => setIsLoading(false), 12000);
+    setTimeout(() => setIsLoading(false), 14000);
   }, []);
 
   useEffect(() => {
@@ -147,16 +181,31 @@ const EntryScreen = () => {
       <ImageBackground
         source={require('../../assets/Image/FUNDOAPP.png')}
         style={styles.backgroundImage}
-        blurRadius={0.5}
+        blurRadius={0}
       >
         <LinearGradient
           colors={[
             'rgba(255, 255, 255, 0.92)',
-            'rgba(240, 248, 255, 0.95)',
+            'rgba(240, 248, 255, 0.88)',
+            'rgba(245, 247, 250, 0.90)',
             'rgba(255, 255, 255, 0.92)',
           ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.gradient}
         >
+          {/* Gradiente decorativo adicional */}
+          <LinearGradient
+            colors={[
+              'rgba(116, 185, 255, 0.03)',
+              'rgba(255, 255, 255, 0)',
+              'rgba(255, 182, 193, 0.03)',
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.decorativeGradient}
+          />
+          
           <Animated.View 
             style={[
               styles.content, 
@@ -213,28 +262,37 @@ const styles = StyleSheet.create({
   },
   sequenceIconContainer: {
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   sequenceIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 10,
   },
   sequenceIconText: {
-    fontSize: 50,
+    fontSize: 55,
   },
   sequenceIconLabel: {
-    fontSize: 20,
+    fontSize: 22,
     color: '#2C3E50',
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  sequenceIconDescription: {
+    fontSize: 13,
+    color: '#7F8C8D',
+    fontWeight: '400',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   finalLogoContainer: {
     alignItems: 'center',
@@ -278,6 +336,13 @@ const styles = StyleSheet.create({
     color: '#BDC3C7',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  decorativeGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });
 
