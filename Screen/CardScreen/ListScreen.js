@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, Alert, TextInput, ActivityIndicator, Image, TouchableOpacity, Text, Modal, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProductItem from '../Components/ProductItem';
@@ -65,6 +65,8 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const [sortOrder, setSortOrder] = useState({ field: 'validade', direction: 'asc' });
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const openSwipeRef = useRef(null);
+  const swipeRefs = useRef({});
 
   useEffect(() => {
     loadProducts();
@@ -383,10 +385,28 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     );
   };
 
+  const handleSwipeableOpen = (ref) => {
+    if (openSwipeRef.current && openSwipeRef.current !== ref) {
+      openSwipeRef.current.close();
+    }
+    openSwipeRef.current = ref;
+  };
+
+  const handleCloseSwipe = () => {
+    if (openSwipeRef.current) {
+      openSwipeRef.current.close();
+      openSwipeRef.current = null;
+    }
+  };
+
   const renderProductItem = ({ item }) => {
     const diasrestantes = calculatediasrestantes(item.validade);
+    if (!swipeRefs.current[item.id]) {
+      swipeRefs.current[item.id] = React.createRef();
+    }
     return (
       <SwipeableListItem
+        ref={swipeRefs.current[item.id]}
         item={item}
         onTreat={() => {
           setSelectedProduct(item);
@@ -395,6 +415,8 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         onEdit={handleEditProduct}
         onDelete={handleDeleteProduct}
         isDarkMode={isDarkMode}
+        onSwipeableOpen={() => handleSwipeableOpen(swipeRefs.current[item.id].current)}
+        onRequestClose={handleCloseSwipe}
       >
         <Animated.View style={[styles.productItem, isDarkMode && styles.darkProductItem]}>
           <ProductItem

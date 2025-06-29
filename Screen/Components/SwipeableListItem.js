@@ -1,55 +1,64 @@
-import React, { useRef } from 'react';
-import { View, Animated, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React, { useRef, useImperativeHandle, forwardRef, useState } from 'react';
+import { View, Animated, TouchableOpacity, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { MaterialIcons } from '@expo/vector-icons';
 
-const BUTTON_WIDTH = 72;
+const BUTTON_WIDTH = 80;
 const BUTTONS = [
   {
     key: 'treat',
     label: 'Tratar',
-    icon: 'check-circle',
-    color: '#4CAF50',
+    icon: 'assignment-turned-in',
+    color: '#27ae60',
   },
   {
     key: 'edit',
     label: 'Editar',
-    icon: 'edit',
+    icon: 'edit-note',
     color: '#1976D2',
   },
   {
     key: 'delete',
     label: 'Excluir',
-    icon: 'delete-forever',
-    color: '#D32F2F',
+    icon: 'delete-sweep',
+    color: '#e53935',
   },
 ];
 
-const SwipeableListItem = ({
+const SwipeableListItem = forwardRef(({
   item,
   onTreat,
   onEdit,
   onDelete,
   isDarkMode,
   children,
-}) => {
+  onSwipeableOpen,
+  onRequestClose,
+}, ref) => {
   const swipeableRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    close: () => {
+      if (swipeableRef.current) {
+        swipeableRef.current.close();
+      }
+    }
+  }));
 
   const renderRightActions = (progress, dragX) => {
-    // Cada botão tem sua própria animação de escala e opacidade
     return (
       <View style={styles.actionsRow}>
         {BUTTONS.map((btn, idx) => {
-          // Animação de escala e opacidade para cada botão
           const inputRange = [0, 0.5 + idx * 0.1, 1];
           const scale = progress.interpolate({
             inputRange,
-            outputRange: [0.5, 0.8, 1],
+            outputRange: [0.7, 0.9, 1],
             extrapolate: 'clamp',
           });
           const opacity = progress.interpolate({
             inputRange,
-            outputRange: [0, 0.5, 1],
+            outputRange: [0, 0.7, 1],
             extrapolate: 'clamp',
           });
           let onPress;
@@ -61,20 +70,18 @@ const SwipeableListItem = ({
               key={btn.key}
               style={[
                 styles.actionButton,
-                { backgroundColor: btn.color, width: BUTTON_WIDTH },
-                { transform: [{ scale }], opacity },
-                btn.key === 'edit' && styles.editButton,
-                btn.key === 'delete' && styles.deleteButton,
+                { width: BUTTON_WIDTH, backgroundColor: btn.color, transform: [{ scale }], opacity },
+                idx !== 0 && styles.buttonSeparator,
               ]}
             >
               <TouchableOpacity
                 style={styles.actionTouchable}
                 onPress={onPress}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <MaterialIcons
                   name={btn.icon}
-                  size={btn.key === 'edit' ? 28 : btn.key === 'delete' ? 30 : 24}
+                  size={btn.key === 'edit' ? 32 : btn.key === 'delete' ? 36 : 28}
                   color="#FFF"
                   style={styles.actionIcon}
                 />
@@ -87,19 +94,44 @@ const SwipeableListItem = ({
     );
   };
 
+  // Só fecha ao tocar fora se estiver aberto
+  const handleBackgroundPress = (e) => {
+    // Só fecha se o swipe estiver aberto e o toque for fora do card
+    if (isOpen && onRequestClose) {
+      setTimeout(() => {
+        onRequestClose();
+      }, 150);
+    }
+  };
+
+  const handleSwipeableOpen = () => {
+    setIsOpen(true);
+    if (onSwipeableOpen) onSwipeableOpen();
+  };
+
+  const handleSwipeableClose = () => {
+    setIsOpen(false);
+  };
+
   return (
-    <Swipeable
-      ref={swipeableRef}
-      renderRightActions={renderRightActions}
-      rightThreshold={40}
-      overshootRight={false}
-      friction={2}
-      useNativeAnimations
-    >
-      {children}
-    </Swipeable>
+    <TouchableWithoutFeedback onPress={handleBackgroundPress}>
+      <View>
+        <Swipeable
+          ref={swipeableRef}
+          renderRightActions={renderRightActions}
+          rightThreshold={40}
+          overshootRight={false}
+          friction={2}
+          useNativeAnimations
+          onSwipeableOpen={handleSwipeableOpen}
+          onSwipeableClose={handleSwipeableClose}
+        >
+          {children}
+        </Swipeable>
+      </View>
+    </TouchableWithoutFeedback>
   );
-};
+});
 
 const styles = StyleSheet.create({
   actionsRow: {
@@ -108,19 +140,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     backgroundColor: 'transparent',
-    paddingRight: 4,
+    paddingRight: 6,
   },
   actionButton: {
-    height: '90%',
-    borderRadius: 12,
-    marginHorizontal: 2,
+    height: '88%',
+    borderRadius: 18,
+    marginHorizontal: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 7,
   },
   actionTouchable: {
     flex: 1,
@@ -128,23 +160,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     height: '100%',
-    borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 2,
+    borderRadius: 18,
+    overflow: 'hidden',
   },
   actionIcon: {
-    marginBottom: 4,
+    marginBottom: 2,
+    alignSelf: 'center',
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
-  editButton: {
-    // Personalize aqui se quiser
-  },
-  deleteButton: {
-    // Personalize aqui se quiser
+  buttonSeparator: {
+    marginLeft: 6,
   },
 });
 
