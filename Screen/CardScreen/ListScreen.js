@@ -2,11 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, FlatList, StyleSheet, Alert, TextInput, ActivityIndicator, Image, TouchableOpacity, Text, Modal, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProductItem from '../Components/ProductItem';
+import TreatmentModal from '../Components/TreatmentModal';
+import DeleteConfirmationModal from '../Components/DeleteConfirmationModal';
 import debounce from 'lodash.debounce';
-import { Swipeable } from 'react-native-gesture-handler';
 import { Animated, LayoutAnimation } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import SwipeableListItem from '../Components/SwipeableListItem';
 
 const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -49,121 +51,6 @@ const useProducts = () => {
   };
 
   return { products, setProducts, loadProducts, saveProducts, loading };
-};
-
-const getModalStyles = (isDarkMode) => StyleSheet.create({
-  quantitySection: {
-    backgroundColor: isDarkMode ? '#2A2A2A' : '#F5F5F5',
-    borderRadius: 15,
-    padding: 16,
-    marginBottom: 20,
-  },
-});
-
-const TreatmentModal = ({ 
-  visible, 
-  onClose, 
-  onTreat, 
-  selectedProduct, 
-  isDarkMode,
-  quantity,
-  onQuantityChange 
-}) => {
-  const modalStyles = getModalStyles(isDarkMode);
-
-  return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalView, isDarkMode && styles.darkModalView]}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>
-              Tratativa de Produto
-            </Text>
-            <Text style={[styles.productName, isDarkMode && { color: '#999' }]} numberOfLines={1}>
-              {selectedProduct?.descricao}
-            </Text>
-          </View>
-
-          <View style={[styles.quantitySection, isDarkMode && styles.darkQuantitySection]}>
-            <View style={styles.quantityInfo}>
-              <Text style={[styles.quantityLabel, isDarkMode && { color: '#999' }]}>
-                Estoque Atual:
-              </Text>
-              <Text style={[styles.quantityValue, isDarkMode && styles.darkText]}>
-                {selectedProduct?.quantidade || 0} unidades
-              </Text>
-            </View>
-            
-            <View style={styles.quantityInputWrapper}>
-              <Text style={[styles.quantityInputLabel, isDarkMode && { color: '#999' }]}>
-                Quantidade a tratar:
-              </Text>
-              <TextInput
-                style={[styles.quantityInput, isDarkMode && styles.darkQuantityInput]}
-                value={quantity}
-                onChangeText={onQuantityChange}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={isDarkMode ? '#666' : '#999'}
-                textAlign="center"
-              />
-            </View>
-          </View>
-
-          <View style={styles.buttonsContainer}>
-            <Pressable
-              style={[styles.treatmentButton, styles.sellButton]}
-              onPress={() => onTreat(selectedProduct, 'sold')}
-            >
-              <MaterialIcons name="shopping-cart" size={24} color="#FFF" />
-              <Text style={styles.treatmentButtonText}>Vendido</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.treatmentButton, styles.exchangeButton]}
-              onPress={() => onTreat(selectedProduct, 'exchanged')}
-            >
-              <MaterialIcons name="swap-horiz" size={24} color="#FFF" />
-              <Text style={styles.treatmentButtonText}>Trocado</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.treatmentButton, styles.returnButton]}
-              onPress={() => onTreat(selectedProduct, 'returned')}
-            >
-              <MaterialIcons name="assignment-return" size={24} color="#FFF" />
-              <Text style={styles.treatmentButtonText}>Devolvido</Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.treatmentButton, styles.expiredButton]}
-              onPress={() => onTreat(selectedProduct, 'expired')}
-            >
-              <MaterialIcons name="error" size={24} color="#FFF" />
-              <Text style={styles.treatmentButtonText}>Vencido</Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            style={[
-              styles.treatmentCancelButton,
-              isDarkMode && styles.darkTreatmentCancelButton
-            ]}
-            onPress={onClose}
-          >
-            <Text style={styles.treatmentCancelButtonText}>
-              Cancelar
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
-  );
 };
 
 const ListScreen = ({ route, navigation, isDarkMode }) => {
@@ -498,28 +385,16 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
   const renderProductItem = ({ item }) => {
     const diasrestantes = calculatediasrestantes(item.validade);
-    let row = [];
-    let prevOpenedRow;
-
-    const closeRow = (index) => {
-      if (prevOpenedRow && prevOpenedRow !== row[index]) {
-        prevOpenedRow.close();
-      }
-      prevOpenedRow = row[index];
-    };
-
     return (
-      <Swipeable
-        ref={ref => row[item.id] = ref}
-        renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX, item)}
-        renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item)}
-        leftThreshold={40}
-        rightThreshold={40}
-        overshootLeft={false}
-        overshootRight={false}
-        onSwipeableOpen={() => closeRow(item.id)}
-        friction={2}
-        useNativeAnimations
+      <SwipeableListItem
+        item={item}
+        onTreat={() => {
+          setSelectedProduct(item);
+          setTreatmentModalVisible(true);
+        }}
+        onEdit={handleEditProduct}
+        onDelete={handleDeleteProduct}
+        isDarkMode={isDarkMode}
       >
         <Animated.View style={[styles.productItem, isDarkMode && styles.darkProductItem]}>
           <ProductItem
@@ -531,146 +406,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
             isDarkMode={isDarkMode}
           />
         </Animated.View>
-      </Swipeable>
-    );
-  };
-  
-  const renderRightActions = (progress, dragX, item) => {
-    // Animação de entrada dos botões com efeito elástico
-    const bounceAnim = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [100, 10, 0],
-      extrapolate: 'clamp',
-    });
-
-    // Animação de escala com efeito bounce
-    const scale = progress.interpolate({
-      inputRange: [0, 0.5, 0.8, 1],
-      outputRange: [0.5, 1.1, 0.9, 1],
-      extrapolate: 'clamp',
-    });
-
-    // Animação de opacidade
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.3, 1],
-    });
-
-    return (
-      <View style={styles.actionsContainer}>
-        <Animated.View 
-          style={[
-            styles.actionsWrapper,
-            {
-              transform: [
-                { translateX: bounceAnim },
-                { scale }
-              ],
-              opacity,
-            }
-          ]}
-        >
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-            onPress={() => {
-              setSelectedProduct(item);
-              setTreatmentModalVisible(true);
-            }}
-          >
-            <View style={styles.actionButtonContent}>
-              <MaterialIcons 
-                name="check-circle" 
-                size={24} 
-                color="#FFF"
-                style={styles.actionIcon}
-              />
-              <Text style={styles.actionButtonText}>Tratar</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.editButton]}
-            onPress={() => handleEditProduct(item)}
-          >
-            <View style={styles.actionButtonContent}>
-              <MaterialIcons 
-                name="edit" 
-                size={28} 
-                color="#fff"
-                style={styles.actionIcon} 
-              />
-              <Text style={styles.actionButtonText}>Editar</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDeleteProduct(item)}
-          >
-            <View style={styles.actionButtonContent}>
-              <MaterialIcons 
-                name="delete-forever"
-                size={30} 
-                color="#fff"
-                style={styles.actionIcon}
-              />
-              <Text style={styles.actionButtonText}>Excluir</Text>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
-    );
-  };
-
-  const renderLeftActions = (progress, dragX, item) => {
-    const translateX = dragX.interpolate({
-      inputRange: [0, 50, 100, 101],
-      outputRange: [-20, 0, 0, 1],
-    });
-
-    const scale = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0.5, 0.8, 1],
-    });
-
-    const opacity = progress.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.3, 1],
-    });
-
-    return (
-      <View style={styles.leftActionsContainer}>
-        <Animated.View 
-          style={[
-            styles.leftActionsWrapper,
-            {
-              transform: [
-                { translateX },
-                { scale }
-              ],
-              opacity,
-            }
-          ]}
-        >
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: '#4CAF50' }]}
-            onPress={() => {
-              setSelectedProduct(item);
-              setTreatmentModalVisible(true);
-            }}
-          >
-            <View style={styles.actionButtonContent}>
-              <MaterialIcons 
-                name="check-circle" 
-                size={24} 
-                color="#FFF"
-                style={styles.actionIcon}
-              />
-              <Text style={styles.actionButtonText}>Tratar</Text>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+      </SwipeableListItem>
     );
   };
 
@@ -903,55 +639,16 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         quantity={treatmentQuantity}
         onQuantityChange={handleQuantityChange}
       />
-      <Modal
-        animationType="fade"
-        transparent={true}
+      <DeleteConfirmationModal
         visible={deleteConfirmationVisible}
-        onRequestClose={() => setDeleteConfirmationVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalView, isDarkMode && styles.darkModalView]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>
-                Confirmar Exclusão
-              </Text>
-              <Text 
-                style={[styles.productName, isDarkMode && { color: '#999' }]} 
-                numberOfLines={2}
-              >
-                {productToDelete?.descricao}
-              </Text>
-            </View>
-
-            <Text style={[styles.confirmationText, isDarkMode && { color: '#999' }]}>
-              Tem certeza que deseja excluir este produto?
-            </Text>
-
-            <View style={styles.confirmationButtons}>
-              <Pressable
-                style={styles.confirmationCancelButton}
-                onPress={() => {
-                  setDeleteConfirmationVisible(false);
-                  setProductToDelete(null);
-                }}
-                android_ripple={{ color: 'rgba(255,255,255,0.1)' }}
-              >
-                <MaterialIcons name="close" size={24} color="#FFF" />
-                <Text style={styles.confirmationButtonText}>Cancelar</Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.confirmationDeleteButton}
-                onPress={confirmDelete}
-                android_ripple={{ color: 'rgba(255,255,255,0.1)' }}
-              >
-                <MaterialIcons name="delete" size={24} color="#FFF" />
-                <Text style={styles.confirmationButtonText}>Excluir</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => {
+          setDeleteConfirmationVisible(false);
+          setProductToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        product={productToDelete}
+        isDarkMode={isDarkMode}
+      />
     </View>
   );
 };
@@ -1096,263 +793,6 @@ const styles = StyleSheet.create({
   },
   darkStatsText: {
     color: '#aaa',
-  },
-
-  // ==================== Estilos das Ações de Swipe ====================
-  actionsContainer: {
-    width: 180,
-    height: '100%',
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    marginRight: 10,
-  },
-  actionsWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingVertical: 6,
-  },
-  actionButton: {
-    width: 80,
-    height: '94%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-    marginHorizontal: 4.5,
-    elevation: 3,
-  },
-  actionButtonContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-  },
-  actionIcon: {
-    marginBottom: 4,
-  },
-  actionButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  editButton: {
-    backgroundColor: '#1976D2',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  deleteButton: {
-    backgroundColor: '#D32F2F',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-
-  // ==================== Estilos Base dos Modais ====================
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalView: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'stretch',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  darkModalView: {
-    backgroundColor: '#1E1E1E',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  modalHeader: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  productName: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-
-  // ==================== Estilos do Modal de Tratativas ====================
-  quantitySection: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 15,
-    padding: 16,
-    marginBottom: 20,
-  },
-  darkQuantitySection: {
-    backgroundColor: '#2A2A2A',
-  },
-  quantityInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  quantityLabel: {
-    fontSize: 16,
-    color: '#666',
-  },
-  quantityValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  quantityInputWrapper: {
-    alignItems: 'center',
-  },
-  quantityInputLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  quantityInput: {
-    width: '50%',
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  darkQuantityInput: {
-    backgroundColor: '#333',
-    color: '#FFF',
-    borderColor: '#404040',
-  },
-  buttonsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 20,
-  },
-  treatmentButton: {
-    width: '48%',
-    height: 80,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 15,
-    padding: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  sellButton: {
-    backgroundColor: '#4CAF50',
-  },
-  exchangeButton: {
-    backgroundColor: '#2196F3',
-  },
-  returnButton: {
-    backgroundColor: '#FF9800',
-  },
-  expiredButton: {
-    backgroundColor: '#FF5252',
-  },
-  treatmentButtonText: {
-    color: '#FFF',
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  treatmentCancelButton: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#757575',
-    alignItems: 'center',
-    marginTop: 16,
-    width: '100%',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-  },
-  darkTreatmentCancelButton: {
-    backgroundColor: '#424242',
-    borderWidth: 1,
-    borderColor: '#505050',
-  },
-  treatmentCancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-
-  // ==================== Estilos do Modal de Confirmação de Exclusão ====================
-  confirmationText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginVertical: 24,
-    lineHeight: 24,
-  },
-  confirmationButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 16,
-  },
-  confirmationCancelButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#757575',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  confirmationDeleteButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#D32F2F',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  confirmationButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
   },
 
   // ==================== Estilos de Ordenação ====================
