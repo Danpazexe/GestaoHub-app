@@ -356,6 +356,20 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
           onToggle={toggleAutoBackup}
         />
 
+        <NavigationItem
+          icon="file-excel"
+          title="Exportar/Importar Excel"
+          onPress={() => navigation.navigate('ExcelScreen')}
+          iconColor="#059669"
+        />
+
+        <NavigationItem
+          icon="database"
+          title="Gerenciar Banco de Dados"
+          onPress={() => navigation.navigate('SqlScreen')}
+          iconColor="#3B82F6"
+        />
+
         <TouchableOpacity 
           style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton]} 
           onPress={() => setIsModalVisible(true)}

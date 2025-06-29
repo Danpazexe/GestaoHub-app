@@ -1,366 +1,337 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView, SafeAreaView, Dimensions, BackHandler, ToastAndroid, Platform, Alert } from "react-native";
-import LottieView from "lottie-react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HomeScreen = ({ isDarkMode }) => {
   const navigation = useNavigation();
-  const fadeAnim = new Animated.Value(0);
-  const translateY = new Animated.Value(50);
+  const insets = useSafeAreaInsets();
+  const [stats, setStats] = useState({ totalProducts: 0, expiringSoon: 0 });
+  const [pressedCard, setPressedCard] = useState(null);
+  const [userName, setUserName] = useState('Usuário');
 
-  const [buttons] = useState([
+  const menuItems = [
     {
-      title: "Lista",
+      id: 1,
+      title: "Ver Lista",
+      subtitle: "Acompanhar produtos",
+      icon: "fact-check",
       screen: "ListScreen",
-      colors: ['#4481eb', '#04befe'],
-      icon: "list-alt",
-      subtitle: "Visualizar produtos"
+      gradient: ['#2563eb', '#1d4ed8'],
     },
     {
+      id: 2,
       title: "Adicionar",
+      subtitle: "Novo produto",
+      icon: "add-circle-outline",
       screen: "AddProductScreen",
-      colors: ['#11998e', '#38ef7d'],
-      icon: "add-circle",
-      subtitle: "Novo produto"
+      gradient: ['#059669', '#047857'],
     },
     {
+      id: 3,
       title: "Dashboard",
+      subtitle: "Análise e relatórios",
+      icon: "analytics",
       screen: "DashboardScreen",
-      colors: ['#eb3349', '#f45c43'],
-      icon: "dashboard",
-      subtitle: "Análise de dados"
+      gradient: ['#dc2626', '#b91c1c'],
     },
     {
+      id: 4,
       title: "Tratativas",
+      subtitle: "Produtos processados",
+      icon: "assignment-turned-in",
       screen: "TratarScreen",
-      colors: ['#f2994a', '#f2c94c'],
-      icon: "assignment",
-      subtitle: "Produtos tratados"
-    },
-    {
-      title: "Excel",
-      screen: "ExcelScreen",
-      colors: ['#2193b0', '#6dd5ed'],
-      icon: "table-chart",
-      subtitle: "Exportar dados"
-    },
-    {
-      title: "Perfil",
-      screen: "ProfileScreen",
-      colors: ['#834d9b', '#d04ed6'],
-      icon: "person",
-      subtitle: "Suas informações"
-    },
-    {
-      title: "Config",
-      screen: "SettingsScreen",
-      colors: ['#4b6cb7', '#182848'],
-      icon: "settings",
-      subtitle: "Configurações do app"
-    },
-    {
-      title: "SQL",
-      screen: "SqlScreen",
-      colors: ['#11998e', '#38ef7d'],
-      icon: "storage",
-      subtitle: "Banco de dados"
-    },
-    {
-      title: "Ajustando",
-      screen: null,
-      colors: ['#636363', '#a2ab58'],
-      icon: "build",
-      subtitle: "Em desenvolvimento"
-    },
-  ]);
-
-  const [pressedButton, setPressedButton] = useState(null);
-  const [buttonAnimations] = useState(() => 
-    buttons.map(() => ({
-      opacity: new Animated.Value(0),
-      translateY: new Animated.Value(50),
-      scale: new Animated.Value(1)
-    }))
-  );
+      gradient: ['#d97706', '#b45309'],
+    }
+  ];
 
   useEffect(() => {
-    console.log("HomeScreen carregada.");
-    navigation.setOptions({ headerShown: false });
+    const loadStats = async () => {
+      try {
+        const productsJson = await AsyncStorage.getItem('products');
+        if (productsJson) {
+          const products = JSON.parse(productsJson);
+          const totalProducts = products.length;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const thirtyDaysFromNow = new Date(today);
+          thirtyDaysFromNow.setDate(today.getDate() + 30);
+          const expiringSoon = products.filter(product => {
+            if (product.validade) {
+              const expirationDate = new Date(product.validade);
+              expirationDate.setHours(0, 0, 0, 0);
+              return expirationDate >= today && expirationDate <= thirtyDaysFromNow;
+            }
+            return false;
+          }).length;
+          setStats({ totalProducts, expiringSoon });
+        }
+      } catch (e) {
+        setStats({ totalProducts: 0, expiringSoon: 0 });
+      }
+    };
 
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      })
-    ]).start();
+    const loadUserName = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const user = JSON.parse(userData);
+          if (user.name) {
+            setUserName(user.name);
+          }
+        }
+      } catch (e) {
+        console.log('Erro ao carregar nome do usuário:', e);
+      }
+    };
 
-    const animations = buttonAnimations.map((anim, index) => {
-      return Animated.parallel([
-        Animated.timing(anim.opacity, {
-          toValue: 1,
-          duration: 600,
-          delay: index * 120,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim.translateY, {
-          toValue: 0,
-          duration: 600,
-          delay: index * 120,
-          useNativeDriver: true,
-        })
-      ]);
-    });
-
-    Animated.stagger(60, animations).start();
+    loadStats();
+    loadUserName();
   }, []);
 
-  const handleNavigation = (screen) => {
-    console.log(`Navegando para: ${screen}`);
-    navigation.navigate(screen);
-  };
-
-  const handlePressIn = (index) => {
-    setPressedButton(index);
-    Animated.spring(buttonAnimations[index].scale, {
-      toValue: 0.96,
-      useNativeDriver: true,
-      speed: 25,
-      bounciness: 3,
-    }).start();
-  };
-
-  const handlePressOut = (index) => {
-    setPressedButton(null);
-    Animated.spring(buttonAnimations[index].scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 4,
-    }).start();
-  };
-
-  const styles = StyleSheet.create({
-    safeArea: {
-      flex: 1,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    scrollViewContent: {
-      padding: 16,
-      paddingBottom: 32,
-    },
-    container: {
-      flex: 1,
-      padding: 16,
-      position: "relative",
-    },
-    darkBackground: {
-      backgroundColor: "#111827",
-    },
-    lightBackground: {
-      backgroundColor: "#F8FAFC",
-    },
-    darkText: {
-      color: "#F1F5F9",
-    },
-    lightText: {
-      color: "#1E293B",
-    },
-    title: {
-      fontSize: 38,
-      fontWeight: "800",
-      textAlign: "left",
-      marginVertical: 8,
-      letterSpacing: 0.5,
-    },
-    subtitle: {
-      fontSize: 16,
-      color: '#666',
-      textAlign: 'left',
-      letterSpacing: 0.5,
-    },
-    gridContainer: {
-      flexDirection: "column",
-      padding: 20,
-      paddingTop: 10,
-    },
-    cardContainer: {
-      width: '100%',
-      height: 120,
-      marginBottom: 25,
-      borderRadius: 28,
-      overflow: 'hidden',
-      shadowColor: "#000",
-      shadowOffset: {
-        width: 0,
-        height: 10,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 15,
-      elevation: 12,
-    },
-    button: {
-      flex: 1,
-      flexDirection: 'row',
-      borderRadius: 28,
-      padding: 28,
-      paddingHorizontal: 32,
-      alignItems: "center",
-      justifyContent: 'space-between',
-      minHeight: 120,
-    },
-    icon: {
-      width: 70,
-      height: 70,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginLeft: 'auto',
-      borderRadius: 22,
-    },
-    buttonTitle: {
-      fontSize: 22,
-      fontWeight: "700",
-      color: "#FFFFFF",
-      letterSpacing: 0.7,
-      textShadowColor: 'rgba(0, 0, 0, 0.2)',
-      textShadowOffset: { width: 1, height: 1 },
-      textShadowRadius: 3,
-      marginBottom: 6,
-    },
-    menuItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 16,
-      borderRadius: 16,
-      backgroundColor: '#F0F0F0',
-      marginBottom: 16,
-    },
-    darkMenuItem: {
-      backgroundColor: '#333',
-    },
-    menuItemText: {
-      marginLeft: 12,
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    darkButton: {
-      backgroundColor: '#1F2937',
-    },
-    darkButtonTitle: {
-      color: '#FFFFFF',
-    },
-    titleContainer: {
-      flexDirection: 'column',
-      flex: 1,
-      paddingRight: 20,
-    },
-    buttonSubtitle: {
-      fontSize: 15,
-      color: 'rgba(255, 255, 255, 0.85)',
-      letterSpacing: 0.5,
-      textShadowColor: 'rgba(0, 0, 0, 0.1)',
-      textShadowOffset: { width: 0.5, height: 0.5 },
-      textShadowRadius: 2,
-    },
-    headerContainer: {
-      marginBottom: 35,
-      paddingHorizontal: 20,
-    },
-  });
-
   return (
-    <SafeAreaView 
-      style={[styles.safeArea, isDarkMode ? styles.darkBackground : styles.lightBackground]}
-    >
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollViewContent}
-      >
-        <View style={styles.headerContainer}>
-          <Animated.Text 
-            style={[
-              styles.title, 
-              isDarkMode ? styles.darkText : styles.lightText,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY }]
-              }
-            ]}
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc' }]}> 
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Image source={require('../../assets/Image/LOGOSEMFRASE.png')} style={styles.logo} resizeMode="contain" />
+        <View style={styles.headerText}></View>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}
+            onPress={() => navigation.navigate('ProfileScreen')}
           >
-            Menu Principal
-          </Animated.Text>
-          <Text style={styles.subtitle}>Selecione uma opção</Text>
+            <MaterialIcons 
+              name="account-circle" 
+              size={24} 
+              color="#3b82f6" 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}
+            onPress={() => navigation.navigate('SettingsScreen')}
+          >
+            <MaterialIcons 
+              name="settings" 
+              size={24} 
+              color="#10b981" 
+            />
+          </TouchableOpacity>
         </View>
-        <View style={styles.gridContainer}>
-          {buttons.map((button, index) => {
-            const animatedStyle = {
-              opacity: buttonAnimations[index].opacity,
-              transform: [
-                { translateY: buttonAnimations[index].translateY },
-                { scale: buttonAnimations[index].scale }
-              ]
-            };
-
-            return (
-              <Animated.View 
-                key={index} 
-                style={[styles.cardContainer, animatedStyle]}
+      </View>
+      <View style={styles.menuContainer}>
+        {menuItems.map((item, idx) => (
+          <React.Fragment key={item.id}>
+            <TouchableOpacity
+              style={styles.menuCardWrapper}
+              activeOpacity={0.92}
+              onPressIn={() => setPressedCard(item.id)}
+              onPressOut={() => setPressedCard(null)}
+              onPress={() => navigation.navigate(item.screen)}
+            >
+              <LinearGradient
+                colors={pressedCard === item.id ? [item.gradient[1], item.gradient[0]] : item.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.menuCardGradient}
               >
-                <TouchableOpacity
-                  style={{ width: '100%', height: '100%' }}
-                  onPressIn={() => handlePressIn(index)}
-                  onPressOut={() => handlePressOut(index)}
-                  onPress={() => button.screen && handleNavigation(button.screen)}
-                  activeOpacity={0.7}
+                <View style={styles.iconCircle}>
+                  <MaterialIcons name={item.icon} size={40} color="#fff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={30} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+            {/* Card de Inventário em manutenção após Adicionar */}
+            {item.id === 2 && (
+              <View style={[styles.menuCardWrapper, { opacity: 0.5 }]}> 
+                <LinearGradient
+                  colors={["#64748b", "#94a3b8"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.menuCardGradient}
                 >
-                  <LinearGradient
-                    colors={button.colors}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[
-                      styles.button,
-                      {
-                        shadowColor: button.colors[0],
-                        shadowOffset: {
-                          width: 0,
-                          height: 4,
-                        },
-                        shadowOpacity: 0.3,
-                        shadowRadius: 4.65,
-                        elevation: 8,
-                      }
-                    ]}
-                  >
-                    <View style={styles.titleContainer}>
-                      <Text style={styles.buttonTitle}>{button.title}</Text>
-                      <Text style={styles.buttonSubtitle}>{button.subtitle}</Text>
-                    </View>
-                    <View style={styles.icon}>
-                      <MaterialIcons 
-                        name={button.icon} 
-                        size={68} 
-                        color="#FFFFFF" 
-                      />
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </Animated.View>
-            );
-          })}
-        </View>
-      </ScrollView>
+                  <View style={styles.iconCircle}>
+                    <MaterialIcons name="inventory-2" size={40} color="#fff" />
+                    <MaterialIcons name="lock" size={22} color="#fff" style={{ position: 'absolute', bottom: 2, right: 2, opacity: 0.8 }} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.menuTitle}>Inventário</Text>
+                    <Text style={styles.menuSubtitle}>Em manutenção</Text>
+                  </View>
+                  <MaterialIcons name="block" size={30} color="#fff" />
+                </LinearGradient>
+              </View>
+            )}
+          </React.Fragment>
+        ))}
+      </View>
+      
+      <View style={styles.userInfoContainer}>
+        <MaterialIcons 
+          name="person" 
+          size={16} 
+          color={isDarkMode ? '#94a3b8' : '#64748b'} 
+        />
+        <Text style={[styles.userName, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}>
+          {userName}
+        </Text>
+      </View>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'transparent',
+    marginBottom: 8,
+  },
+  logo: {
+    width: 200,
+    height: 80,
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 80,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    marginBottom: 18,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  statIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  menuContainer: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+  },
+  menuCardWrapper: {
+    marginBottom: 22,
+    borderRadius: 22,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 6,
+    backgroundColor: 'transparent',
+  },
+  menuCardGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 26,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+    minHeight: 90,
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+  },
+  menuTitle: {
+    fontSize: 19,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 2,
+    letterSpacing: 0.2,
+  },
+  menuSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.92)',
+    marginTop: 1,
+    fontWeight: '500',
+    letterSpacing: 0.1,
+  },
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+    opacity: 0.8,
+  },
+});
 
 export default HomeScreen;

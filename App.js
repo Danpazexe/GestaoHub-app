@@ -202,7 +202,7 @@ export default function App() {
               {props => <EntryScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
-            <Stack.Screen name="HomeScreen">
+            <Stack.Screen name="HomeScreen" options={{ headerShown: false }}>
               {props => <HomeScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
