@@ -12,14 +12,21 @@ import {
   ActivityIndicator,
   Animated,
   Keyboard,
+  SafeAreaView,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../services/authService';
 
+const { width, height } = Dimensions.get('window');
 
-
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, isDarkMode }) => {
+  const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,11 +35,12 @@ const LoginScreen = ({ navigation }) => {
   const [secureText, setSecureText] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [pressedButton, setPressedButton] = useState(false);
   
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
   const shakeAnimation = new Animated.Value(0);
+  const logoScale = new Animated.Value(0.8);
 
   useEffect(() => {
     const initializeScreen = async () => {
@@ -50,24 +58,26 @@ const LoginScreen = ({ navigation }) => {
   const startAnimations = () => {
     fadeAnim.setValue(0);
     slideAnim.setValue(50);
+    logoScale.setValue(0.8);
 
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 1200,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 800,
+        duration: 1000,
         useNativeDriver: true,
       }),
-    ]).start((finished) => {
-      if (!finished) {
-        fadeAnim.setValue(1);
-        slideAnim.setValue(0);
-      }
-    });
+      Animated.spring(logoScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const loadSavedCredentials = async () => {
@@ -148,6 +158,10 @@ const LoginScreen = ({ navigation }) => {
     return emailRegex.test(email);
   };
 
+  const handleRememberMeToggle = () => {
+    setRememberMe(!rememberMe);
+  };
+
   const shakeForm = () => {
     Animated.sequence([
       Animated.timing(shakeAnimation, {
@@ -174,32 +188,37 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc' }]}>
       <ImageBackground
         source={require('../../assets/Image/FUNDOAPP.png')}
-        style={styles.container}
+        style={styles.backgroundImage}
         resizeMode="cover"
       >
-        <View style={styles.overlay}>
-          <Animated.View 
-            style={[styles.topSection, {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }]}
-          >
-            <Image
-              source={require("../../assets/Image/LOGOCOMFRASE.png")}
-              style={styles.icon}
-            />
-          </Animated.View>
-
-          <ScrollView 
-            contentContainerStyle={styles.formContainer}
-            keyboardShouldPersistTaps="handled"
-          >
+        <LinearGradient
+          colors={[
+            'rgba(255, 255, 255, 0.92)',
+            'rgba(240, 248, 255, 0.88)',
+            'rgba(245, 247, 250, 0.90)',
+            'rgba(255, 255, 255, 0.92)',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <View style={styles.centeredContent}>
+            <Animated.View style={styles.header}>
+              <Image
+                source={require("../../assets/Image/LOGOCOMFRASE.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <View style={styles.welcomeContainer}>
+                <Text style={[styles.subtitleText, { color: isDarkMode ? '#64748b' : '#64748b' }]}>Faça login para continuar</Text>
+              </View>
+            </Animated.View>
             <Animated.View 
               style={[
-                styles.formBox,
+                styles.formContainer,
                 {
                   opacity: fadeAnim,
                   transform: [
@@ -209,16 +228,28 @@ const LoginScreen = ({ navigation }) => {
                 }
               ]}
             >
-              <Text style={styles.title}>Bem-vindo</Text>
-              <Text style={styles.subtitle}>Faça login para continuar</Text>
-
+              {/* Campo Email */}
               <View style={styles.inputWrapper}>
-                <View style={[styles.inputContainer, emailError && styles.inputError]}>
-                  <Icon name="email" size={20} color="#0367A6" style={styles.inputIcon} />
+                <View style={[
+                  styles.inputContainer, 
+                  { 
+                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+                    borderColor: emailError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
+                  }
+                ]}>
+                  <MaterialIcons 
+                    name="email" 
+                    size={22} 
+                    color={emailError ? '#ef4444' : '#3b82f6'} 
+                    style={styles.inputIcon} 
+                  />
                   <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="#A0A0A0"
+                    style={[
+                      styles.input,
+                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
+                    ]}
+                    placeholder="Digite seu email"
+                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
                     value={email}
                     onChangeText={(text) => {
                       setEmail(text);
@@ -226,225 +257,289 @@ const LoginScreen = ({ navigation }) => {
                     }}
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    autoCorrect={false}
                   />
                 </View>
-                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+                {emailError ? (
+                  <View style={styles.errorContainer}>
+                    <MaterialIcons name="error" size={16} color="#ef4444" />
+                    <Text style={styles.errorText}>{emailError}</Text>
+                  </View>
+                ) : null}
               </View>
 
+              {/* Campo Senha */}
               <View style={styles.inputWrapper}>
-                <View style={[styles.inputContainer, passwordError && styles.inputError]}>
-                  <Icon name="lock" size={20} color="#0367A6" style={styles.inputIcon} />
+                <View style={[
+                  styles.inputContainer, 
+                  { 
+                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+                    borderColor: passwordError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
+                  }
+                ]}>
+                  <MaterialIcons 
+                    name="lock" 
+                    size={22} 
+                    color={passwordError ? '#ef4444' : '#3b82f6'} 
+                    style={styles.inputIcon} 
+                  />
                   <TextInput
-                    style={styles.input}
-                    placeholder="Senha"
-                    placeholderTextColor="#A0A0A0"
+                    style={[
+                      styles.input,
+                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
+                    ]}
+                    placeholder="Digite sua senha"
+                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
                     value={password}
                     onChangeText={(text) => {
                       setPassword(text);
                       setPasswordError("");
                     }}
                     secureTextEntry={secureText}
+                    autoCapitalize="none"
                   />
                   <TouchableOpacity
                     style={styles.eyeIcon}
                     onPress={() => setSecureText(!secureText)}
                   >
-                    <Icon
-                      name={secureText ? "eye" : "eye-off"}
+                    <MaterialIcons
+                      name={secureText ? "visibility" : "visibility-off"}
                       size={22}
-                      color="#0367A6"
+                      color="#64748b"
                     />
                   </TouchableOpacity>
                 </View>
-                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+                {passwordError ? (
+                  <View style={styles.errorContainer}>
+                    <MaterialIcons name="error" size={16} color="#ef4444" />
+                    <Text style={styles.errorText}>{passwordError}</Text>
+                  </View>
+                ) : null}
               </View>
 
+              {/* Opções */}
               <View style={styles.optionsContainer}>
                 <TouchableOpacity 
                   style={styles.checkboxContainer}
-                  onPress={() => setRememberMe(!rememberMe)}
+                  onPress={handleRememberMeToggle}
+                  activeOpacity={0.7}
                 >
-                  <Icon
-                    name={rememberMe ? "checkbox-marked" : "checkbox-blank-outline"}
-                    size={24}
-                    color="#0367A6"
-                  />
-                  <Text style={styles.checkboxText}>Lembrar-me</Text>
+                  <View style={[
+                    styles.checkbox,
+                    { 
+                      backgroundColor: rememberMe ? '#3b82f6' : 'transparent',
+                      borderColor: rememberMe ? '#3b82f6' : (isDarkMode ? '#64748b' : '#cbd5e1'),
+                    }
+                  ]}>
+                    {rememberMe && (
+                      <MaterialIcons name="check" size={16} color="#ffffff" />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.checkboxText,
+                    { color: isDarkMode ? '#cbd5e1' : '#475569' }
+                  ]}>
+                    Lembrar-me
+                  </Text>
                 </TouchableOpacity>
               </View>
 
+              {/* Botão de Login */}
               <TouchableOpacity
-                style={styles.loginButton}
+                style={styles.loginButtonWrapper}
+                activeOpacity={0.9}
+                onPressIn={() => setPressedButton(true)}
+                onPressOut={() => setPressedButton(false)}
                 onPress={handleLogin}
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Entrar</Text>
-                )}
+                <LinearGradient
+                  colors={pressedButton ? ['#1d4ed8', '#2563eb'] : ['#2563eb', '#3b82f6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.loginButton}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <MaterialIcons name="login" size={20} color="#ffffff" />
+                      <Text style={styles.loginButtonText}>Entrar</Text>
+                    </>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
 
+              {/* Link para Registro */}
               <TouchableOpacity
                 style={styles.registerLink}
                 onPress={() => navigation.navigate("RegisterScreen")}
               >
-                <Text style={styles.registerLinkText}>
-                  Não tem uma conta? <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
+                <Text style={[
+                  styles.registerLinkText,
+                  { color: isDarkMode ? '#94a3b8' : '#64748b' }
+                ]}>
+                  Não tem uma conta?{' '}
+                  <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
                 </Text>
               </TouchableOpacity>
-
             </Animated.View>
-          </ScrollView>
-        </View>
+          </View>
+        </LinearGradient>
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
   },
-  overlay: {
+  backgroundImage: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingTop: 20,
   },
-  topSection: {
-    height: "35%",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 30,
+  gradient: {
+    flex: 1,
   },
-  icon: {
-    width: 300,
-    height: 350,
-    resizeMode: "contain",
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
-  formContainer: {
+  header: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  logo: {
+    width: 280,
+    height: 120,
+    marginBottom: 16,
+    alignSelf: 'center',
+  },
+  welcomeContainer: {
+    alignItems: 'center'
+  },
+  subtitleText: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  scrollContent: {
     flexGrow: 1,
-    justifyContent: "flex-start",
-    alignItems: "center",
+    justifyContent: 'center',
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
-  formBox: {
+  formContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 8,
+    marginTop: 8,
+    marginBottom: 20,
     width: '100%',
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#0367A6",
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 30,
-    textAlign: 'center',
+    maxWidth: 400,
   },
   inputWrapper: {
-    marginBottom: 15,
-    width: '100%',
+    marginBottom: 20,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 12,
-    backgroundColor: "#F8F9FA",
-    height: 55,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    height: 56,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   inputIcon: {
-    marginLeft: 15,
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#000000",
-    paddingRight: 15,
+    fontWeight: '500',
   },
-  inputError: {
-    borderColor: "#FF0000",
-    borderWidth: 1.5,
+  eyeIcon: {
+    padding: 8,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginLeft: 4,
   },
   errorText: {
-    color: "#FF0000",
+    color: '#ef4444',
     fontSize: 14,
-    marginTop: 5,
-    marginLeft: 10,
-  },
-  optionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 4,
+    fontWeight: '500',
+    marginLeft: 6,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F8FF',
-    padding: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#0367A6',
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   checkboxText: {
-    marginLeft: 8,
-    color: "#666",
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  loginButtonWrapper: {
+    borderRadius: 16,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: 24,
   },
   loginButton: {
-    height: 55,
-    backgroundColor: "#0367A6",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 20,
-    shadowColor: "#0367A6",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    height: 56,
+    borderRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
   },
   loginButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: "bold",
-  },
-  eyeIcon: {
-    padding: 10,
+    fontWeight: '700',
   },
   registerLink: {
-    marginTop: 20,
     alignItems: 'center',
+    paddingVertical: 8,
   },
   registerLinkText: {
-    color: "#666",
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '500',
   },
   registerLinkTextBold: {
-    color: "#0367A6",
-    fontWeight: "bold",
+    color: '#3b82f6',
+    fontWeight: '700',
+  },
+  decorativeLine: {
+    height: 1,
+    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    marginVertical: 5,
   },
 });
 

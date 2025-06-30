@@ -11,54 +11,54 @@ const ProductItem = ({ product, isDarkMode }) => {
         number: 'VENCIDO',
         label: `${Math.abs(days)} dia(s)`,
         color: '#fff',
-        backgroundColor: '#d32f2f',
+        backgroundColor: '#6b7280',
         icon: 'warning',
-        status: 'Vencido'
+        status: 'Produto Vencido'
       }; 
     } else if (days === 0) {
       return { 
         number: 'VENCE',
         label: 'HOJE',
         color: '#fff',
-        backgroundColor: '#f57c00',
+        backgroundColor: '#dc2626',
         icon: 'error',
-        status: 'Vence Hoje'
+        status: 'Vencendo Hoje'
       }; 
     } else if (days > 0 && days <= 7) {
       return { 
         number: days.toString(),
         label: 'DIAS',
         color: '#fff',
-        backgroundColor: '#ff9800',
+        backgroundColor: '#ea580c',
         icon: 'schedule',
-        status: 'Urgente'
-      };  
+        status: `Vence em ${days} dias`
+      }; 
     } else if (days > 7 && days <= 15) {
       return { 
         number: days.toString(),
         label: 'DIAS',
         color: '#fff',
-        backgroundColor: '#ffc107',
-        icon: 'schedule',
-        status: 'Atenção'
+        backgroundColor: '#f59e0b',
+        icon: 'event',
+        status: `Vence em ${days} dias`
       }; 
     } else if (days > 15 && days <= 30) {
       return { 
         number: days.toString(),
         label: 'DIAS',
         color: '#fff',
-        backgroundColor: '#2196f3',
-        icon: 'event',
-        status: 'Próximo'
+        backgroundColor: '#10b981',
+        icon: 'check-circle',
+        status: `Vence em ${days} dias`
       }; 
     } else {
       return { 
         number: days.toString(),
         label: 'DIAS',
         color: '#fff',
-        backgroundColor: '#4caf50',
+        backgroundColor: '#3b82f6',
         icon: 'check-circle',
-        status: 'OK'
+        status: `Vence em ${days} dias`
       }; 
     }
   };
@@ -93,31 +93,25 @@ const ProductItem = ({ product, isDarkMode }) => {
 
   return (
     <View style={styles.wrapper}>
-      {/* Status de Validade - Badge encima do card */}
-      <View style={[
-        styles.statusBadge,
-        { 
-          backgroundColor: expirationInfo.backgroundColor,
-        }
-      ]}>
-        <MaterialIcons 
-          name={expirationInfo.icon} 
-          size={16} 
-          color={expirationInfo.color} 
-          style={styles.badgeIcon}
-        />
-        <Text style={[
-          styles.badgeText, 
-          { color: expirationInfo.color }
-        ]}>
-          {expirationInfo.status === 'Vencido' ? 'VENCIDO' : 
-           expirationInfo.status === 'Vence Hoje' ? 'VENCE HOJE' :
-           `${expirationInfo.number} DIAS`}
-        </Text>
-      </View>
-
       {/* Card do Produto */}
       <View style={[styles.container, isDarkMode && styles.darkContainer]}>
+        {/* Status de Validade - Badge dentro do card */}
+        <View style={[
+          styles.statusBadge,
+          { 
+            backgroundColor: expirationInfo.backgroundColor,
+          }
+        ]}>
+          <Text style={[
+            styles.badgeText, 
+            { color: expirationInfo.color }
+          ]}>
+            {expirationInfo.status === 'Produto Vencido' ? 'VENCIDO' : 
+             expirationInfo.status === 'Vencendo Hoje' ? 'VENCE HOJE' :
+             expirationInfo.status}
+          </Text>
+        </View>
+
         {/* Detalhes do Produto */}
         <View style={styles.productDetails}>
           {/* Informações do Produto */}
@@ -128,31 +122,31 @@ const ProductItem = ({ product, isDarkMode }) => {
           {/* Detalhes do Produto em Grid */}
           <View style={styles.infoGrid}>
             <View style={styles.infoRow}>
-              <MaterialIcons name="code" size={18} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="code" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Código:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codprod}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="format-list-numbered" size={18} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="format-list-numbered" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Qtd:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.quantidade}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="qr-code" size={18} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="qr-code" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>EAN:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codauxiliar}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="label" size={18} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="label" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Lote:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.lote}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="event" size={18} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="event" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Validade:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.validade}</Text>
             </View>
@@ -169,7 +163,7 @@ const ProductItem = ({ product, isDarkMode }) => {
             />
           ) : (
             <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
-              <MaterialIcons name="inventory" size={48} color={isDarkMode ? '#888' : '#bbb'} />
+              <MaterialIcons name="no-photography" size={38} color={isDarkMode ? '#888' : '#bbb'} />
             </View>
           )}
         </View>
@@ -181,20 +175,21 @@ const ProductItem = ({ product, isDarkMode }) => {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
-    marginVertical: 8,
+    marginVertical: 4,
   },
   
   container: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     backgroundColor: '#FFFFFF', 
-    borderRadius: 12,
+    borderRadius: 10,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    position: 'relative',
   },
   darkContainer: {
     backgroundColor: '#2e2e2e', 
@@ -202,15 +197,16 @@ const styles = StyleSheet.create({
   
   productDetails: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
+    paddingTop: 6, // Espaço para o badge
   },
   
   productName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 6,
+    marginBottom: 4,
     color: '#37474F',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   darkProductName: {
     color: '#e3e3e3', 
@@ -218,7 +214,7 @@ const styles = StyleSheet.create({
   
   infoGrid: {
     flexDirection: 'column',
-    gap: 3,
+    gap: 2,
   },
   
   infoRow: {
@@ -228,15 +224,15 @@ const styles = StyleSheet.create({
   },
   
   icon: {
-    marginRight: 8,
-    width: 18,
+    marginRight: 6,
+    width: 17,
   },
   
   label: {
     fontWeight: '600',
     fontSize: 14,
     color: '#757575',
-    marginRight: 6,
+    marginRight: 4,
   },
   darkLabel: {
     color: '#b0b0b0', 
@@ -253,39 +249,36 @@ const styles = StyleSheet.create({
   
   statusBadge: {
     position: 'absolute',
-    top: -10,
-    right: 12,
+    top: 8,
+    right: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 3,
     zIndex: 10,
   },
-  badgeIcon: {
-    marginRight: 6,
-  },
   badgeText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   
   imageWrapper: {
-    marginLeft: 12,
+    marginLeft: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   image: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#f3f3f3',
     borderWidth: 2,
     borderColor: '#e0e0e0',

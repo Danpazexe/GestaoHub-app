@@ -256,7 +256,7 @@ export default function App() {
 
           </Stack.Navigator>
 
-          <Toast config={toastConfig} />
+          <Toast config={toastConfig} position="bottom" bottomOffset={20} />
           
         </NavigationContainer>
       </PaperProvider>

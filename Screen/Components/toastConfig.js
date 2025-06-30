@@ -1,66 +1,81 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import Toast, { BaseToast } from 'react-native-toast-message';
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { MaterialIcons } from '@expo/vector-icons';
+
+const { width, height } = Dimensions.get('window');
 
 const AnimatedIcon = ({ name, color, type }) => {
   const scaleValue = useRef(new Animated.Value(0)).current;
+  const rotateValue = useRef(new Animated.Value(0)).current;
   const mounted = useRef(false);
   
   useEffect(() => {
     mounted.current = true;
-    // Reset do valor da animação
     scaleValue.setValue(0);
+    rotateValue.setValue(0);
     
     let animation;
     
     if (type === 'error') {
       animation = Animated.sequence([
-        // Entrada com pop
+        // Entrada com bounce
+        Animated.spring(scaleValue, {
+          toValue: 1.2,
+          useNativeDriver: true,
+          tension: 300,
+          friction: 4
+        }),
         Animated.spring(scaleValue, {
           toValue: 1,
           useNativeDriver: true,
-          tension: 200,
-          friction: 3
+          tension: 300,
+          friction: 6
         }),
-        // Shake repetitivo
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(scaleValue, {
-              toValue: 1.2,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.timing(scaleValue, {
-              toValue: 0.8,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-            Animated.timing(scaleValue, {
-              toValue: 1,
-              duration: 100,
-              useNativeDriver: true,
-            }),
-          ]),
-          { iterations: 2 }
-        )
+        // Shake sutil
+        Animated.sequence([
+          Animated.timing(rotateValue, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateValue, {
+            toValue: -1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(rotateValue, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+        ])
       ]);
     } else if (type === 'success') {
       animation = Animated.sequence([
+        // Entrada com escala
         Animated.spring(scaleValue, {
-          toValue: 1.3,
+          toValue: 1.4,
           useNativeDriver: true,
-          tension: 200,
+          tension: 400,
           friction: 3
         }),
+        // Rotação de 360 graus
+        Animated.timing(rotateValue, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        // Retorno à escala normal
         Animated.spring(scaleValue, {
           toValue: 1,
           useNativeDriver: true,
-          tension: 200,
+          tension: 300,
           friction: 5
         })
       ]);
     } else {
+      // Info - pulso suave
       animation = Animated.sequence([
         Animated.spring(scaleValue, {
           toValue: 1,
@@ -71,16 +86,17 @@ const AnimatedIcon = ({ name, color, type }) => {
         Animated.loop(
           Animated.sequence([
             Animated.timing(scaleValue, {
-              toValue: 1.2,
-              duration: 500,
+              toValue: 1.1,
+              duration: 800,
               useNativeDriver: true,
             }),
             Animated.timing(scaleValue, {
               toValue: 1,
-              duration: 500,
+              duration: 800,
               useNativeDriver: true,
             })
-          ])
+          ]),
+          { iterations: 3 }
         )
       ]);
     }
@@ -92,18 +108,28 @@ const AnimatedIcon = ({ name, color, type }) => {
     return () => {
       mounted.current = false;
       animation.stop();
-      scaleValue.setValue(0);
     };
-  }, [type, name]); // Adicionado name como dependência
+  }, [type, name]);
+
+  const rotate = rotateValue.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['-15deg', '15deg']
+  });
 
   return (
     <View style={styles.iconWrapper}>
       <Animated.View 
         style={{ 
-          transform: [{ scale: scaleValue }],
+          transform: [
+            { scale: scaleValue },
+            { rotate: type === 'success' ? rotateValue.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0deg', '360deg']
+            }) : rotate }
+          ],
         }}
       >
-        <Icon name={name} size={32} color={color} />
+        <MaterialIcons name={name} size={28} color={color} />
       </Animated.View>
     </View>
   );
@@ -122,7 +148,7 @@ export const toastConfig = {
       renderLeadingIcon={() => (
         <View style={styles.iconContainer}>
           <AnimatedIcon 
-            key={Date.now()} // Força recriação do componente
+            key={Date.now()}
             name="check-circle" 
             color="#fff" 
             type="success" 
@@ -143,8 +169,8 @@ export const toastConfig = {
       renderLeadingIcon={() => (
         <View style={styles.iconContainer}>
           <AnimatedIcon 
-            key={Date.now()} // Força recriação do componente
-            name="alert-circle" 
+            key={Date.now()}
+            name="error" 
             color="#fff" 
             type="error" 
           />
@@ -164,8 +190,8 @@ export const toastConfig = {
       renderLeadingIcon={() => (
         <View style={styles.iconContainer}>
           <AnimatedIcon 
-            key={Date.now()} // Força recriação do componente
-            name="information" 
+            key={Date.now()}
+            name="info" 
             color="#fff" 
             type="info" 
           />
@@ -177,73 +203,87 @@ export const toastConfig = {
 
 const styles = StyleSheet.create({
   successToast: {
-    backgroundColor: '#4CAF50',
-    borderLeftColor: '#388E3C',
+    backgroundColor: '#10B981',
+    borderLeftColor: '#059669',
     height: 'auto',
-    minHeight: 70,
-    maxHeight: 150,
-    paddingVertical: 12,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    minHeight: 80,
+    maxHeight: 160,
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderLeftWidth: 4,
   },
   errorToast: {
-    backgroundColor: '#F44336',
-    borderLeftColor: '#D32F2F',
+    backgroundColor: '#EF4444',
+    borderLeftColor: '#DC2626',
     height: 'auto',
-    minHeight: 70,
-    maxHeight: 150,
-    paddingVertical: 12,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    minHeight: 80,
+    maxHeight: 160,
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 8,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderLeftWidth: 4,
   },
   infoToast: {
-    backgroundColor: '#2196F3',
-    borderLeftColor: '#1976D2',
+    backgroundColor: '#3B82F6',
+    borderLeftColor: '#2563EB',
     height: 'auto',
-    minHeight: 70,
-    maxHeight: 150,
-    paddingVertical: 12,
-    borderRadius: 12,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    minHeight: 80,
+    maxHeight: 160,
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    elevation: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    borderLeftWidth: 4,
   },
   contentContainer: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     flex: 1,
+    justifyContent: 'center',
   },
   text1: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#fff',
     marginBottom: 4,
+    lineHeight: 22,
   },
   text2: {
     fontSize: 14,
     color: '#fff',
-    opacity: 0.9,
+    opacity: 0.95,
+    lineHeight: 20,
+    fontWeight: '400',
   },
   iconContainer: {
-    paddingLeft: 15,
+    paddingLeft: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 50,
+    width: 56,
   },
   iconWrapper: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
   }
 }); 

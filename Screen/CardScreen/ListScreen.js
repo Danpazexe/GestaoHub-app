@@ -28,7 +28,6 @@ const useProducts = () => {
         text1: 'Erro ao carregar produtos',
         text2: 'Não foi possível carregar os produtos.',
         visibilityTime: 3000,
-        position: 'top',
       });
     } finally {
       setLoading(false);
@@ -45,7 +44,6 @@ const useProducts = () => {
         text1: 'Erro ao salvar produtos',
         text2: 'Não foi possível salvar os produtos.',
         visibilityTime: 3000,
-        position: 'top',
       });
     }
   };
@@ -95,7 +93,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
             text1: 'Produto já existe',
             text2: 'Este produto já está na lista.',
             visibilityTime: 3000,
-            position: 'top',
           });
         }
         return prevProducts;
@@ -172,7 +169,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         text1: 'Produto excluído',
         text2: 'O produto foi excluído com sucesso!',
         visibilityTime: 2000,
-        position: 'top',
       });
     }
     setDeleteConfirmationVisible(false);
@@ -418,16 +414,14 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         onSwipeableOpen={() => handleSwipeableOpen(swipeRefs.current[item.id].current)}
         onRequestClose={handleCloseSwipe}
       >
-        <Animated.View style={[styles.productItem, isDarkMode && styles.darkProductItem]}>
-          <ProductItem
-            product={{
-              ...item,
-              validade: new Date(item.validade).toLocaleDateString('pt-BR'),
-              diasrestantes,
-            }}
-            isDarkMode={isDarkMode}
-          />
-        </Animated.View>
+        <ProductItem
+          product={{
+            ...item,
+            validade: new Date(item.validade).toLocaleDateString('pt-BR'),
+            diasrestantes,
+          }}
+          isDarkMode={isDarkMode}
+        />
       </SwipeableListItem>
     );
   };
@@ -539,7 +533,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           text1: 'Quantidade Inválida',
           text2: 'Por favor, insira uma quantidade válida',
           visibilityTime: 3000,
-          position: 'top',
         });
         return;
       }
@@ -550,7 +543,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           text1: 'Quantidade Excede Estoque',
           text2: 'A quantidade não pode ser maior que o estoque disponível',
           visibilityTime: 3000,
-          position: 'top',
         });
         return;
       }
@@ -608,7 +600,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           'vencidas'
         }`,
         visibilityTime: 2000,
-        position: 'top',
       });
     } catch (error) {
       console.error('Erro ao tratar produto:', error);
@@ -617,7 +608,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         text1: 'Erro',
         text2: 'Não foi possível tratar o produto',
         visibilityTime: 3000,
-        position: 'top',
       });
     }
   };
