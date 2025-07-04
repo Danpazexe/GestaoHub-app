@@ -29,10 +29,11 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
     navigation.setOptions({
       headerShown: true,
       headerStyle: {
-        backgroundColor: isDarkMode ? '#012677' : colors.primary,
+        backgroundColor: '#012677',
       },
-      headerTintColor: colors.white,
+      headerTintColor: '#FFFFFF',
       headerTitle: 'Exportação / Importação',
+      headerTitleAlign: 'center',
     });
 
     loadProducts();

@@ -364,6 +364,13 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
         />
 
         <NavigationItem
+          icon="file-pdf-box"
+          title="Exportar Produtos em PDF"
+          onPress={() => navigation.navigate('PdfScreen')}
+          iconColor="#e45635"
+        />
+
+        <NavigationItem
           icon="database"
           title="Gerenciar Banco de Dados"
           onPress={() => navigation.navigate('SqlScreen')}

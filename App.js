@@ -24,6 +24,8 @@ import TratarScreen from './Screen/Tratativas/TratarScreen';
 import NotifScreen from './Screen/Components/NotifScreen';
 import SqlScreen from './Screen/SQL/SqlScreen';
 import RegisterScreen from './Screen/Entrada/RegisterScreen';
+import PdfScreen from './Screen/Pdf/PdfScreen';
+import PdfViewerScreen from './Screen/Pdf/PdfViewerScreen';
 
 const Stack = createStackNavigator();
 
@@ -252,6 +254,14 @@ export default function App() {
 
             <Stack.Screen name="SqlScreen">
               {props => <SqlScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="PdfScreen">
+              {props => <PdfScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="PdfViewerScreen">
+              {props => <PdfViewerScreen {...props} />}
             </Stack.Screen>
 
           </Stack.Navigator>

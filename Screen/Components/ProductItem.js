@@ -1,9 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import ImageViewer from 'react-native-image-zoom-viewer';
 
 // Componente para exibir detalhes sobre um produto
 const ProductItem = ({ product, isDarkMode }) => {
+  const [modalVisible, setModalVisible] = React.useState(false);
+
   // Função melhorada para determinar o texto e cor da validade
   const getDaysToExpirationText = (days) => {
     if (days < 0) {
@@ -91,8 +94,59 @@ const ProductItem = ({ product, isDarkMode }) => {
   const diffDays = calcularDiasRestantes();
   const expirationInfo = getDaysToExpirationText(diffDays);
 
+  const imageUrl = product.imageUrl || product.foto || '';
+  const isHttpImage = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+  React.useEffect(() => {
+    if (modalVisible) {
+      console.log('URL da imagem para visualização:', imageUrl);
+    }
+  }, [modalVisible]);
+  const images = [
+    {
+      url: imageUrl,
+      props: {},
+    },
+  ];
+
   return (
     <View style={styles.wrapper}>
+      {/* Modal de visualização da imagem em tela cheia com zoom ou simples */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          {/* Botão de fechar */}
+          <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+            <MaterialIcons name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+          {imageUrl ? (
+            isHttpImage ? (
+              <ImageViewer
+                imageUrls={images}
+                enableSwipeDown={true}
+                onSwipeDown={() => setModalVisible(false)}
+                backgroundColor="rgba(0,0,0,0.95)"
+                renderIndicator={() => null}
+                saveToLocalByLongPress={false}
+              />
+            ) : (
+              <View style={{flex:1, justifyContent:'center', alignItems:'center', width:'100%'}}>
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={{ width: '90%', height: '80%', borderRadius: 10, resizeMode: 'contain' }}
+                />
+              </View>
+            )
+          ) : (
+            <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
+              <Text style={{color:'#fff', fontSize:18}}>Imagem não disponível</Text>
+            </View>
+          )}
+        </View>
+      </Modal>
       {/* Card do Produto */}
       <View style={[styles.container, isDarkMode && styles.darkContainer]}>
         {/* Status de Validade - Badge dentro do card */}
@@ -111,14 +165,12 @@ const ProductItem = ({ product, isDarkMode }) => {
              expirationInfo.status}
           </Text>
         </View>
-
         {/* Detalhes do Produto */}
         <View style={styles.productDetails}>
           {/* Informações do Produto */}
           <Text style={[styles.productName, isDarkMode && styles.darkProductName]} numberOfLines={2}>
             {product.descricao}
           </Text>
-
           {/* Detalhes do Produto em Grid */}
           <View style={styles.infoGrid}>
             <View style={styles.infoRow}>
@@ -152,15 +204,16 @@ const ProductItem = ({ product, isDarkMode }) => {
             </View>
           </View>
         </View>
-
         {/* Imagem do Produto */}
         <View style={styles.imageWrapper}>
-          {product.imageUrl || product.foto ? (
-            <Image
-              source={{ uri: product.imageUrl || product.foto }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+          {imageUrl ? (
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           ) : (
             <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
               <MaterialIcons name="no-photography" size={38} color={isDarkMode ? '#888' : '#bbb'} />
@@ -295,6 +348,21 @@ const styles = StyleSheet.create({
   placeholderImageDark: {
     backgroundColor: '#444',
     borderColor: '#222',
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 2,
   },
 });
 
