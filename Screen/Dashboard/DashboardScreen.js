@@ -1,543 +1,582 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  Dimensions, 
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
   ActivityIndicator,
+  RefreshControl,
   TouchableOpacity,
-  RefreshControl
+  Animated,
+  Modal,
+  FlatList,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LineChart, PieChart } from 'react-native-chart-kit';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import { Menu } from 'react-native-paper';
-import Toast from 'react-native-toast-message';
+import { PieChart } from 'react-native-chart-kit';
+import { MaterialIcons } from '@expo/vector-icons';
+
+const primaryColor = '#C42D2F';
+const successColor = '#28A745';
+const warningColor = '#FFC107';
+const dangerColor = '#DC3545';
+const infoColor = '#17A2B8';
 
 const DashboardScreen = ({ isDarkMode, navigation }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState('30'); // '7', '30', '90' dias
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [modalVisible, setModalVisible] = useState(false);
+  const [expiringProducts, setExpiringProducts] = useState([]);
 
-  // Função para carregar produtos
+  useEffect(() => {
+    loadProducts();
+    animateIn();
+  }, []);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerStyle: { backgroundColor: primaryColor },
+      headerTintColor: '#FFF',
+      headerTitleStyle: { fontWeight: 'bold' },
+      title: 'Dashboard',
+    });
+  }, [navigation]);
+
+  const animateIn = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const loadProducts = async () => {
     try {
-      const storedProducts = await AsyncStorage.getItem('products');
-      if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
+      const data = await AsyncStorage.getItem('products');
+      if (data) {
+        const parsedProducts = JSON.parse(data);
+        setProducts(parsedProducts);
+        
+        // Filtrar produtos próximos do vencimento
+        const expiring = parsedProducts.filter(p => {
+          const days = calculateDaysRemaining(p.validade);
+          return !p.status && days >= 0 && days <= 30;
+        }).sort((a, b) => calculateDaysRemaining(a.validade) - calculateDaysRemaining(b.validade));
+        
+        setExpiringProducts(expiring);
       }
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Atualizar ao puxar para baixo
   const onRefresh = async () => {
     setRefreshing(true);
     await loadProducts();
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  useEffect(() => {
-    navigation.setOptions({
-      title: 'Dashboard',
-      headerStyle: {
-        backgroundColor: isDarkMode ? '#2e2e2e' : '#C42D2F',
-      },
-      headerTintColor: '#FFFFFF',
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', marginRight: 10 }}>
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <TouchableOpacity onPress={() => setMenuVisible(true)}>
-                <MaterialIcons name="more-vert" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            }
-          >
-            <Menu.Item 
-              onPress={exportToPDF} 
-              title="Exportar PDF"
-              leadingIcon="file-pdf-box"
-            />
-          </Menu>
-        </View>
-      ),
-    });
-  }, [menuVisible, isDarkMode]);
-
-  // Função para calcular dias restantes
-  const calculateDaysRemaining = (expirationDate) => {
+  const calculateDaysRemaining = (date) => {
     const today = new Date();
-    const expDate = new Date(expirationDate);
-    const diffTime = expDate - today;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const target = new Date(date);
+    const diff = target - today;
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  // Dados para o gráfico de pizza
-  const getPieChartData = () => {
-    if (products.length === 0) {
-      return [{
-        name: 'Sem produtos',
-        population: 1,
-        color: isDarkMode ? '#A78BFA' : '#7C4DFF',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      }];
-    }
-
-    const expired = products.filter(p => p.status === 'treated' && p.treatmentType === 'expired').length;
-    const sold = products.filter(p => p.status === 'treated' && p.treatmentType === 'sold').length;
-    const exchanged = products.filter(p => p.status === 'treated' && p.treatmentType === 'exchanged').length;
-    const returned = products.filter(p => p.status === 'treated' && p.treatmentType === 'returned').length;
-    const nearExpiry = products.filter(p => {
+  // Estatísticas melhoradas
+  const getStats = () => {
+    const activeProducts = products.filter(p => !p.status).length;
+    const expiredProducts = products.filter(p => {
       const days = calculateDaysRemaining(p.validade);
-      return !p.status && days > 0 && days <= 30;
+      return !p.status && days < 0;
     }).length;
-    const safe = products.filter(p => {
+    const treatedProducts = products.filter(p => p.status === 'treated').length;
+    
+    // Produtos próximos do vencimento
+    const expiringIn7Days = products.filter(p => {
       const days = calculateDaysRemaining(p.validade);
-      return !p.status && days > 30;
+      return !p.status && days >= 0 && days <= 7;
     }).length;
-
-    return [
-      {
-        name: 'Vendidos',
-        population: sold,
-        color: isDarkMode ? '#4ADE80' : '#4CAF50',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      },
-      {
-        name: 'Trocados',
-        population: exchanged,
-        color: isDarkMode ? '#60A5FA' : '#2196F3',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      },
-      {
-        name: 'Devolvidos',
-        population: returned,
-        color: isDarkMode ? '#FFB74D' : '#FF9800',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      },
-      {
-        name: 'Vencidos',
-        population: expired,
-        color: isDarkMode ? '#FF6B6B' : '#FF4444',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      },
-      {
-        name: 'Próx. Vencimento',
-        population: nearExpiry,
-        color: isDarkMode ? '#FFD93D' : '#FFA000',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      },
-      {
-        name: 'Normais',
-        population: safe,
-        color: isDarkMode ? '#A78BFA' : '#7C4DFF',
-        legendFontColor: isDarkMode ? '#E0E0E0' : '#333333',
-      },
-    ];
-  };
-
-  // Dados para o gráfico de linha
-  const getLineChartData = () => {
-    if (products.length === 0) {
-      return {
-        labels: ['Sem dados'],
-        datasets: [{
-          data: [0],
-          color: (opacity = 1) => isDarkMode ? '#6366F1' : '#3F51B5',
-          strokeWidth: 2,
-        }],
-      };
-    }
-
-    const sortedProducts = [...products]
-      .sort((a, b) => calculateDaysRemaining(a.validade) - calculateDaysRemaining(b.validade))
-      .slice(0, 5);
+    
+    const expiringIn30Days = products.filter(p => {
+      const days = calculateDaysRemaining(p.validade);
+      return !p.status && days >= 0 && days <= 30;
+    }).length;
 
     return {
-      labels: sortedProducts.map(p => p.descricao.substring(0, 8) + '...'),
-      datasets: [{
-        data: sortedProducts.map(p => calculateDaysRemaining(p.validade)),
-        color: (opacity = 1) => isDarkMode ? '#6366F1' : '#3F51B5',
-        strokeWidth: 2,
-      }],
+      activeProducts,
+      expiredProducts,
+      treatedProducts,
+      expiringIn7Days,
+      expiringIn30Days,
     };
   };
 
-  // Componente de Card de Estatística
-  const StatCard = ({ title, value, icon, iconFamily = 'MaterialCommunityIcons', color }) => (
-    <View style={[styles.statCard, isDarkMode && styles.darkStatCard]}>
-      <View style={styles.statIconContainer}>
-        {iconFamily === 'MaterialCommunityIcons' ? (
-          <MaterialCommunityIcons name={icon} size={24} color={color} />
-        ) : (
-          <MaterialIcons name={icon} size={24} color={color} />
-        )}
-      </View>
-      <Text style={[styles.statValue, isDarkMode && styles.darkText]}>{value}</Text>
-      <Text style={[styles.statTitle, isDarkMode && styles.darkText]}>{title}</Text>
-    </View>
-  );
+  const stats = getStats();
 
-  // Componente de Botão de Período
-  const PeriodButton = ({ period, label }) => (
-    <TouchableOpacity
-      style={[
-        styles.periodButton,
-        selectedPeriod === period && styles.selectedPeriodButton,
-        isDarkMode && styles.darkPeriodButton,
-      ]}
-      onPress={() => setSelectedPeriod(period)}
-    >
-      <Text
-        style={[
-          styles.periodButtonText,
-          selectedPeriod === period && styles.selectedPeriodButtonText,
-          isDarkMode && styles.darkText,
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
+  // Dados para gráfico pizza
+  const pieData = [
+    {
+      name: 'Ativos',
+      count: stats.activeProducts,
+      color: successColor,
+      legendFontColor: isDarkMode ? '#fff' : '#333',
+      legendFontSize: 14,
+    },
+    {
+      name: 'Vencidos',
+      count: stats.expiredProducts,
+      color: dangerColor,
+      legendFontColor: isDarkMode ? '#fff' : '#333',
+      legendFontSize: 14,
+    },
+    {
+      name: 'Tratados',
+      count: stats.treatedProducts,
+      color: infoColor,
+      legendFontColor: isDarkMode ? '#fff' : '#333',
+      legendFontSize: 14,
+    },
+  ].filter(d => d.count > 0);
 
-  const generatePDFContent = () => {
-    const pieData = getPieChartData();
-    const stats = [
-      { label: 'Total de Produtos', value: products.length },
-      { label: 'Próximos ao Vencimento', value: products.filter(p => {
-        const days = calculateDaysRemaining(p.validade);
-        return !p.status && days > 0 && days <= 30;
-      }).length },
-      { label: 'Vencidos', value: products.filter(p => p.status === 'treated' && p.treatmentType === 'expired').length },
-      { label: 'Vendidos', value: products.filter(p => p.status === 'treated' && p.treatmentType === 'sold').length },
-      { label: 'Trocados', value: products.filter(p => p.status === 'treated' && p.treatmentType === 'exchanged').length },
-      { label: 'Devolvidos', value: products.filter(p => p.status === 'treated' && p.treatmentType === 'returned').length }
-    ];
-
-    const statsHtml = stats.map(stat => `
-      <div style="margin: 10px 0;">
-        <strong>${stat.label}:</strong> ${stat.value}
-      </div>
-    `).join('');
-
-    const distributionHtml = pieData.map(item => `
-      <div style="margin: 5px 0;">
-        <span style="color: ${item.color};">■</span> ${item.name}: ${item.population}
-      </div>
-    `).join('');
-
-    return `
-      <html>
-        <body style="font-family: Arial, sans-serif; padding: 20px;">
-          <h1 style="color: #0077ed; text-align: center;">Relatório do Dashboard</h1>
-          <p style="text-align: center;">Data do relatório: ${new Date().toLocaleDateString('pt-BR')}</p>
-          
-          <div style="margin: 20px 0;">
-            <h2>Estatísticas Gerais</h2>
-            ${statsHtml}
-          </div>
-
-          <div style="margin: 20px 0;">
-            <h2>Distribuição por Status</h2>
-            ${distributionHtml}
-          </div>
-        </body>
-      </html>
-    `;
+  // Configuração de cores para os gráficos
+  const chartConfig = {
+    backgroundGradientFrom: isDarkMode ? '#1a1a1a' : '#ffffff',
+    backgroundGradientTo: isDarkMode ? '#1a1a1a' : '#ffffff',
+    color: (opacity = 1) => `rgba(196, 45, 47, ${opacity})`,
+    labelColor: () => (isDarkMode ? '#ffffff' : '#333333'),
+    strokeWidth: 2,
   };
 
-  const exportToPDF = async () => {
-    try {
-      const html = generatePDFContent();
-      const { uri } = await Print.printToFileAsync({
-        html,
-        base64: false
-      });
-      
-      if (!(await Sharing.isAvailableAsync())) {
-        Toast.show({
-          type: 'error',
-          text1: 'Compartilhamento não disponível',
-          text2: 'Seu dispositivo não suporta compartilhamento'
-        });
-        return;
-      }
-
-      await Sharing.shareAsync(uri);
-    } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao exportar PDF',
-        text2: 'Tente novamente mais tarde'
-      });
-    }
+  const renderExpiringProduct = ({ item }) => {
+    const daysRemaining = calculateDaysRemaining(item.validade);
+    const isUrgent = daysRemaining <= 7;
+    
+    return (
+      <View style={[
+        styles.modalProductCard,
+        isDarkMode ? styles.cardDark : styles.cardLight,
+        isUrgent && styles.urgentProductCard
+      ]}>
+        <View style={styles.modalProductHeader}>
+          <MaterialIcons 
+            name={isUrgent ? "warning" : "schedule"} 
+            size={20} 
+            color={isUrgent ? dangerColor : warningColor} 
+          />
+          <Text style={[
+            styles.modalProductDays,
+            isDarkMode ? styles.textLight : styles.textDark,
+            isUrgent && styles.urgentText
+          ]}>
+            {daysRemaining} {daysRemaining === 1 ? 'dia' : 'dias'}
+          </Text>
+        </View>
+        <Text style={[
+          styles.modalProductName,
+          isDarkMode ? styles.textLight : styles.textDark
+        ]} numberOfLines={2}>
+          {item.descricao}
+        </Text>
+        <Text style={[
+          styles.modalProductDetails,
+          isDarkMode ? styles.textLightSecondary : styles.textDarkSecondary
+        ]}>
+          Qtd: {item.quantidade} | Lote: {item.lote}
+        </Text>
+      </View>
+    );
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={isDarkMode ? '#6366F1' : '#3F51B5'} />
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={primaryColor} />
+        <Text style={[styles.loadingText, isDarkMode && styles.textLight]}>
+          Carregando dashboard...
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, isDarkMode && styles.darkContainer]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+    <Animated.View 
+      style={[
+        styles.container, 
+        isDarkMode && styles.darkContainer,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+      ]}
     >
-      <LinearGradient
-        colors={isDarkMode ? ['#C42D2F', '#C42D2F'] : ['#C42D2f', '#C42D2F']}
-        style={styles.header}
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.headerTitle}>Dashboard</Text>
-        <Text style={styles.headerSubtitle}>Visão Geral dos Produtos</Text>
-      </LinearGradient>
-
-      <View style={styles.content}>
-        {/* Cards de Estatísticas */}
-        <View style={styles.statsContainer}>
-          <StatCard
-            title="Total de Produtos"
-            value={products.length}
-            icon="package-variant"
-            iconFamily="MaterialCommunityIcons"
-            color={isDarkMode ? '#6366F1' : '#3F51B5'}
-          />
-          <StatCard
-            title="Próx. ao Vencimento"
-            value={products.filter(p => {
-              const days = calculateDaysRemaining(p.validade);
-              return !p.status && days > 0 && days <= 30;
-            }).length}
-            icon="alert-circle"
-            iconFamily="MaterialCommunityIcons"
-            color={isDarkMode ? '#FFD93D' : '#FFA000'}
-          />
-          <StatCard
-            title="Vencidos"
-            value={products.filter(p => p.status === 'treated' && p.treatmentType === 'expired').length}
-            icon="alert-octagon"
-            iconFamily="MaterialCommunityIcons"
-            color={isDarkMode ? '#FF6B6B' : '#FF4444'}
-          />
-          <StatCard
-            title="Vendidos"
-            value={products.filter(p => p.status === 'treated' && p.treatmentType === 'sold').length}
-            icon="cart"
-            iconFamily="MaterialCommunityIcons"
-            color={isDarkMode ? '#4ADE80' : '#4CAF50'}
-          />
-          <StatCard
-            title="Trocados"
-            value={products.filter(p => p.status === 'treated' && p.treatmentType === 'exchanged').length}
-            icon="swap-horizontal"
-            iconFamily="MaterialCommunityIcons"
-            color={isDarkMode ? '#60A5FA' : '#2196F3'}
-          />
-          <StatCard
-            title="Devolvidos"
-            value={products.filter(p => p.status === 'treated' && p.treatmentType === 'returned').length}
-            icon="keyboard-return"
-            iconFamily="MaterialCommunityIcons"
-            color={isDarkMode ? '#FFB74D' : '#FF9800'}
-          />
+        {/* Header */}
+        <View style={styles.headerSection}>
+          <Text style={[styles.headerTitle, isDarkMode && styles.textLight]}>
+            📊 Resumo Geral
+          </Text>
+          <Text style={[styles.headerSubtitle, isDarkMode && styles.textLightSecondary]}>
+            {new Date().toLocaleDateString('pt-BR', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </Text>
         </View>
 
-        {/* Gráfico de Pizza */}
-        <View style={[styles.chartCard, isDarkMode && styles.darkChartCard]}>
-          <Text style={[styles.chartTitle, isDarkMode && styles.darkText]}>
-            Distribuição por Status
-          </Text>
-          <PieChart
-            data={getPieChartData()}
-            width={Dimensions.get('window').width - 40}
-            height={220}
-            chartConfig={{
-              backgroundColor: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-              backgroundGradientFrom: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-              backgroundGradientTo: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-              color: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
-        </View>
-
-        {/* Gráfico de Linha */}
-        <View style={[styles.chartCard, isDarkMode && styles.darkChartCard]}>
-          <Text style={[styles.chartTitle, isDarkMode && styles.darkText]}>
-            Produtos Próximos ao Vencimento
-          </Text>
-          <View style={styles.periodButtonsContainer}>
-            <PeriodButton period="7" label="7 dias" />
-            <PeriodButton period="30" label="30 dias" />
-            <PeriodButton period="90" label="90 dias" />
+        {/* Cards de estatísticas principais */}
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
+            <MaterialIcons name="inventory" size={24} color={successColor} />
+            <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.activeProducts}</Text>
+            <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Ativos</Text>
           </View>
-          <LineChart
-            data={getLineChartData()}
-            width={Dimensions.get('window').width - 40}
-            height={220}
-            chartConfig={{
-              backgroundColor: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-              backgroundGradientFrom: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-              backgroundGradientTo: isDarkMode ? '#1E1E1E' : '#FFFFFF',
-              decimalPlaces: 0,
-              color: (opacity = 1) => isDarkMode ? `rgba(99, 102, 241, ${opacity})` : `rgba(63, 81, 181, ${opacity})`,
-              labelColor: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-              style: {
-                borderRadius: 16,
-              },
-              propsForDots: {
-                r: "6",
-                strokeWidth: "2",
-                stroke: isDarkMode ? "#6366F1" : "#3F51B5"
-              }
-            }}
-            bezier
-            style={styles.lineChart}
-          />
+          <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
+            <MaterialIcons name="warning" size={24} color={dangerColor} />
+            <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.expiredProducts}</Text>
+            <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Vencidos</Text>
+          </View>
+          <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
+            <MaterialIcons name="check-circle" size={24} color={infoColor} />
+            <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.treatedProducts}</Text>
+            <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Tratados</Text>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+
+        {/* Alertas de produtos próximos do vencimento */}
+        {(stats.expiringIn7Days > 0 || stats.expiringIn30Days > 0) && (
+          <View style={styles.alertsSection}>
+            <Text style={[styles.sectionTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+              ⚠️ Alertas
+            </Text>
+            
+            {stats.expiringIn7Days > 0 && (
+              <TouchableOpacity 
+                style={[styles.alertCard, styles.urgentAlert]}
+                onPress={() => setModalVisible(true)}
+              >
+                <MaterialIcons name="schedule" size={24} color={dangerColor} />
+                <View style={styles.alertContent}>
+                  <Text style={[styles.alertTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+                    Produtos Urgentes
+                  </Text>
+                  <Text style={[styles.alertMessage, isDarkMode ? styles.textLightSecondary : styles.textDarkSecondary]}>
+                    {stats.expiringIn7Days} produto(s) vence(m) em até 7 dias
+                  </Text>
+                </View>
+                <MaterialIcons name="visibility" size={20} color={dangerColor} />
+              </TouchableOpacity>
+            )}
+            
+            {stats.expiringIn30Days > 0 && (
+              <TouchableOpacity 
+                style={[styles.alertCard, styles.warningAlert]}
+                onPress={() => setModalVisible(true)}
+              >
+                <MaterialIcons name="event" size={24} color={warningColor} />
+                <View style={styles.alertContent}>
+                  <Text style={[styles.alertTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+                    Próximos do Vencimento
+                  </Text>
+                  <Text style={[styles.alertMessage, isDarkMode ? styles.textLightSecondary : styles.textDarkSecondary]}>
+                    {stats.expiringIn30Days} produto(s) vence(m) em 30 dias
+                  </Text>
+                </View>
+                <MaterialIcons name="visibility" size={20} color={warningColor} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Gráfico Pizza - Status */}
+        <View style={styles.chartSection}>
+          <Text style={[styles.sectionTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+            📊 Status dos Produtos
+          </Text>
+          {pieData.length > 0 ? (
+            <PieChart
+              data={pieData}
+              width={Dimensions.get('window').width - 32}
+              height={220}
+              chartConfig={chartConfig}
+              accessor="count"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+              hasLegend
+            />
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialIcons name="pie-chart" size={48} color={isDarkMode ? '#666' : '#ccc'} />
+              <Text style={[styles.emptyText, isDarkMode ? styles.textLightSecondary : styles.textDarkSecondary]}>
+                Nenhum produto cadastrado
+              </Text>
+            </View>
+          )}
+        </View>
+
+      </ScrollView>
+
+      {/* Modal de produtos próximos do vencimento */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[
+            styles.modalContainer,
+            isDarkMode ? styles.modalContainerDark : styles.modalContainerLight
+          ]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+                Produtos Próximos do Vencimento
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setModalVisible(false)}
+                style={styles.closeButton}
+              >
+                <MaterialIcons name="close" size={24} color={isDarkMode ? '#fff' : '#333'} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={expiringProducts}
+              renderItem={renderExpiringProduct}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalList}
+            />
+          </View>
+        </View>
+      </Modal>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#f9f9f9',
   },
   darkContainer: {
     backgroundColor: '#121212',
   },
-  centerContent: {
+  center: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  headerSection: {
     padding: 20,
-    paddingTop: 40,
+    paddingBottom: 10,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333',
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.8,
+    fontSize: 14,
+    color: '#666',
+    textTransform: 'capitalize',
   },
-  content: {
-    padding: 16,
-  },
-  statsContainer: {
+  summaryRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  statCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
+  summaryCard: {
+    flex: 1,
+    marginHorizontal: 6,
+    padding: 16,
     borderRadius: 12,
-    padding: 12,
-    elevation: 2,
+    alignItems: 'center',
+    elevation: 3,
     shadowColor: '#000',
+    shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 6,
   },
-  darkStatCard: {
-    backgroundColor: '#1E1E1E',
+  cardLight: {
+    backgroundColor: '#fff',
   },
-  statIconContainer: {
-    marginBottom: 8,
+  cardDark: {
+    backgroundColor: '#1e1e1e',
   },
-  statValue: {
-    fontSize: 20,
+  summaryNumber: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: primaryColor,
+    marginTop: 8,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  alertsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  alertCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+  },
+  urgentAlert: {
+    backgroundColor: '#fff',
+    borderLeftWidth: 4,
+    borderLeftColor: dangerColor,
+  },
+  warningAlert: {
+    backgroundColor: '#fff',
+    borderLeftWidth: 4,
+    borderLeftColor: warningColor,
+  },
+  alertContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  alertTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
-    color: '#333333',
   },
-  statTitle: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  darkText: {
-    color: '#E0E0E0',
-  },
-  chartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  darkChartCard: {
-    backgroundColor: '#1E1E1E',
-  },
-  chartTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333333',
-  },
-  periodButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  periodButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 4,
-    backgroundColor: '#F0F0F0',
-  },
-  darkPeriodButton: {
-    backgroundColor: '#333333',
-  },
-  selectedPeriodButton: {
-    backgroundColor: '#3F51B5',
-  },
-  periodButtonText: {
-    color: '#666666',
+  alertMessage: {
     fontSize: 14,
   },
-  selectedPeriodButtonText: {
-    color: '#FFFFFF',
+  chartSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  lineChart: {
-    marginVertical: 8,
-    borderRadius: 16,
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    height: '80%',
+    borderRadius: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 10,
+  },
+  modalContainerLight: {
+    backgroundColor: '#fff',
+  },
+  modalContainerDark: {
+    backgroundColor: '#1e1e1e',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalList: {
+    padding: 20,
+  },
+  modalProductCard: {
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+  },
+  urgentProductCard: {
+    borderWidth: 2,
+    borderColor: dangerColor,
+  },
+  modalProductHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalProductDays: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  urgentText: {
+    color: dangerColor,
+  },
+  modalProductName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  modalProductDetails: {
+    fontSize: 14,
+  },
+  textLight: {
+    color: '#fff',
+  },
+  textDark: {
+    color: '#333',
+  },
+  textLightSecondary: {
+    color: '#ccc',
+  },
+  textDarkSecondary: {
+    color: '#666',
   },
 });
 
