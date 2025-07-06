@@ -3,29 +3,18 @@ import { View, Text, Switch, TouchableOpacity, Modal, StyleSheet, Alert, ScrollV
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as Notifications from 'expo-notifications';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Toast from 'react-native-toast-message'; // Adicionar esta importação
+import Toast from 'react-native-toast-message';
 
-// Configuração das notificações
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+
 
 const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
   const [isBiometricEnabled, setBiometricEnabled] = useState(false);
   const [isAutoBackupEnabled, setAutoBackupEnabled] = useState(false);
-  const [notificationDays, setNotificationDays] = useState(7);
 
   useEffect(() => {
     loadSettings();
-    checkNotificationPermissions();
     navigation.setOptions({
       headerShown: true,
       headerStyle: {
@@ -48,10 +37,8 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
       const settings = await AsyncStorage.getItem('userSettings');
       if (settings) {
         const parsedSettings = JSON.parse(settings);
-        setIsNotificationsEnabled(parsedSettings.notifications ?? true);
         setBiometricEnabled(parsedSettings.biometric ?? false);
         setAutoBackupEnabled(parsedSettings.autoBackup ?? false);
-        setNotificationDays(parsedSettings.notificationDays ?? 7);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
@@ -74,74 +61,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
     saveSettings('darkMode', !isDarkMode);
   };
 
-  const checkNotificationPermissions = async () => {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
 
-    if (finalStatus !== 'granted') {
-      Alert.alert(
-        'Permissão Necessária',
-        'Para receber notificações de validade, você precisa permitir as notificações.',
-        [{ text: 'OK' }]
-      );
-      setIsNotificationsEnabled(false);
-      return;
-    }
-  };
-
-  const scheduleExpirationNotifications = async (enabled) => {
-    try {
-      if (enabled) {
-        // Cancela notificações existentes antes de agendar novas
-        await Notifications.cancelAllScheduledNotificationsAsync();
-
-        // Busca produtos do AsyncStorage
-        const productsJson = await AsyncStorage.getItem('products');
-        if (productsJson) {
-          const products = JSON.parse(productsJson);
-          
-          for (const product of products) {
-            if (product.expirationDate) {
-              const expirationDate = new Date(product.expirationDate);
-              const notificationDate = new Date(expirationDate);
-              notificationDate.setDate(expirationDate.getDate() - notificationDays); // Notifica X dias antes
-
-              if (notificationDate > new Date()) { // Só agenda se a data ainda não passou
-                await Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: "Produto próximo do vencimento!",
-                    body: `${product.name} vencerá em ${notificationDays} dias (${product.expirationDate})`,
-                    data: { productId: product.id },
-                  },
-                  trigger: {
-                    date: notificationDate,
-                  },
-                });
-              }
-            }
-          }
-        }
-      } else {
-        // Se desativou as notificações, cancela todas agendadas
-        await Notifications.cancelAllScheduledNotificationsAsync();
-      }
-    } catch (error) {
-      console.error('Erro ao agendar notificações:', error);
-      Alert.alert('Erro', 'Não foi possível configurar as notificações');
-    }
-  };
-
-  const toggleNotifications = async () => {
-    const newValue = !isNotificationsEnabled;
-    setIsNotificationsEnabled(newValue);
-    await saveSettings('notifications', newValue);
-    await scheduleExpirationNotifications(newValue);
-  };
 
   const toggleBiometric = async () => {
     try {
@@ -201,44 +121,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
     }
   };
 
-  const testNotification = async () => {
-    try {
-      const { status } = await Notifications.getPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permissão Necessária',
-          'Para receber notificações, você precisa permitir nas configurações do dispositivo.'
-        );
-        return;
-      }
 
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Teste de Notificação",
-          body: "Se você está vendo isto, as notificações estão funcionando!",
-          data: { test: true },
-        },
-        trigger: {
-          seconds: 5,
-          channelId: 'default'
-        },
-      });
-
-      Toast.show({
-        type: 'success',
-        text1: 'Notificação Agendada',
-        text2: 'Você receberá uma notificação em 5 segundos',
-        visibilityTime: 3000,
-      });
-    } catch (error) {
-      console.error('Erro ao enviar notificação:', error);
-      Alert.alert(
-        'Erro',
-        'Não foi possível enviar a notificação de teste. Verifique as permissões do app.'
-      );
-    }
-  };
 
   const SettingItem = ({ icon, title, value, onToggle, iconColor }) => (
     <View style={[styles.settingGroup, isDarkMode ? styles.darkContainer : styles.lightContainer]}>
@@ -307,31 +190,17 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
           onToggle={toggleDarkMode}
         />
 
-        {/* Seção Notificações */}
+
+
         <Text style={[styles.sectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>
           Notificações e Alertas
         </Text>
 
-        <SettingItem
-          icon="bell-outline"
-          title="Notificações de Validade"
-          value={isNotificationsEnabled}
-          onToggle={toggleNotifications}
-        />
-
-        {/* Botão de teste de notificação */}
-        <TouchableOpacity 
-          style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton]}
-          onPress={testNotification}
-        >
-          <MaterialCommunityIcons name="bell-ring" size={24} color="#FFFFFF" />
-          <Text style={styles.buttonText}>Testar Notificações</Text>
-        </TouchableOpacity>
-
         <NavigationItem
-          icon="clock-outline"
-          title="Configurar Validades"
-          onPress={() => navigation.navigate('ValiditySettings')}
+          icon="bell-outline"
+          title="Configurar Notificações"
+          onPress={() => navigation.navigate('NotificationSettings')}
+          iconColor="#FF6B35"
         />
 
         <Text style={[styles.sectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>

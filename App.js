@@ -21,7 +21,7 @@ import ExcelScreen from './Screen/Excel/ExcelScreen';
 import LoginScreen from './Screen/Entrada/LoginScreen';
 import ProfileScreen from "./Screen/Perfil/ProfileScreen";
 import TratarScreen from './Screen/Tratativas/TratarScreen';
-import NotifScreen from './Screen/Components/NotifScreen';
+import NotificationScreen from './Screen/Notificacao/NotificationScreen';
 import SqlScreen from './Screen/SQL/SqlScreen';
 import RegisterScreen from './Screen/Entrada/RegisterScreen';
 import PdfScreen from './Screen/Pdf/PdfScreen';
@@ -86,7 +86,31 @@ export default function App() {
 
   useEffect(() => {
     configurePushNotifications();
+    checkNotificationPermissions();
   }, []);
+
+  const checkNotificationPermissions = async () => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        console.log('Permissões de notificação não concedidas');
+        return false;
+      }
+
+      console.log('Permissões de notificação concedidas');
+      return true;
+    } catch (error) {
+      console.error('Erro ao verificar permissões de notificação:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     const configureNotifications = async () => {
@@ -248,8 +272,10 @@ export default function App() {
               {props => <TratarScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
-            <Stack.Screen name="ValiditySettings">
-              {props => <NotifScreen {...props} isDarkMode={isDarkMode} />}
+
+
+            <Stack.Screen name="NotificationSettings">
+              {props => <NotificationScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
             <Stack.Screen name="SqlScreen">
