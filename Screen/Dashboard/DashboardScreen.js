@@ -16,11 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PieChart } from 'react-native-chart-kit';
 import { MaterialIcons } from '@expo/vector-icons';
 
-const primaryColor = '#C42D2F';
-const successColor = '#28A745';
-const warningColor = '#FFC107';
-const dangerColor = '#DC3545';
-const infoColor = '#17A2B8';
+
 
 const DashboardScreen = ({ isDarkMode, navigation }) => {
   const [products, setProducts] = useState([]);
@@ -31,6 +27,10 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [expiringProducts, setExpiringProducts] = useState([]);
 
+  // Estados para modais separados
+  const [modalUrgentesVisible, setModalUrgentesVisible] = useState(false);
+  const [modalProximosVisible, setModalProximosVisible] = useState(false);
+
   useEffect(() => {
     loadProducts();
     animateIn();
@@ -38,9 +38,9 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
 
   useEffect(() => {
     navigation.setOptions({
-      headerStyle: { backgroundColor: primaryColor },
+      headerStyle: { backgroundColor: '#C42D2F' },
       headerTintColor: '#FFF',
-      headerTitleStyle: { fontWeight: 'bold' },
+      headerTitleStyle: { fontWeight: 'bold', fontSize: 20 },
       title: 'Dashboard',
     });
   }, [navigation]);
@@ -126,26 +126,36 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
 
   const stats = getStats();
 
+  // Corrigir filtros para garantir que não haja sobreposição
+  const urgentProducts = expiringProducts.filter(p => {
+    const days = calculateDaysRemaining(p.validade);
+    return days >= 0 && days <= 7;
+  });
+  const nextProducts = expiringProducts.filter(p => {
+    const days = calculateDaysRemaining(p.validade);
+    return days > 7 && days <= 30;
+  });
+
   // Dados para gráfico pizza
   const pieData = [
     {
       name: 'Ativos',
       count: stats.activeProducts,
-      color: successColor,
+      color: '#28A745',
       legendFontColor: isDarkMode ? '#fff' : '#333',
       legendFontSize: 14,
     },
     {
       name: 'Vencidos',
       count: stats.expiredProducts,
-      color: dangerColor,
+      color: '#DC3545',
       legendFontColor: isDarkMode ? '#fff' : '#333',
       legendFontSize: 14,
     },
     {
       name: 'Tratados',
       count: stats.treatedProducts,
-      color: infoColor,
+      color: '#17A2B8',
       legendFontColor: isDarkMode ? '#fff' : '#333',
       legendFontSize: 14,
     },
@@ -171,15 +181,15 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
         isUrgent && styles.urgentProductCard
       ]}>
         <View style={styles.modalProductHeader}>
-          <MaterialIcons 
-            name={isUrgent ? "warning" : "schedule"} 
-            size={20} 
-            color={isUrgent ? dangerColor : warningColor} 
-          />
+                  <MaterialIcons 
+          name={isUrgent ? "warning" : "schedule"} 
+          size={20} 
+          color={isUrgent ? "#DC3545" : "#FFC107"} 
+        />
           <Text style={[
             styles.modalProductDays,
             isDarkMode ? styles.textLight : styles.textDark,
-            isUrgent && styles.urgentText
+            isUrgent && { color: '#DC3545' }
           ]}>
             {daysRemaining} {daysRemaining === 1 ? 'dia' : 'dias'}
           </Text>
@@ -203,7 +213,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={primaryColor} />
+        <ActivityIndicator size="large" color="#C42D2F" />
         <Text style={[styles.loadingText, isDarkMode && styles.textLight]}>
           Carregando dashboard...
         </Text>
@@ -241,17 +251,17 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
         {/* Cards de estatísticas principais */}
         <View style={styles.summaryRow}>
           <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
-            <MaterialIcons name="inventory" size={24} color={successColor} />
+            <MaterialIcons name="inventory" size={24} color="#28A745" />
             <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.activeProducts}</Text>
             <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Ativos</Text>
           </View>
           <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
-            <MaterialIcons name="warning" size={24} color={dangerColor} />
+            <MaterialIcons name="warning" size={24} color="#DC3545" />
             <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.expiredProducts}</Text>
             <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Vencidos</Text>
           </View>
           <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
-            <MaterialIcons name="check-circle" size={24} color={infoColor} />
+            <MaterialIcons name="check-circle" size={24} color="#17A2B8" />
             <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.treatedProducts}</Text>
             <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Tratados</Text>
           </View>
@@ -263,13 +273,17 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
             <Text style={[styles.sectionTitle, isDarkMode ? styles.textLight : styles.textDark]}>
               ⚠️ Alertas
             </Text>
-            
+            {/* Alerta Urgentes */}
             {stats.expiringIn7Days > 0 && (
               <TouchableOpacity 
-                style={[styles.alertCard, styles.urgentAlert]}
-                onPress={() => setModalVisible(true)}
+                style={[
+                  styles.alertCard, 
+                  styles.urgentAlert,
+                  isDarkMode ? styles.alertCardDark : styles.alertCardLight
+                ]}
+                onPress={() => setModalUrgentesVisible(true)}
               >
-                <MaterialIcons name="schedule" size={24} color={dangerColor} />
+                <MaterialIcons name="schedule" size={24} color="#DC3545" />
                 <View style={styles.alertContent}>
                   <Text style={[styles.alertTitle, isDarkMode ? styles.textLight : styles.textDark]}>
                     Produtos Urgentes
@@ -278,16 +292,20 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
                     {stats.expiringIn7Days} produto(s) vence(m) em até 7 dias
                   </Text>
                 </View>
-                <MaterialIcons name="visibility" size={20} color={dangerColor} />
+                <MaterialIcons name="visibility" size={20} color="#DC3545" />
               </TouchableOpacity>
             )}
-            
+            {/* Alerta Próximos do Vencimento */}
             {stats.expiringIn30Days > 0 && (
               <TouchableOpacity 
-                style={[styles.alertCard, styles.warningAlert]}
-                onPress={() => setModalVisible(true)}
+                style={[
+                  styles.alertCard, 
+                  styles.warningAlert,
+                  isDarkMode ? styles.alertCardDark : styles.alertCardLight
+                ]}
+                onPress={() => setModalProximosVisible(true)}
               >
-                <MaterialIcons name="event" size={24} color={warningColor} />
+                <MaterialIcons name="event" size={24} color="#FFC107" />
                 <View style={styles.alertContent}>
                   <Text style={[styles.alertTitle, isDarkMode ? styles.textLight : styles.textDark]}>
                     Próximos do Vencimento
@@ -296,7 +314,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
                     {stats.expiringIn30Days} produto(s) vence(m) em 30 dias
                   </Text>
                 </View>
-                <MaterialIcons name="visibility" size={20} color={warningColor} />
+                <MaterialIcons name="visibility" size={20} color="#FFC107" />
               </TouchableOpacity>
             )}
           </View>
@@ -331,12 +349,12 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
 
       </ScrollView>
 
-      {/* Modal de produtos próximos do vencimento */}
+      {/* Modal de produtos URGENTES */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        visible={modalUrgentesVisible}
+        onRequestClose={() => setModalUrgentesVisible(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={[
@@ -344,24 +362,57 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
             isDarkMode ? styles.modalContainerDark : styles.modalContainerLight
           ]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDarkMode ? styles.textLight : styles.textDark]}>
-                Produtos Próximos do Vencimento
-              </Text>
+              <Text style={[styles.modalTitle, { color: '#DC3545' }]}>Produtos Urgentes (até 7 dias)</Text>
               <TouchableOpacity 
-                onPress={() => setModalVisible(false)}
+                onPress={() => setModalUrgentesVisible(false)}
                 style={styles.closeButton}
               >
                 <MaterialIcons name="close" size={24} color={isDarkMode ? '#fff' : '#333'} />
               </TouchableOpacity>
             </View>
-            
-            <FlatList
-              data={expiringProducts}
-              renderItem={renderExpiringProduct}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.modalList}
-            />
+            <ScrollView contentContainerStyle={styles.modalList} showsVerticalScrollIndicator={false}>
+              {urgentProducts.length > 0 ? (
+                urgentProducts.map(item => renderExpiringProduct({ item }))
+              ) : (
+                <Text style={{ color: isDarkMode ? '#fff' : '#333', textAlign: 'center', marginTop: 24 }}>
+                  Nenhum produto urgente.
+                </Text>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de produtos PRÓXIMOS DO VENCIMENTO */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalProximosVisible}
+        onRequestClose={() => setModalProximosVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[
+            styles.modalContainer,
+            isDarkMode ? styles.modalContainerDark : styles.modalContainerLight
+          ]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: '#FFC107' }]}>Próximos do Vencimento (8 a 30 dias)</Text>
+              <TouchableOpacity 
+                onPress={() => setModalProximosVisible(false)}
+                style={styles.closeButton}
+              >
+                <MaterialIcons name="close" size={24} color={isDarkMode ? '#fff' : '#333'} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.modalList} showsVerticalScrollIndicator={false}>
+              {nextProducts.length > 0 ? (
+                nextProducts.map(item => renderExpiringProduct({ item }))
+              ) : (
+                <Text style={{ color: isDarkMode ? '#fff' : '#333', textAlign: 'center', marginTop: 24 }}>
+                  Nenhum produto próximo do vencimento.
+                </Text>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -420,7 +471,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   cardLight: {
-    backgroundColor: '#fff',
+    backgroundColor: '##1e1e1e',
   },
   cardDark: {
     backgroundColor: '#1e1e1e',
@@ -428,7 +479,7 @@ const styles = StyleSheet.create({
   summaryNumber: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: primaryColor,
+    color: '#C42D2F',
     marginTop: 8,
   },
   summaryLabel: {
@@ -453,14 +504,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   urgentAlert: {
-    backgroundColor: '#fff',
     borderLeftWidth: 4,
-    borderLeftColor: dangerColor,
+    borderLeftColor: '#DC3545',
   },
   warningAlert: {
-    backgroundColor: '#fff',
     borderLeftWidth: 4,
-    borderLeftColor: warningColor,
+    borderLeftColor: '#FFC107',
   },
   alertContent: {
     flex: 1,
@@ -543,7 +592,7 @@ const styles = StyleSheet.create({
   },
   urgentProductCard: {
     borderWidth: 2,
-    borderColor: dangerColor,
+    borderColor: '#DC3545',
   },
   modalProductHeader: {
     flexDirection: 'row',
@@ -555,9 +604,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  urgentText: {
-    color: dangerColor,
-  },
+
   modalProductName: {
     fontSize: 16,
     fontWeight: '600',
@@ -577,6 +624,12 @@ const styles = StyleSheet.create({
   },
   textDarkSecondary: {
     color: '#666',
+  },
+  alertCardLight: {
+    backgroundColor: '#fff',
+  },
+  alertCardDark: {
+    backgroundColor: '#1e1e1e',
   },
 });
 

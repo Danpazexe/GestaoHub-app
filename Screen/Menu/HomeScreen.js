@@ -92,14 +92,170 @@ const HomeScreen = ({ isDarkMode }) => {
     loadUserName();
   }, []);
 
+  const getStyles = (isDarkMode) => StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: isDarkMode ? '#181A20' : '#f8fafc',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 20,
+      backgroundColor: 'transparent',
+      marginBottom: 8,
+    },
+    logo: {
+      width: 200,
+      height: 80,
+    },
+    headerText: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    headerSubtitle: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    headerButtons: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    headerButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: isDarkMode ? '#23262F' : '#fff',
+      borderWidth: 1,
+      borderColor: isDarkMode ? '#23262F' : 'rgba(0,0,0,0.05)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.10,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 80,
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      marginBottom: 18,
+      gap: 12,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: '#fff',
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+    },
+    statIcon: {
+      marginBottom: 8,
+      opacity: 0.8,
+    },
+    statValue: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: '#2563eb',
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: '#64748b',
+      textAlign: 'center',
+    },
+    menuContainer: {
+      marginTop: 24,
+      paddingHorizontal: 20,
+      paddingBottom: 32,
+    },
+    menuCardWrapper: {
+      marginBottom: 22,
+      borderRadius: 22,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.10,
+      shadowRadius: 12,
+      elevation: 6,
+      backgroundColor: isDarkMode ? '#23262F' : 'transparent',
+      borderWidth: isDarkMode ? 1 : 0,
+      borderColor: isDarkMode ? '#23262F' : 'transparent',
+    },
+    menuCardGradient: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 26,
+      paddingHorizontal: 22,
+      borderRadius: 22,
+      minHeight: 90,
+    },
+    iconCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 18,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.10,
+      shadowRadius: 6,
+    },
+    menuTitle: {
+      fontSize: 19,
+      fontWeight: 'bold',
+      color: '#fff',
+      marginBottom: 2,
+      letterSpacing: 0.2,
+    },
+    menuSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.92)',
+      marginTop: 1,
+      fontWeight: '500',
+      letterSpacing: 0.1,
+    },
+    userInfoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 16,
+      position: 'absolute',
+      bottom: 12,
+      left: 0,
+      right: 0,
+    },
+    userName: {
+      fontSize: 14,
+      fontWeight: '500',
+      marginLeft: 6,
+      opacity: 0.8,
+      color: isDarkMode ? '#B0B3B8' : '#64748b',
+    },
+  });
+
+  const styles = getStyles(isDarkMode);
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc' }]}> 
+    <SafeAreaView style={styles.safeArea}> 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Image source={require('../../assets/Image/LOGOSEMFRASE.png')} style={styles.logo} resizeMode="contain" />
         <View style={styles.headerText}></View>
         <View style={styles.headerButtons}>
           <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}
+            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#23262F' : '#fff' }]}
             onPress={() => navigation.navigate('ProfileScreen')}
           >
             <MaterialIcons 
@@ -109,7 +265,7 @@ const HomeScreen = ({ isDarkMode }) => {
             />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}
+            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#23262F' : '#fff' }]}
             onPress={() => navigation.navigate('SettingsScreen')}
           >
             <MaterialIcons 
@@ -175,163 +331,14 @@ const HomeScreen = ({ isDarkMode }) => {
         <MaterialIcons 
           name="person" 
           size={16} 
-          color={isDarkMode ? '#94a3b8' : '#64748b'} 
+          color={isDarkMode ? '#B0B3B8' : '#64748b'} 
         />
-        <Text style={[styles.userName, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}>
+        <Text style={[styles.userName, { color: isDarkMode ? '#B0B3B8' : '#64748b' }]}>
           {userName}
         </Text>
       </View>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'transparent',
-    marginBottom: 8,
-  },
-  logo: {
-    width: 200,
-    height: 80,
-  },
-  headerText: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 80,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginBottom: 18,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-  },
-  statIcon: {
-    marginBottom: 8,
-    opacity: 0.8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2563eb',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-  },
-  menuContainer: {
-    marginTop: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  menuCardWrapper: {
-    marginBottom: 22,
-    borderRadius: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 12,
-    elevation: 6,
-    backgroundColor: 'transparent',
-  },
-  menuCardGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 26,
-    paddingHorizontal: 22,
-    borderRadius: 22,
-    minHeight: 90,
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-  },
-  menuTitle: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 2,
-    letterSpacing: 0.2,
-  },
-  menuSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.92)',
-    marginTop: 1,
-    fontWeight: '500',
-    letterSpacing: 0.1,
-  },
-  userInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 6,
-    opacity: 0.8,
-  },
-});
 
 export default HomeScreen;

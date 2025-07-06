@@ -117,8 +117,16 @@ const PdfViewerScreen = ({ route, navigation }) => {
           ref={pdfRef}
           source={{ uri: pdfUri }}
           style={styles.pdf}
-          onLoadComplete={handleLoadComplete}
-          onPageChanged={handlePageChanged}
+          onLoadComplete={(numberOfPages, filePath) => {
+            setTotalPages(numberOfPages);
+            setCurrentPage(1);
+            console.log('PDF carregado:', numberOfPages, filePath);
+          }}
+          onPageChanged={(page, numberOfPages) => {
+            setCurrentPage(page);
+            setTotalPages(numberOfPages);
+            console.log('Página alterada:', page, numberOfPages);
+          }}
           onError={handleError}
           enablePaging={true}
           enableAnnotationRendering={true}

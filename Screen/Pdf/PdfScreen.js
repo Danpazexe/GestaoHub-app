@@ -241,12 +241,104 @@ const PdfScreen = ({ isDarkMode }) => {
     }
   };
 
+  const getStyles = (isDarkMode) => StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+      backgroundColor: isDarkMode ? '#181A20' : '#e8f0ff',
+    },
+    card: {
+      backgroundColor: isDarkMode ? '#23262F' : '#f9fbff',
+      borderRadius: 22,
+      padding: 32,
+      alignItems: 'center',
+      width: '100%',
+      maxWidth: 440,
+      shadowColor: isDarkMode ? '#000000' : '#B0B3B8',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDarkMode ? 0.08 : 0.13,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: isDarkMode ? '#FFFFFF' : '#B0B3B8',
+      marginBottom: 10,
+      textAlign: 'center',
+      letterSpacing: 0.5,
+    },
+    desc: {
+      fontSize: 16,
+      color: isDarkMode ? '#B0B3B8' : '#B0B3B8',
+      marginBottom: 28,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    button: {
+      backgroundColor: '#d7263d',
+      paddingVertical: 16,
+      paddingHorizontal: 36,
+      borderRadius: 12,
+      elevation: 4,
+      marginTop: 10,
+      width: '100%',
+      alignItems: 'center',
+      shadowColor: '#d7263d',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 6,
+    },
+    buttonText: {
+      color: '#fff',
+      fontSize: 18,
+      fontWeight: 'bold',
+      letterSpacing: 0.5,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: isDarkMode ? '#FFFFFF' : '#B0B3B8',
+      marginBottom: 10,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    exportButton: {
+      backgroundColor: '#d7263d',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 10,
+      borderRadius: 10,
+      marginTop: 10,
+      shadowColor: isDarkMode ? '#FFFFFF' : '#B0B3B8',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.10,
+      shadowRadius: 2,
+      minWidth: 180,
+      alignSelf: 'center',
+    },
+    exportButtonText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: 'bold',
+      letterSpacing: 0.5,
+    },
+  });
+
+  const styles = getStyles(isDarkMode);
+
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#1a2233' : '#e8f0ff' }] }>
-      <View style={[styles.card, isDarkMode && styles.cardDark]}>
+    <View style={styles.container}>
+      <View style={styles.card}>
         <MaterialCommunityIcons name="file-pdf-box" size={64} color="#d7263d" style={{ marginBottom: 16 }} />
-        <Text style={[styles.title, isDarkMode && styles.titleDark]}>Exportar Relatório de Validades</Text>
-        <Text style={[styles.desc, isDarkMode && styles.descDark]}>Gere um PDF com os produtos filtrados e ordenados como preferir.</Text>
+        <Text style={styles.title}>Exportar Relatório de Validades</Text>
+        <Text style={styles.desc}>Gere um PDF com os produtos filtrados e ordenados como preferir.</Text>
         <View style={{ padding: 18 }}>
           <Text style={styles.sectionTitle}>Ordenar por</Text>
           <View style={styles.toggleRow}>
@@ -267,7 +359,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setOrderBy('validade')}
             >
               <Text style={{
-                color: orderBy === 'validade' ? '#fff' : (isDarkMode ? '#fff' : '#222'),
+                color: orderBy === 'validade' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
                 fontWeight: orderBy === 'validade' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -290,7 +382,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setOrderBy('quantidade')}
             >
               <Text style={{
-                color: orderBy === 'quantidade' ? '#fff' : (isDarkMode ? '#fff' : '#222'),
+                color: orderBy === 'quantidade' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
                 fontWeight: orderBy === 'quantidade' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -318,8 +410,8 @@ const PdfScreen = ({ isDarkMode }) => {
               }}
               onPress={() => setOrderDirection('asc')}
             >
-              <MaterialCommunityIcons name="arrow-up" size={20} color={orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#fff' : '#222')} />
-              <Text style={{ color: orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#fff' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'asc' ? 'bold' : 'normal', fontSize: 14 }}>Crescente</Text>
+              <MaterialCommunityIcons name="arrow-up" size={20} color={orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222')} />
+              <Text style={{ color: orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'asc' ? 'bold' : 'normal', fontSize: 14 }}>Crescente</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
@@ -338,8 +430,8 @@ const PdfScreen = ({ isDarkMode }) => {
               }}
               onPress={() => setOrderDirection('desc')}
             >
-              <MaterialCommunityIcons name="arrow-down" size={20} color={orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#fff' : '#222')} />
-              <Text style={{ color: orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#fff' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'desc' ? 'bold' : 'normal', fontSize: 14 }}>Decrescente</Text>
+              <MaterialCommunityIcons name="arrow-down" size={20} color={orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222')} />
+              <Text style={{ color: orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'desc' ? 'bold' : 'normal', fontSize: 14 }}>Decrescente</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.sectionTitle}>Filtrar por validade</Text>
@@ -361,7 +453,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setFilterValidade('7')}
             >
               <Text style={{
-                color: filterValidade === '7' ? '#fff' : (isDarkMode ? '#fff' : '#222'),
+                color: filterValidade === '7' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
                 fontWeight: filterValidade === '7' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -385,7 +477,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setFilterValidade('15')}
             >
               <Text style={{
-                color: filterValidade === '15' ? '#fff' : (isDarkMode ? '#fff' : '#222'),
+                color: filterValidade === '15' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
                 fontWeight: filterValidade === '15' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -408,7 +500,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setFilterValidade('todos')}
             >
               <Text style={{
-                color: filterValidade === 'todos' ? '#fff' : (isDarkMode ? '#fff' : '#222'),
+                color: filterValidade === 'todos' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
                 fontWeight: filterValidade === 'todos' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -425,7 +517,7 @@ const PdfScreen = ({ isDarkMode }) => {
               ios_backgroundColor="#ccc"
               style={{ transform: [{ scaleX: 1.15 }, { scaleY: 1.15 }] }}
             />
-            <Text style={{ marginLeft: 10 }}>Incluir legenda de status no PDF</Text>
+            <Text style={{ marginLeft: 10, color: isDarkMode ? '#FFFFFF' : '#222' }}>Incluir legenda de status no PDF</Text>
           </View>
           <TouchableOpacity
             style={[
@@ -621,109 +713,5 @@ const PdfScreen = ({ isDarkMode }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    // Gradiente de fundo simulando com cor sólida para compatibilidade
-  },
-  card: {
-    backgroundColor: '#f9fbff',
-    borderRadius: 22,
-    padding: 32,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 440,
-    shadowColor: '#294380',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.13,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  cardDark: {
-    backgroundColor: '#23283a',
-    shadowColor: '#000',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#294380',
-    marginBottom: 10,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  titleDark: {
-    color: '#fff',
-  },
-  desc: {
-    fontSize: 16,
-    color: '#3a4668',
-    marginBottom: 28,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  descDark: {
-    color: '#b0b8d1',
-  },
-  button: {
-    backgroundColor: '#d7263d',
-    paddingVertical: 16,
-    paddingHorizontal: 36,
-    borderRadius: 12,
-    elevation: 4,
-    marginTop: 10,
-    width: '100%',
-    alignItems: 'center',
-    shadowColor: '#d7263d',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-  },
-  buttonDark: {
-    backgroundColor: '#fbbf24',
-    shadowColor: '#fbbf24',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#294380',
-    marginBottom: 10,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  exportButton: {
-    backgroundColor: '#d7263d',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.10,
-    shadowRadius: 2,
-    minWidth: 180,
-    alignSelf: 'center',
-  },
-  exportButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-});
 
 export default PdfScreen;
