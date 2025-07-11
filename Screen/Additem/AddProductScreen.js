@@ -4,7 +4,7 @@ import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, A
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import * as ImagePicker from 'expo-image-picker';
-import Dados from '../../assets/Dados.json'; // ou importação de onde os dados estão salvos
+// Removida importação do Dados.json - agora usa dados do AsyncStorage
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
@@ -29,27 +29,49 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [productImage, setProductImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
 
-  // Função para buscar no Dados.json
-  const handleBarcodeScan = (scannedEan) => {
-    const formattedScannedEan = String(scannedEan).trim();
-    const product = Dados.find(p => String(p.CODAUXILIAR).trim() === formattedScannedEan);
-  
-    if (product) {
-      setProductName(product.DESCRICAO);
-      setcodprod(String(product.CODPROD));
-      setEan(String(product.CODAUXILIAR));
+  // Função para buscar produtos no AsyncStorage
+  const handleBarcodeScan = async (scannedEan) => {
+    try {
+      const formattedScannedEan = String(scannedEan).trim();
+      const cachedProducts = await AsyncStorage.getItem('cached_products');
       
-      Toast.show({
-        type: 'success',
-        text1: 'Produto Encontrado',
-        text2: 'Dados preenchidos automaticamente',
-        visibilityTime: 2000,
-      });
-    } else {
+      if (cachedProducts) {
+        const produtos = JSON.parse(cachedProducts);
+        const product = produtos.find(p => String(p.CODAUXILIAR).trim() === formattedScannedEan);
+      
+        if (product) {
+          setProductName(product.DESCRICAO);
+          setcodprod(String(product.CODPROD));
+          setEan(String(product.CODAUXILIAR));
+          
+          Toast.show({
+            type: 'success',
+            text1: 'Produto Encontrado',
+            text2: 'Dados preenchidos automaticamente',
+            visibilityTime: 2000,
+          });
+        } else {
+          Toast.show({
+            type: 'error',
+            text1: 'Produto não encontrado',
+            text2: 'Não foi possível encontrar o produto com o EAN fornecido.',
+            visibilityTime: 3000,
+          });
+        }
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Nenhum produto cadastrado',
+          text2: 'Importe produtos primeiro na tela SQL.',
+          visibilityTime: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar produto:', error);
       Toast.show({
         type: 'error',
-        text1: 'Produto não encontrado',
-        text2: 'Não foi possível encontrar o produto com o EAN fornecido.',
+        text1: 'Erro',
+        text2: 'Erro ao buscar produto no banco de dados.',
         visibilityTime: 3000,
       });
     }

@@ -7,7 +7,6 @@ import {
   TextInput,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
   Share,
   Dimensions,
   RefreshControl,
@@ -16,40 +15,84 @@ import {
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { List, Menu, Divider, FAB, Portal, Provider } from 'react-native-paper';
-import dadosIniciais from '../../assets/Dados.json';
 import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
 
 const ProductItem = React.memo(({ item, isDarkMode, onPress }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
 
   React.useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+      })
+    ]).start();
   }, []);
 
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.98,
+      tension: 100,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      tension: 100,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
-    <Animated.View style={{ opacity: fadeAnim }}>
+    <Animated.View 
+      style={{ 
+        opacity: fadeAnim,
+        transform: [{ scale: scaleAnim }]
+      }}
+    >
       <TouchableOpacity 
-        style={[styles.item, isDarkMode ? styles.itemDark : styles.itemLight]}
+        style={[
+          styles.item, 
+          isDarkMode ? styles.itemDark : styles.itemLight,
+          styles.itemElevated
+        ]}
         onPress={onPress}
-        activeOpacity={0.7}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
         accessible={true}
         accessibilityLabel={`Produto ${item.DESCRICAO}`}
         accessibilityHint="Toque para ver detalhes do produto"
       >
         <View style={styles.itemHeader}>
-          <Text style={[styles.codprod, isDarkMode ? styles.textDark : styles.textLight]}>
-            #{item.CODPROD}
-          </Text>
-          <MaterialIcons name="info-outline" size={20} color={isDarkMode ? '#FFFFFF' : '#000000'} />
+          <View style={styles.codContainer}>
+            <Text style={[styles.codprod, isDarkMode ? styles.textDark : styles.textLight]}>
+              #{item.CODPROD}
+            </Text>
+          </View>
+          <MaterialIcons 
+            name="info-outline" 
+            size={20} 
+            color={isDarkMode ? '#1E40AF' : '#2563EB'} 
+          />
         </View>
 
         <Text style={[styles.descricao, isDarkMode ? styles.textDark : styles.textLight]} numberOfLines={2}>
@@ -57,22 +100,34 @@ const ProductItem = React.memo(({ item, isDarkMode, onPress }) => {
         </Text>
 
         <View style={styles.infoContainer}>
-          <Text style={[styles.marca, isDarkMode ? styles.textDark : styles.textLight]}>
-            {item.MARCA}
-          </Text>
-          <Text style={[styles.departamento, isDarkMode ? styles.textDark : styles.textLight]}>
-            {item.DEPARTAMENTO}
-          </Text>
+          <View style={styles.brandContainer}>
+            <MaterialIcons name="local-offer" size={16} color={isDarkMode ? '#1E40AF' : '#2563EB'} />
+            <Text style={[styles.marca, isDarkMode ? styles.textDark : styles.textLight]}>
+              {item.MARCA}
+            </Text>
+          </View>
+          <View style={styles.deptContainer}>
+            <MaterialIcons name="category" size={16} color={isDarkMode ? '#1E40AF' : '#2563EB'} />
+            <Text style={[styles.departamento, isDarkMode ? styles.textDark : styles.textLight]}>
+              {item.DEPARTAMENTO}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.barcodeContainer}>
-          <Text style={[styles.barcode, isDarkMode ? styles.textDark : styles.textLight]}>
-            EAN: {item.CODAUXILIAR}
-          </Text>
-          {Boolean(item.CODAUXILIAR2) && (
+          <View style={styles.barcodeItem}>
+            <MaterialIcons name="qr-code" size={14} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
             <Text style={[styles.barcode, isDarkMode ? styles.textDark : styles.textLight]}>
-              DUN: {item.CODAUXILIAR2}
+              EAN: {item.CODAUXILIAR}
             </Text>
+          </View>
+          {Boolean(item.CODAUXILIAR2) && (
+            <View style={styles.barcodeItem}>
+              <MaterialIcons name="qr-code-2" size={14} color={isDarkMode ? '#6B7280' : '#9CA3AF'} />
+              <Text style={[styles.barcode, isDarkMode ? styles.textDark : styles.textLight]}>
+                DUN: {item.CODAUXILIAR2}
+              </Text>
+            </View>
           )}
         </View>
       </TouchableOpacity>
@@ -80,27 +135,46 @@ const ProductItem = React.memo(({ item, isDarkMode, onPress }) => {
   );
 });
 
-const SearchBar = React.memo(({ value, onChangeText, isDarkMode }) => (
-  <View style={[styles.searchContainer, isDarkMode ? styles.searchContainerDark : styles.searchContainerLight]}>
-    <MaterialIcons 
-      name="search" 
-      size={24} 
-      color={isDarkMode ? '#0F766E' : '#0D9488'} 
-    />
-    <TextInput
-      style={[styles.searchInput, isDarkMode ? styles.searchInputDark : styles.searchInputLight]}
-      placeholder="Pesquisar produto..."
-      placeholderTextColor={isDarkMode ? '#999' : '#666'}
-      value={value}
-      onChangeText={onChangeText}
-    />
-    {value.length > 0 && (
-      <TouchableOpacity onPress={() => onChangeText('')}>
-        <MaterialIcons name="close" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} />
-      </TouchableOpacity>
-    )}
-  </View>
-));
+const SearchBar = React.memo(({ value, onChangeText, isDarkMode }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  
+  return (
+    <Animated.View 
+      style={[
+        styles.searchContainer, 
+        isDarkMode ? styles.searchContainerDark : styles.searchContainerLight,
+        isFocused && styles.searchContainerFocused
+      ]}
+    >
+      <MaterialIcons 
+        name="search" 
+        size={24} 
+        color={isDarkMode ? '#1E40AF' : '#2563EB'} 
+      />
+      <TextInput
+        style={[styles.searchInput, isDarkMode ? styles.searchInputDark : styles.searchInputLight]}
+        placeholder="Pesquisar produto..."
+        placeholderTextColor={isDarkMode ? '#9CA3AF' : '#6B7280'}
+        value={value}
+        onChangeText={onChangeText}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+      />
+      {value.length > 0 && (
+        <TouchableOpacity 
+          onPress={() => onChangeText('')}
+          style={styles.clearButton}
+        >
+          <MaterialIcons 
+            name="close" 
+            size={20} 
+            color={isDarkMode ? '#9CA3AF' : '#6B7280'} 
+          />
+        </TouchableOpacity>
+      )}
+    </Animated.View>
+  );
+});
 
 const FilterBar = React.memo(({ 
   filterType, 
@@ -116,22 +190,6 @@ const FilterBar = React.memo(({
   const [filterVisible, setFilterVisible] = useState(false);
   const [deptVisible, setDeptVisible] = useState(false);
   const [secaoVisible, setSecaoVisible] = useState(false);
-  
-  // Refs para os botões de filtro
-  const filterRef = useRef();
-  const deptRef = useRef();
-  const secaoRef = useRef();
-
-  // Função para obter a posição do botão
-  const [filterPosition, setFilterPosition] = useState({ x: 0, y: 0, width: 0 });
-  const [deptPosition, setDeptPosition] = useState({ x: 0, y: 0, width: 0 });
-  const [secaoPosition, setSecaoPosition] = useState({ x: 0, y: 0, width: 0 });
-
-  const updatePosition = (ref, setPosition) => {
-    ref.current?.measureInWindow((x, y, width, height) => {
-      setPosition({ x, y: y + height, width });
-    });
-  };
 
   const filterTypes = [
     { label: "Todos", value: "ALL", icon: "dashboard" },
@@ -146,89 +204,36 @@ const FilterBar = React.memo(({
     return currentFilter?.icon || "filter-list";
   };
 
-  // Adicione o estilo menuItemSelected aqui
   const menuItemSelectedStyle = {
-    backgroundColor: isDarkMode ? '#0F766E20' : '#0D948820',
+    backgroundColor: isDarkMode ? '#1E40AF20' : '#2563EB20',
   };
 
   return (
     <View style={styles.filterContainer}>
       <View style={styles.filterRow}>
-        <TouchableOpacity 
-          ref={filterRef}
-          style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
-          onPress={() => {
-            updatePosition(filterRef, setFilterPosition);
-            setFilterVisible(true);
-          }}
-        >
-          <MaterialIcons 
-            name={getFilterIcon()} 
-            size={20} 
-            color="#FFFFFF" 
-          />
-          <Text style={styles.filterChipText} numberOfLines={1}>
-            {filterTypes.find(f => f.value === filterType)?.label || "Filtrar"}
-          </Text>
-          <MaterialIcons 
-            name="expand-more"
-            size={20} 
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          ref={deptRef}
-          style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
-          onPress={() => {
-            updatePosition(deptRef, setDeptPosition);
-            setDeptVisible(true);
-          }}
-        >
-          <MaterialIcons 
-            name="category" 
-            size={20} 
-            color="#FFFFFF"
-          />
-          <Text style={styles.filterChipText} numberOfLines={1}>
-            {departamento === 'ALL' ? 'Departamento' : departamento.length > 15 ? departamento.substring(0, 15) + '...' : departamento}
-          </Text>
-          <MaterialIcons 
-            name="expand-more"
-            size={20} 
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          ref={secaoRef}
-          style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
-          onPress={() => {
-            updatePosition(secaoRef, setSecaoPosition);
-            setSecaoVisible(true);
-          }}
-        >
-          <MaterialIcons 
-            name="folder-special"
-            size={20} 
-            color="#FFFFFF"
-          />
-          <Text style={styles.filterChipText} numberOfLines={1}>
-            {secao === 'ALL' ? 'Seção' : secao.length > 15 ? secao.substring(0, 15) + '...' : secao}
-          </Text>
-          <MaterialIcons 
-            name="expand-more"
-            size={20} 
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-      </View>
-
-      <Portal>
         <Menu
           visible={filterVisible}
           onDismiss={() => setFilterVisible(false)}
-          anchor={{ x: filterPosition.x, y: filterPosition.y }}
+          anchor={
+            <TouchableOpacity 
+              style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
+              onPress={() => setFilterVisible(true)}
+            >
+              <MaterialIcons 
+                name={getFilterIcon()} 
+                size={20} 
+                color="#FFFFFF" 
+              />
+              <Text style={styles.filterChipText} numberOfLines={1}>
+                {filterTypes.find(f => f.value === filterType)?.label || "Filtrar"}
+              </Text>
+              <MaterialIcons 
+                name="expand-more"
+                size={20} 
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          }
           style={[
             styles.menuContent,
             isDarkMode ? styles.menuContentDark : styles.menuContentLight
@@ -242,7 +247,7 @@ const FilterBar = React.memo(({
                 setFilterVisible(false);
               }}
               title={type.label}
-              leadingIcon={() => <MaterialIcons name={type.icon} size={24} color={isDarkMode ? '#0F766E' : '#0D9488'} />}
+              leadingIcon={() => <MaterialIcons name={type.icon} size={24} color={isDarkMode ? '#1E40AF' : '#2563EB'} />}
               style={[
                 styles.menuItem,
                 filterType === type.value && menuItemSelectedStyle
@@ -254,7 +259,26 @@ const FilterBar = React.memo(({
         <Menu
           visible={deptVisible}
           onDismiss={() => setDeptVisible(false)}
-          anchor={{ x: deptPosition.x, y: deptPosition.y }}
+          anchor={
+            <TouchableOpacity 
+              style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
+              onPress={() => setDeptVisible(true)}
+            >
+              <MaterialIcons 
+                name="category" 
+                size={20} 
+                color="#FFFFFF"
+              />
+              <Text style={styles.filterChipText} numberOfLines={1}>
+                {departamento === 'ALL' ? 'Departamento' : departamento.length > 15 ? departamento.substring(0, 15) + '...' : departamento}
+              </Text>
+              <MaterialIcons 
+                name="expand-more"
+                size={20} 
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          }
           style={[
             styles.menuContent,
             isDarkMode ? styles.menuContentDark : styles.menuContentLight
@@ -266,7 +290,7 @@ const FilterBar = React.memo(({
               setDeptVisible(false);
             }}
             title="Todos os departamentos"
-            leadingIcon={() => <MaterialIcons name="category" size={24} color={isDarkMode ? '#0F766E' : '#0D9488'} />}
+            leadingIcon={() => <MaterialIcons name="category" size={24} color={isDarkMode ? '#1E40AF' : '#2563EB'} />}
           />
           <Divider />
           {departamentos.map((dep) => (
@@ -288,7 +312,26 @@ const FilterBar = React.memo(({
         <Menu
           visible={secaoVisible}
           onDismiss={() => setSecaoVisible(false)}
-          anchor={{ x: secaoPosition.x, y: secaoPosition.y }}
+          anchor={
+            <TouchableOpacity 
+              style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
+              onPress={() => setSecaoVisible(true)}
+            >
+              <MaterialIcons 
+                name="folder-special"
+                size={20} 
+                color="#FFFFFF"
+              />
+              <Text style={styles.filterChipText} numberOfLines={1}>
+                {secao === 'ALL' ? 'Seção' : secao.length > 15 ? secao.substring(0, 15) + '...' : secao}
+              </Text>
+              <MaterialIcons 
+                name="expand-more"
+                size={20} 
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          }
           style={[
             styles.menuContent,
             isDarkMode ? styles.menuContentDark : styles.menuContentLight
@@ -300,7 +343,7 @@ const FilterBar = React.memo(({
               setSecaoVisible(false);
             }}
             title="Todas as seções"
-            leadingIcon={() => <MaterialIcons name="folder-special" size={24} color={isDarkMode ? '#0F766E' : '#0D9488'} />}
+            leadingIcon={() => <MaterialIcons name="folder-special" size={24} color={isDarkMode ? '#1E40AF' : '#2563EB'} />}
           />
           <Divider />
           {secoes.map((sec) => (
@@ -318,7 +361,7 @@ const FilterBar = React.memo(({
             />
           ))}
         </Menu>
-      </Portal>
+      </View>
     </View>
   );
 });
@@ -330,104 +373,60 @@ const ProductDetailsModal = ({ visible, item, onClose, onShare, isDarkMode }) =>
     animationType="fade"
     onRequestClose={onClose}
   >
-    <TouchableOpacity 
-      style={styles.modalOverlay}
-      activeOpacity={1}
-      onPress={onClose}
-    >
-      <View style={[
-        styles.modalContent,
-        isDarkMode ? styles.modalContentDark : styles.modalContentLight
-      ]}>
-        <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: isDarkMode ? '#0F766E' : '#0D9488' }]}>
-            Detalhes do Produto
-          </Text>
-          <TouchableOpacity onPress={onClose}>
-            <MaterialIcons 
-              name="close" 
-              size={24} 
-              color={isDarkMode ? '#0F766E' : '#0D9488'} 
-            />
-          </TouchableOpacity>
+    <View style={styles.productModalOverlay}>
+      <View style={styles.productModalContent}>
+        <TouchableOpacity style={styles.productModalClose} onPress={onClose}>
+          <MaterialIcons name="close" size={28} color="#64748B" />
+        </TouchableOpacity>
+        <View style={styles.productModalIconCircle}>
+          <MaterialIcons name="info" size={40} color="#2563EB" />
         </View>
-
-        <View style={styles.modalBody}>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="tag" size={20} color={isDarkMode ? '#0F766E' : '#0D9488'} />
-            <View style={styles.detailContent}>
-              <Text style={[styles.detailLabel, isDarkMode ? styles.textDark : styles.textLight]}>Código</Text>
-              <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                {item.CODPROD}
-              </Text>
-            </View>
+        <Text style={styles.productModalTitle}>Detalhes do Produto</Text>
+        <View style={styles.productModalBody}>
+          <View style={styles.productModalRow}>
+            <MaterialIcons name="tag" size={22} color="#2563EB" />
+            <Text style={styles.productModalLabel}>Código</Text>
+            <Text style={styles.productModalValue}>{item.CODPROD}</Text>
           </View>
-
-          <View style={styles.detailRow}>
-            <MaterialIcons name="description" size={20} color={isDarkMode ? '#0F766E' : '#0D9488'} />
-            <View style={styles.detailContent}>
-              <Text style={[styles.detailLabel, isDarkMode ? styles.textDark : styles.textLight]}>Descrição</Text>
-              <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                {item.DESCRICAO}
-              </Text>
-            </View>
+          <View style={styles.productModalRow}>
+            <MaterialIcons name="description" size={22} color="#2563EB" />
+            <Text style={styles.productModalLabel}>Descrição</Text>
+            <Text style={styles.productModalValue}>{item.DESCRICAO}</Text>
           </View>
-
-          <View style={styles.detailRow}>
-            <MaterialIcons name="local-offer" size={20} color={isDarkMode ? '#0F766E' : '#0D9488'} />
-            <View style={styles.detailContent}>
-              <Text style={[styles.detailLabel, isDarkMode ? styles.textDark : styles.textLight]}>Marca</Text>
-              <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                {item.MARCA}
-              </Text>
-            </View>
+          <View style={styles.productModalRow}>
+            <MaterialIcons name="local-offer" size={22} color="#2563EB" />
+            <Text style={styles.productModalLabel}>Marca</Text>
+            <Text style={styles.productModalValue}>{item.MARCA}</Text>
           </View>
-
-          <View style={styles.detailRow}>
-            <MaterialIcons name="category" size={20} color={isDarkMode ? '#0F766E' : '#0D9488'} />
-            <View style={styles.detailContent}>
-              <Text style={[styles.detailLabel, isDarkMode ? styles.textDark : styles.textLight]}>Departamento</Text>
-              <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                {item.DEPARTAMENTO}
-              </Text>
-            </View>
+          <View style={styles.productModalRow}>
+            <MaterialIcons name="category" size={22} color="#2563EB" />
+            <Text style={styles.productModalLabel}>Departamento</Text>
+            <Text style={styles.productModalValue}>{item.DEPARTAMENTO}</Text>
           </View>
-
-          <View style={styles.detailRow}>
-            <MaterialIcons name="folder-special" size={20} color={isDarkMode ? '#0F766E' : '#0D9488'} />
-            <View style={styles.detailContent}>
-              <Text style={[styles.detailLabel, isDarkMode ? styles.textDark : styles.textLight]}>Seção</Text>
-              <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                {item.SECAO}
-              </Text>
-            </View>
+          <View style={styles.productModalRow}>
+            <MaterialIcons name="folder-special" size={22} color="#2563EB" />
+            <Text style={styles.productModalLabel}>Seção</Text>
+            <Text style={styles.productModalValue}>{item.SECAO}</Text>
           </View>
-
-          <View style={styles.detailRow}>
-            <MaterialIcons name="qr-code" size={20} color={isDarkMode ? '#0F766E' : '#0D9488'} />
-            <View style={styles.detailContent}>
-              <Text style={[styles.detailLabel, isDarkMode ? styles.textDark : styles.textLight]}>Códigos de Barras</Text>
-              <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                EAN: {item.CODAUXILIAR}
-              </Text>
-              {Boolean(item.CODAUXILIAR2) && (
-                <Text style={[styles.detailValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                  DUN: {item.CODAUXILIAR2}
-                </Text>
-              )}
-            </View>
+          <View style={styles.productModalRow}>
+            <MaterialIcons name="qr-code" size={22} color="#2563EB" />
+            <Text style={styles.productModalLabel}>EAN</Text>
+            <Text style={styles.productModalValue}>{item.CODAUXILIAR}</Text>
           </View>
+          {Boolean(item.CODAUXILIAR2) && (
+            <View style={styles.productModalRow}>
+              <MaterialIcons name="qr-code-2" size={22} color="#2563EB" />
+              <Text style={styles.productModalLabel}>DUN</Text>
+              <Text style={styles.productModalValue}>{item.CODAUXILIAR2}</Text>
+            </View>
+          )}
         </View>
-
-        <TouchableOpacity 
-          style={[styles.shareButton, { backgroundColor: isDarkMode ? '#0F766E' : '#0D9488' }]}
-          onPress={onShare}
-        >
-          <MaterialIcons name="share" size={20} color="#FFFFFF" />
-          <Text style={styles.shareButtonText}>Compartilhar</Text>
+        <TouchableOpacity style={styles.productModalShareButton} onPress={onShare}>
+          <MaterialIcons name="share" size={22} color="#fff" />
+          <Text style={styles.productModalShareText}>Compartilhar</Text>
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   </Modal>
 );
 
@@ -583,10 +582,12 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
             label: 'IMPORTAR',
             onPress: onImport,
             style: { 
-              backgroundColor: isDarkMode ? '#134E4A' : '#115E59',
+              backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
+              borderRadius: 16,
+              elevation: 8,
             },
             labelStyle: {
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 'bold',
               color: isDarkMode ? '#E5E7EB' : '#1F2937',
             }
@@ -604,10 +605,12 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
             label: 'EXPORTAR',
             onPress: onExport,
             style: { 
-              backgroundColor: isDarkMode ? '#134E4A' : '#115E59',
+              backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
+              borderRadius: 16,
+              elevation: 8,
             },
             labelStyle: {
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 'bold',
               color: isDarkMode ? '#E5E7EB' : '#1F2937',
             }
@@ -619,7 +622,6 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
                   name="delete-forever" 
                   size={24} 
                   color="#FFFFFF"
-                  
                 />
               </View>
             ),
@@ -627,9 +629,11 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
             onPress: onClear,
             style: { 
               backgroundColor: '#DC2626',
+              borderRadius: 16,
+              elevation: 8,
             },
             labelStyle: {
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 'bold',
               color: isDarkMode ? '#E5E7EB' : '#1F2937',
             }
@@ -637,9 +641,11 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
         ]}
         onStateChange={({ open }) => setIsOpen(open)}
         fabStyle={{
-          backgroundColor: isDarkMode ? '#0F766E' : '#0D9488',
+          backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
           height: 56,
           width: 56,
+          borderRadius: 16,
+          elevation: 8,
         }}
       />
     </Portal>
@@ -647,8 +653,8 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
 };
 
 const SqlScreen = ({ isDarkMode, navigation }) => {
-  const [dados, setDados] = useState(dadosIniciais);
-  const [filteredDados, setFilteredDados] = useState(dadosIniciais);
+  const [dados, setDados] = useState([]); // Inicia com array vazio
+  const [filteredDados, setFilteredDados] = useState([]); // Inicia com array vazio
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('ALL');
   const [selectedDepartamento, setSelectedDepartamento] = useState('ALL');
@@ -729,21 +735,35 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     setIsLoading(true);
     
     try {
+      // Carrega dados do cache sem apagar
       const cached = await AsyncStorage.getItem('cached_products');
       if (cached) {
         const parsedCache = JSON.parse(cached);
         setDados(parsedCache);
-        setFilteredDados(parsedCache); // Atualiza também os dados filtrados
+        setFilteredDados(parsedCache);
+        Toast.show({
+          type: 'success',
+          text1: 'Sucesso',
+          text2: 'Dados atualizados com sucesso!',
+          visibilityTime: 2000,
+        });
       } else {
-        setDados(dadosIniciais);
-        setFilteredDados(dadosIniciais); // Atualiza também os dados filtrados
-        await AsyncStorage.setItem('cached_products', JSON.stringify(dadosIniciais));
+        // Se não há dados no cache, mantém o estado atual
+        Toast.show({
+          type: 'info',
+          text1: 'Info',
+          text2: 'Nenhum dado encontrado. Importe dados primeiro.',
+          visibilityTime: 3000,
+        });
       }
-      
-      Alert.alert('Sucesso', 'Dados atualizados com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar os dados: ' + error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível atualizar os dados: ' + error.message,
+        visibilityTime: 4000,
+      });
     } finally {
       setRefreshing(false);
       setIsLoading(false);
@@ -787,11 +807,21 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
           dialogTitle: 'Exportar dados filtrados'
         });
       } else {
-        Alert.alert('Erro', 'Compartilhamento não disponível neste dispositivo');
+        Toast.show({
+          type: 'error',
+          text1: 'Erro',
+          text2: 'Compartilhamento não disponível neste dispositivo',
+          visibilityTime: 3000,
+        });
       }
     } catch (error) {
       console.error('Erro ao exportar:', error);
-      Alert.alert('Erro', 'Não foi possível exportar os dados: ' + error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível exportar os dados: ' + error.message,
+        visibilityTime: 4000,
+      });
     }
   };
 
@@ -808,7 +838,12 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
         await Sharing.shareAsync(fileUri);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível exportar os dados');
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível exportar os dados',
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -827,28 +862,72 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
           const content = await FileSystem.readAsStringAsync(file.uri);
           const parsedData = JSON.parse(content);
           
-          if (Array.isArray(parsedData) && parsedData.length > 0) {
+          // Verifica se é um array direto ou tem estrutura aninhada
+          let produtos = [];
+          if (Array.isArray(parsedData)) {
+            // Se é um array direto, usa como está
+            produtos = parsedData;
+          } else if (parsedData.produtos && Array.isArray(parsedData.produtos)) {
+            // Se tem estrutura com produtos, extrai
+            produtos = parsedData.produtos;
+          } else if (parsedData[0] && parsedData[0].produtos) {
+            // Se é array com objeto que tem produtos
+            produtos = parsedData[0].produtos;
+          }
+          
+          if (produtos.length > 0) {
             // Validação básica da estrutura dos dados
-            const isValidStructure = parsedData.every(item => 
-              item.hasOwnProperty('CODPROD') && 
-              item.hasOwnProperty('DESCRICAO') &&
-              item.hasOwnProperty('MARCA')
+            const isValidStructure = produtos.every(item => 
+              item.hasOwnProperty('CODPROD') || item.hasOwnProperty('id') ||
+              item.hasOwnProperty('DESCRICAO') || item.hasOwnProperty('descricao') ||
+              item.hasOwnProperty('MARCA') || item.hasOwnProperty('nome')
             );
 
             if (isValidStructure) {
-              await AsyncStorage.setItem('cached_products', JSON.stringify(parsedData));
-              setDados(parsedData);
-              setFilteredDados(parsedData); // Atualiza também os dados filtrados
-              Alert.alert('Sucesso', `${parsedData.length} produtos importados com sucesso`);
+              // Normaliza os dados para o formato esperado
+              const normalizedData = produtos.map(item => ({
+                CODPROD: item.CODPROD || item.id || 0,
+                DESCRICAO: item.DESCRICAO || item.descricao || item.nome || '',
+                MARCA: item.MARCA || item.marca || 'N/A',
+                DEPARTAMENTO: item.DEPARTAMENTO || item.departamento || 'Geral',
+                SECAO: item.SECAO || item.secao || 'Geral',
+                CODAUXILIAR: item.CODAUXILIAR || item.codauxiliar || item.ean || '',
+                CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
+              }));
+
+              await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
+              setDados(normalizedData);
+              setFilteredDados(normalizedData);
+              Toast.show({
+                type: 'success',
+                text1: 'Sucesso',
+                text2: `${normalizedData.length} produtos importados com sucesso`,
+                visibilityTime: 3000,
+              });
             } else {
-              Alert.alert('Erro', 'O arquivo não contém a estrutura de dados esperada');
+              Toast.show({
+                type: 'error',
+                text1: 'Erro',
+                text2: 'O arquivo não contém a estrutura de dados esperada',
+                visibilityTime: 4000,
+              });
             }
           } else {
-            Alert.alert('Erro', 'O arquivo não contém uma lista válida de produtos');
+            Toast.show({
+              type: 'error',
+              text1: 'Erro',
+              text2: 'O arquivo não contém uma lista válida de produtos',
+              visibilityTime: 4000,
+            });
           }
         } catch (parseError) {
           console.error('Erro ao processar arquivo:', parseError);
-          Alert.alert('Erro', 'O arquivo selecionado não é um JSON válido');
+          Toast.show({
+            type: 'error',
+            text1: 'Erro',
+            text2: 'O arquivo selecionado não é um JSON válido',
+            visibilityTime: 4000,
+          });
         }
       } else if (result.type === 'success') {
         // Formato antigo do DocumentPicker
@@ -856,32 +935,78 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
           const content = await FileSystem.readAsStringAsync(result.uri);
           const parsedData = JSON.parse(content);
           
-          if (Array.isArray(parsedData) && parsedData.length > 0) {
-            const isValidStructure = parsedData.every(item => 
-              item.hasOwnProperty('CODPROD') && 
-              item.hasOwnProperty('DESCRICAO') &&
-              item.hasOwnProperty('MARCA')
+          // Verifica se é um array direto ou tem estrutura aninhada
+          let produtos = [];
+          if (Array.isArray(parsedData)) {
+            produtos = parsedData;
+          } else if (parsedData.produtos && Array.isArray(parsedData.produtos)) {
+            produtos = parsedData.produtos;
+          } else if (parsedData[0] && parsedData[0].produtos) {
+            produtos = parsedData[0].produtos;
+          }
+          
+          if (produtos.length > 0) {
+            const isValidStructure = produtos.every(item => 
+              item.hasOwnProperty('CODPROD') || item.hasOwnProperty('id') ||
+              item.hasOwnProperty('DESCRICAO') || item.hasOwnProperty('descricao') ||
+              item.hasOwnProperty('MARCA') || item.hasOwnProperty('nome')
             );
 
             if (isValidStructure) {
-              await AsyncStorage.setItem('cached_products', JSON.stringify(parsedData));
-              setDados(parsedData);
-              setFilteredDados(parsedData); // Atualiza também os dados filtrados
-              Alert.alert('Sucesso', `${parsedData.length} produtos importados com sucesso`);
+              // Normaliza os dados para o formato esperado
+              const normalizedData = produtos.map(item => ({
+                CODPROD: item.CODPROD || item.id || 0,
+                DESCRICAO: item.DESCRICAO || item.descricao || item.nome || '',
+                MARCA: item.MARCA || item.marca || 'N/A',
+                DEPARTAMENTO: item.DEPARTAMENTO || item.departamento || 'Geral',
+                SECAO: item.SECAO || item.secao || 'Geral',
+                CODAUXILIAR: item.CODAUXILIAR || item.codauxiliar || item.ean || '',
+                CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
+              }));
+
+              await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
+              setDados(normalizedData);
+              setFilteredDados(normalizedData);
+              Toast.show({
+                type: 'success',
+                text1: 'Sucesso',
+                text2: `${normalizedData.length} produtos importados com sucesso`,
+                visibilityTime: 3000,
+              });
             } else {
-              Alert.alert('Erro', 'O arquivo não contém a estrutura de dados esperada');
+              Toast.show({
+                type: 'error',
+                text1: 'Erro',
+                text2: 'O arquivo não contém a estrutura de dados esperada',
+                visibilityTime: 4000,
+              });
             }
           } else {
-            Alert.alert('Erro', 'O arquivo não contém uma lista válida de produtos');
+            Toast.show({
+              type: 'error',
+              text1: 'Erro',
+              text2: 'O arquivo não contém uma lista válida de produtos',
+              visibilityTime: 4000,
+            });
           }
         } catch (parseError) {
           console.error('Erro ao processar arquivo:', parseError);
-          Alert.alert('Erro', 'O arquivo selecionado não é um JSON válido');
+          Toast.show({
+            type: 'error',
+            text1: 'Erro',
+            text2: 'O arquivo selecionado não é um JSON válido',
+            visibilityTime: 4000,
+          });
         }
       }
     } catch (error) {
       console.error('Erro ao importar:', error);
-      Alert.alert('Erro', 'Não foi possível importar os dados: ' + error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível importar os dados: ' + error.message,
+        visibilityTime: 4000,
+      });
     }
   };
 
@@ -906,7 +1031,12 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
         title: 'Detalhes do Produto',
       });
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível compartilhar os detalhes do produto');
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível compartilhar os detalhes do produto',
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -920,16 +1050,16 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: 'Produtos',
+      headerTitle: 'Banco de Dados',
       headerTitleStyle: {
         color: isDarkMode ? '#FFFFFF' : '#000000',
         fontSize: 20,
         fontWeight: '600',
       },
       headerStyle: {
-        backgroundColor: isDarkMode ? '#0F766E' : '#0D9488',
+        backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
         elevation: 5,
-        shadowColor: '#000000',
+        shadowColor: '#2563EB',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,
@@ -965,7 +1095,9 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     try {
       const cached = await AsyncStorage.getItem('cached_products');
       if (cached) {
-        setDados(JSON.parse(cached));
+        const parsedData = JSON.parse(cached);
+        setDados(parsedData);
+        setFilteredDados(parsedData);
       }
     } catch (error) {
       console.error('Erro ao carregar cache:', error);
@@ -982,16 +1114,14 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       try {
         const cached = await AsyncStorage.getItem('cached_products');
         if (cached) {
-          setDados(JSON.parse(cached));
-        } else {
-          setDados(dadosIniciais);
-          await cacheData(dadosIniciais);
+          const parsedData = JSON.parse(cached);
+          setDados(parsedData);
+          setFilteredDados(parsedData);
         }
-        applyFilters();
+        // Se não há cache, mantém arrays vazios (inicia sem dados)
       } catch (error) {
         console.error('Erro ao carregar dados iniciais:', error);
-        setDados(dadosIniciais);
-        applyFilters();
+        // Em caso de erro, mantém arrays vazios
       }
     };
 
@@ -1006,13 +1136,15 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
-        text2: 'Banco de dados limpo com sucesso!'
+        text2: 'Banco de dados limpo com sucesso!',
+        visibilityTime: 3000,
       });
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Não foi possível limpar o banco de dados'
+        text2: 'Não foi possível limpar o banco de dados',
+        visibilityTime: 4000,
       });
     } finally {
       setShowClearModal(false);
@@ -1044,7 +1176,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
           <Text 
             style={[
               styles.resultCount, 
-              { color: isDarkMode ? '#0F766E' : '#0D9488' }
+              { color: isDarkMode ? '#2563EB' : '#2563EB' }
             ]}
           >
             {filteredDados.length} produtos encontrados
@@ -1070,11 +1202,41 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                colors={['#0D9488']}
-                tintColor={isDarkMode ? '#0F766E' : '#0D9488'}
+                colors={['#2563EB']}
+                tintColor={isDarkMode ? '#1E40AF' : '#2563EB'}
                 progressBackgroundColor={isDarkMode ? '#1E293B' : '#FFFFFF'}
               />
             }
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <View style={[styles.emptyIconContainer, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                  <MaterialIcons 
+                    name="inbox" 
+                    size={48} 
+                    color={isDarkMode ? '#1E40AF' : '#2563EB'} 
+                  />
+                </View>
+                <Text style={[
+                  styles.emptyText,
+                  { color: isDarkMode ? '#E5E7EB' : '#1F2937' }
+                ]}>
+                  Nenhum produto encontrado
+                </Text>
+                <Text style={[
+                  styles.emptySubtext,
+                  { color: isDarkMode ? '#9CA3AF' : '#6B7280' }
+                ]}>
+                  Importe dados para começar a gerenciar seus produtos
+                </Text>
+                <TouchableOpacity 
+                  style={[styles.emptyButton, { backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB' }]}
+                  onPress={() => {/* Adicionar ação de importar */}}
+                >
+                  <MaterialIcons name="cloud-upload" size={20} color="#FFFFFF" />
+                  <Text style={styles.emptyButtonText}>Importar Produtos</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           />
         )}
         
@@ -1134,16 +1296,23 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     gap: 12,
     marginHorizontal: 4,
     backgroundColor: '#FFFFFF',
-    elevation: 4,
-    shadowColor: '#0F766E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    elevation: 6,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  searchContainerFocused: {
+    borderColor: '#2563EB',
+    elevation: 8,
+    shadowOpacity: 0.2,
   },
   searchContainerLight: {
     backgroundColor: '#FFFFFF',
@@ -1162,6 +1331,11 @@ const styles = StyleSheet.create({
   searchInputDark: {
     color: '#FFFFFF',
   },
+  clearButton: {
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
   filterContainer: {
     marginVertical: 8,
   },
@@ -1179,21 +1353,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     elevation: 4,
-    shadowColor: '#0F766E',
+    shadowColor: '#1E40AF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
     minHeight: 46,
   },
   filterChipLight: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#2563EB',
     borderWidth: 1,
-    borderColor: '#0D948820',
+    borderColor: '#2563EB20',
   },
   filterChipDark: {
-    backgroundColor: '#0F766E',
+    backgroundColor: '#1E40AF',
     borderWidth: 1,
-    borderColor: '#0F766E20',
+    borderColor: '#1E40AF20',
   },
   filterChipText: {
     fontSize: 13,
@@ -1207,7 +1381,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'right',
-    color: '#0D9488',
+    color: '#2563EB',
     letterSpacing: 0.3,
     marginTop: 4,
   },
@@ -1215,47 +1389,102 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   item: {
-    padding: 16,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 20,
     marginBottom: 16,
     marginHorizontal: 4,
-    elevation: 3,
-    shadowColor: '#0F766E',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    elevation: 4,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
     borderLeftWidth: 4,
+  },
+  itemElevated: {
+    elevation: 6,
+    shadowOpacity: 0.15,
   },
   itemLight: {
     backgroundColor: '#FFFFFF',
-    borderLeftColor: '#0D9488',
+    borderLeftColor: '#2563EB',
   },
   itemDark: {
     backgroundColor: '#1E293B',
-    borderLeftColor: '#0F766E',
+    borderLeftColor: '#1E40AF',
+  },
+  itemElevated: {
+    elevation: 5,
+    shadowColor: '#1E40AF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  infoContainer: {
+  codContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 4,
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  codContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   codprod: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0D9488',
+    color: '#2563EB',
     letterSpacing: 0.5,
+  },
+  statusBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   descricao: {
     fontSize: 15,
     marginBottom: 10,
     lineHeight: 22,
     letterSpacing: 0.3,
+  },
+  infoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 8,
+  },
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  deptContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  brandContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  deptContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   marca: {
     fontSize: 14,
@@ -1270,7 +1499,17 @@ const styles = StyleSheet.create({
   barcodeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 8,
+  },
+  barcodeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  barcodeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   barcode: {
     fontSize: 12,
@@ -1310,7 +1549,7 @@ const styles = StyleSheet.create({
     maxWidth: width * 0.85,
     borderRadius: 16,
     elevation: 5,
-    shadowColor: '#0F766E',
+    shadowColor: '#1E40AF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
@@ -1319,11 +1558,11 @@ const styles = StyleSheet.create({
   },
   menuContentLight: {
     backgroundColor: '#FFFFFF',
-    borderLeftColor: '#0D9488',
+    borderLeftColor: '#2563EB',
   },
   menuContentDark: {
     backgroundColor: '#1E293B',
-    borderLeftColor: '#0F766E',
+    borderLeftColor: '#1E40AF',
   },
   menuItem: {
     minHeight: 48,
@@ -1355,7 +1594,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+
+  closeButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   modalTitle: {
     fontSize: 20,
@@ -1486,6 +1731,132 @@ const styles = StyleSheet.create({
   },
   clearModalButtonTextDisabled: {
     opacity: 0.7,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    minHeight: 400,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 16,
+    marginBottom: 32,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 8,
+    elevation: 4,
+  },
+  emptyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  productModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  productModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 28,
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 16,
+    position: 'relative',
+  },
+  productModalClose: {
+    position: 'absolute',
+    top: 18,
+    right: 18,
+    zIndex: 2,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 16,
+    padding: 4,
+    elevation: 2,
+  },
+  productModalIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#DBEAFE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  productModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2563EB',
+    marginBottom: 18,
+    textAlign: 'center',
+  },
+  productModalBody: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  productModalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  productModalLabel: {
+    fontSize: 15,
+    color: '#2563EB',
+    minWidth: 90,
+    fontWeight: '600',
+  },
+  productModalValue: {
+    fontSize: 15,
+    color: '#374151',
+    flex: 1,
+    fontWeight: '500',
+  },
+  productModalShareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    gap: 8,
+    elevation: 4,
+  },
+  productModalShareText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
   },
 });
 
