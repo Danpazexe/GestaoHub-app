@@ -40,6 +40,15 @@ const HomeScreen = ({ isDarkMode }) => {
     },
     {
       id: 4,
+      title: "Inventário",
+      subtitle: "Gestão de inventário",
+      icon: "inventory",
+      screen: "InventarioMenuScreen",
+      gradient: ['#7c3aed', '#6d28d9'],
+      disabled: true,
+    },
+    {
+      id: 5,
       title: "Tratativas",
       subtitle: "Produtos processados",
       icon: "assignment-turned-in",
@@ -244,6 +253,21 @@ const HomeScreen = ({ isDarkMode }) => {
       opacity: 0.8,
       color: isDarkMode ? '#B0B3B8' : '#64748b',
     },
+    disabledCard: {
+      opacity: 0.6,
+    },
+    disabledGradient: {
+      opacity: 0.7,
+    },
+    disabledIconCircle: {
+      backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    disabledText: {
+      opacity: 0.7,
+    },
+    disabledSubtitle: {
+      opacity: 0.6,
+    },
   });
 
   const styles = getStyles(isDarkMode);
@@ -280,49 +304,29 @@ const HomeScreen = ({ isDarkMode }) => {
         {menuItems.map((item, idx) => (
           <React.Fragment key={item.id}>
             <TouchableOpacity
-              style={styles.menuCardWrapper}
-              activeOpacity={0.92}
-              onPressIn={() => setPressedCard(item.id)}
-              onPressOut={() => setPressedCard(null)}
-              onPress={() => navigation.navigate(item.screen)}
+              style={[styles.menuCardWrapper, item.disabled && styles.disabledCard]}
+              activeOpacity={item.disabled ? 1 : 0.92}
+              onPressIn={() => !item.disabled && setPressedCard(item.id)}
+              onPressOut={() => !item.disabled && setPressedCard(null)}
+              onPress={() => !item.disabled && navigation.navigate(item.screen)}
+              disabled={item.disabled}
             >
               <LinearGradient
-                colors={pressedCard === item.id ? [item.gradient[1], item.gradient[0]] : item.gradient}
+                colors={item.disabled ? ['#9ca3af', '#6b7280'] : (pressedCard === item.id ? [item.gradient[1], item.gradient[0]] : item.gradient)}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.menuCardGradient}
+                style={[styles.menuCardGradient, item.disabled && styles.disabledGradient]}
               >
-                <View style={styles.iconCircle}>
-                  <MaterialIcons name={item.icon} size={40} color="#fff" />
+                <View style={[styles.iconCircle, item.disabled && styles.disabledIconCircle]}>
+                  <MaterialIcons name={item.icon} size={40} color={item.disabled ? "rgba(255,255,255,0.5)" : "#fff"} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+                  <Text style={[styles.menuTitle, item.disabled && styles.disabledText]}>{item.title}</Text>
+                  <Text style={[styles.menuSubtitle, item.disabled && styles.disabledSubtitle]}>{item.subtitle}</Text>
                 </View>
-                <MaterialIcons name="chevron-right" size={30} color="#fff" />
+                <MaterialIcons name="chevron-right" size={30} color={item.disabled ? "rgba(255,255,255,0.3)" : "#fff"} />
               </LinearGradient>
             </TouchableOpacity>
-            {/* Card de Inventário em manutenção após Adicionar */}
-            {item.id === 2 && (
-              <View style={[styles.menuCardWrapper, { opacity: 0.5 }]}> 
-                <LinearGradient
-                  colors={["#64748b", "#94a3b8"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.menuCardGradient}
-                >
-                  <View style={styles.iconCircle}>
-                    <MaterialIcons name="inventory-2" size={40} color="#fff" />
-                    <MaterialIcons name="lock" size={22} color="#fff" style={{ position: 'absolute', bottom: 2, right: 2, opacity: 0.8 }} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.menuTitle}>Inventário</Text>
-                    <Text style={styles.menuSubtitle}>Em manutenção</Text>
-                  </View>
-                  <MaterialIcons name="block" size={30} color="#fff" />
-                </LinearGradient>
-              </View>
-            )}
           </React.Fragment>
         ))}
       </View>

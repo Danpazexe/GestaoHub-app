@@ -10,6 +10,8 @@
     "check-deps": "depcheck",
     "build android": "cd android && gradlew.bat assembleRelease",
     "limpar Build": "cd android && gradlew.bat clean"
+    
+
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.3",

@@ -5,13 +5,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, SafeAreaView } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import Toast from 'react-native-toast-message';
-import { toastConfig } from './Screen/Components/toastConfig';
+import { toastConfig } from './Screen/Constants/toastConfig';
 import { Provider as PaperProvider } from 'react-native-paper';
 import * as Notifications from 'expo-notifications';
 
 // Importações de telas
 import EntryScreen from './Screen/Entrada/EntryScreen';
-import ListScreen from './Screen/CardScreen/ListScreen';
+import ListScreen from './Screen/List/ListItemScreen';
 import HomeScreen from './Screen/Menu/HomeScreen';
 import AddProductScreen from './Screen/Additem/AddProductScreen';
 import BarcodeScannerScreen from './Screen/Additem/BarcodeScannerScreen';
@@ -26,6 +26,9 @@ import SqlScreen from './Screen/SQL/SqlScreen';
 import RegisterScreen from './Screen/Entrada/RegisterScreen';
 import PdfScreen from './Screen/Pdf/PdfScreen';
 import PdfViewerScreen from './Screen/Pdf/PdfViewerScreen';
+import InventarioMenuScreen from './Screen/Inventario/InventarioMenuScreen';
+import InventarioCriarScreen from './Screen/Inventario/InventarioCriarScreen';
+import InventarioResultadosScreen from './Screen/Inventario/InventarioResultadosScreen';
 
 const Stack = createStackNavigator();
 
@@ -288,6 +291,23 @@ export default function App() {
 
             <Stack.Screen name="PdfViewerScreen">
               {props => <PdfViewerScreen {...props} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="InventarioMenuScreen">
+              {props => <InventarioMenuScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="InventarioRotativoScreen">
+              {props => <InventarioRotativoScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+            <Stack.Screen name="InventarioCiclicoScreen">
+              {props => <InventarioCiclicoScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+            <Stack.Screen name="InventarioCriarScreen">
+              {props => <InventarioCriarScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+            <Stack.Screen name="InventarioResultadosScreen">
+              {props => <InventarioResultadosScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
           </Stack.Navigator>

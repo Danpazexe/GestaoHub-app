@@ -15,10 +15,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PieChart } from 'react-native-chart-kit';
 import { MaterialIcons } from '@expo/vector-icons';
-
+import ModalProdDash from '../Components/ModalProdDash';
 
 
 const DashboardScreen = ({ isDarkMode, navigation }) => {
+  const styles = getStyles(isDarkMode);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,45 +171,9 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
     strokeWidth: 2,
   };
 
-  const renderExpiringProduct = ({ item }) => {
-    const daysRemaining = calculateDaysRemaining(item.validade);
-    const isUrgent = daysRemaining <= 7;
-    
-    return (
-      <View style={[
-        styles.modalProductCard,
-        isDarkMode ? styles.cardDark : styles.cardLight,
-        isUrgent && styles.urgentProductCard
-      ]}>
-        <View style={styles.modalProductHeader}>
-                  <MaterialIcons 
-          name={isUrgent ? "warning" : "schedule"} 
-          size={20} 
-          color={isUrgent ? "#DC3545" : "#FFC107"} 
-        />
-          <Text style={[
-            styles.modalProductDays,
-            isDarkMode ? styles.textLight : styles.textDark,
-            isUrgent && { color: '#DC3545' }
-          ]}>
-            {daysRemaining} {daysRemaining === 1 ? 'dia' : 'dias'}
-          </Text>
-        </View>
-        <Text style={[
-          styles.modalProductName,
-          isDarkMode ? styles.textLight : styles.textDark
-        ]} numberOfLines={2}>
-          {item.descricao}
-        </Text>
-        <Text style={[
-          styles.modalProductDetails,
-          isDarkMode ? styles.textLightSecondary : styles.textDarkSecondary
-        ]}>
-          Qtd: {item.quantidade} | Lote: {item.lote}
-        </Text>
-      </View>
-    );
-  };
+  const renderExpiringProduct = ({ item, highlight }) => (
+    <ModalProdDash item={item} isDarkMode={isDarkMode} highlight={highlight} />
+  );
 
   if (loading) {
     return (
@@ -250,20 +215,26 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
 
         {/* Cards de estatísticas principais */}
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
-            <MaterialIcons name="inventory" size={24} color="#28A745" />
+          <View style={styles.summaryCard}>
+            <View style={[styles.summaryIconCircle, { backgroundColor: '#e6f4ea' }]}> 
+              <MaterialIcons name="inventory" size={24} color="#28A745" />
+            </View>
             <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.activeProducts}</Text>
-            <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Ativos</Text>
+            <Text style={styles.summaryLabel}>Ativos</Text>
           </View>
-          <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
-            <MaterialIcons name="warning" size={24} color="#DC3545" />
+          <View style={styles.summaryCard}>
+            <View style={[styles.summaryIconCircle, { backgroundColor: '#fde8e8' }]}> 
+              <MaterialIcons name="warning" size={24} color="#DC3545" />
+            </View>
             <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.expiredProducts}</Text>
-            <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Vencidos</Text>
+            <Text style={styles.summaryLabel}>Vencidos</Text>
           </View>
-          <View style={[styles.summaryCard, isDarkMode ? styles.cardDark : styles.cardLight]}>
-            <MaterialIcons name="check-circle" size={24} color="#17A2B8" />
+          <View style={styles.summaryCard}>
+            <View style={[styles.summaryIconCircle, { backgroundColor: '#e6f7fa' }]}> 
+              <MaterialIcons name="check-circle" size={24} color="#17A2B8" />
+            </View>
             <Text style={[styles.summaryNumber, isDarkMode ? styles.textLight : styles.textDark]}>{stats.treatedProducts}</Text>
-            <Text style={[styles.summaryLabel, isDarkMode ? styles.textLight : styles.textDark]}>Tratados</Text>
+            <Text style={styles.summaryLabel}>Tratados</Text>
           </View>
         </View>
 
@@ -372,7 +343,11 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
             </View>
             <ScrollView contentContainerStyle={styles.modalList} showsVerticalScrollIndicator={false}>
               {urgentProducts.length > 0 ? (
-                urgentProducts.map(item => renderExpiringProduct({ item }))
+                urgentProducts.map((item, index) => (
+                  <View key={`urgent-${item.id || index}`}>
+                    {renderExpiringProduct({ item, highlight: true })}
+                  </View>
+                ))
               ) : (
                 <Text style={{ color: isDarkMode ? '#fff' : '#333', textAlign: 'center', marginTop: 24 }}>
                   Nenhum produto urgente.
@@ -406,7 +381,11 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
             </View>
             <ScrollView contentContainerStyle={styles.modalList} showsVerticalScrollIndicator={false}>
               {nextProducts.length > 0 ? (
-                nextProducts.map(item => renderExpiringProduct({ item }))
+                nextProducts.map((item, index) => (
+                  <View key={`next-${item.id || index}`}>
+                    {renderExpiringProduct({ item })}
+                  </View>
+                ))
               ) : (
                 <Text style={{ color: isDarkMode ? '#fff' : '#333', textAlign: 'center', marginTop: 24 }}>
                   Nenhum produto próximo do vencimento.
@@ -420,10 +399,10 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (isDarkMode) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: isDarkMode ? '#121212' : '#f9f9f9',
   },
   darkContainer: {
     backgroundColor: '#121212',
@@ -444,12 +423,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: isDarkMode ? '#fff' : '#333',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: isDarkMode ? '#ccc' : '#666',
     textTransform: 'capitalize',
   },
   summaryRow: {
@@ -461,31 +440,33 @@ const styles = StyleSheet.create({
   summaryCard: {
     flex: 1,
     marginHorizontal: 6,
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 22,
+    paddingHorizontal: 10,
+    borderRadius: 18,
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    backgroundColor: isDarkMode ? '#181A20' : '#fff',
+    borderWidth: 1.5,
+    borderColor: isDarkMode ? '#23262F' : '#e0e0e0',
   },
-  cardLight: {
-    backgroundColor: '##1e1e1e',
-  },
-  cardDark: {
-    backgroundColor: '#1e1e1e',
+  summaryIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   summaryNumber: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#C42D2F',
-    marginTop: 8,
+    marginBottom: 2,
   },
   summaryLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: 13,
+    marginTop: 2,
     fontWeight: '600',
+    color: isDarkMode ? '#B0B3B8' : '#64748b',
   },
   alertsSection: {
     paddingHorizontal: 20,
@@ -581,14 +562,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalProductCard: {
-    marginBottom: 12,
+    flexDirection: 'column',
+    marginBottom: 14,
     padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
+    borderRadius: 14,
+    backgroundColor: isDarkMode ? '#181A20' : '#fff',
+    borderWidth: 1.2,
+    borderColor: isDarkMode ? '#23262F' : '#e0e0e0',
   },
   urgentProductCard: {
     borderWidth: 2,
@@ -600,18 +580,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  modalProductDays: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  modalProductIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fffbe6',
+    marginRight: 6,
   },
-
+  modalProductDays: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFC107',
+  },
   modalProductName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 2,
+    color: isDarkMode ? '#fff' : '#222',
   },
   modalProductDetails: {
-    fontSize: 14,
+    fontSize: 13,
+    color: isDarkMode ? '#B0B3B8' : '#888',
   },
   textLight: {
     color: '#fff',

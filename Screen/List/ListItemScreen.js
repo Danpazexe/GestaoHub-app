@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, Alert, TextInput, ActivityIndicator, Image, TouchableOpacity, Text, Modal, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ProductItem from '../Components/ProductItem';
-import TreatmentModal from '../Components/TreatmentModal';
-import DeleteConfirmationModal from '../Components/DeleteConfirmationModal';
+import ProductItem from './ProductListItem';
+import TreatmentModal from '../Components/TreatmentModalListItem';
+import DeleteConfirmationModal from '../Components/DeleteModalListItem';
 import debounce from 'lodash.debounce';
 import { Animated, LayoutAnimation } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -862,6 +862,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingVertical: 6,
+    
   },
   loadingIndicator: {
     marginTop: 20,
