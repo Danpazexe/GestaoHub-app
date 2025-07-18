@@ -4,10 +4,10 @@ import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, A
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import * as ImagePicker from 'expo-image-picker';
-// Removida importação do Dados.json - agora usa dados do AsyncStorage
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
+import firebaseProductService from '../../services/firebaseProductService';
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [productName, setProductName] = useState('');
@@ -29,10 +29,29 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [productImage, setProductImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
 
-  // Função para buscar produtos no AsyncStorage
+  // Função para buscar produtos no Firebase
   const handleBarcodeScan = async (scannedEan) => {
     try {
       const formattedScannedEan = String(scannedEan).trim();
+      
+      // Primeiro tenta buscar no Firebase
+      const firebaseProduct = await firebaseProductService.searchProductByEAN(formattedScannedEan);
+      
+      if (firebaseProduct) {
+        setProductName(firebaseProduct.DESCRICAO);
+        setcodprod(String(firebaseProduct.CODPROD));
+        setEan(String(firebaseProduct.CODAUXILIAR));
+        
+        Toast.show({
+          type: 'success',
+          text1: 'Produto Encontrado',
+          text2: 'Dados preenchidos automaticamente',
+          visibilityTime: 2000,
+        });
+        return;
+      }
+      
+      // Se não encontrar no Firebase, tenta no AsyncStorage (fallback)
       const cachedProducts = await AsyncStorage.getItem('cached_products');
       
       if (cachedProducts) {
@@ -78,9 +97,16 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const loadRecentProducts = async () => {
-    const existingProducts = await AsyncStorage.getItem('products');
-    let products = existingProducts ? JSON.parse(existingProducts) : [];
-    setRecentProducts(products.slice(-5));
+    try {
+      const products = await firebaseProductService.getRecentProducts(5);
+      setRecentProducts(products);
+    } catch (error) {
+      console.error('Erro ao carregar produtos recentes:', error);
+      // Fallback para AsyncStorage
+      const existingProducts = await AsyncStorage.getItem('products');
+      let products = existingProducts ? JSON.parse(existingProducts) : [];
+      setRecentProducts(products.slice(-5));
+    }
   };
 
   const animateHistory = (show) => {
@@ -103,7 +129,19 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         setQuantity(quantidade.toString());
         setcodprod(codprod);
         setEan(codauxiliar);
-        setExpirationDate(new Date(validade));
+        
+        // Converte a data para o formato correto
+        let expirationDate;
+        if (validade.includes('/')) {
+          // Formato PT-BR (DD/MM/YYYY)
+          const [dia, mes, ano] = validade.split('/').map(Number);
+          expirationDate = new Date(ano, mes - 1, dia);
+        } else {
+          // Formato ISO ou outros
+          expirationDate = new Date(validade);
+        }
+        setExpirationDate(expirationDate);
+        
         setProductImage(imageUrl || foto || null);
         setIsEditing(true);
         console.log("Dados carregados para edição:", route.params.product);  // Log para verificar os dados recebidos
@@ -221,37 +259,35 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       const diasrestantes = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
       const product = {
-        id: productId || Date.now().toString(),
         codprod,
         descricao: productName,
         codauxiliar,
         lote,
-        validade: validade.toISOString(),
+        validade: validade.toLocaleDateString('pt-BR'),
         quantidade: parseInt(quantidade, 10),
         diasrestantes,
-        imageUrl: productImage, // Salva a URI da imagem
+        imageUrl: productImage,
       };
 
-      console.log("Produto a ser salvo:", product);  // Log para verificar os dados do produto a ser salvo
+      console.log("Produto a ser salvo:", product);
 
-      const existingProducts = await AsyncStorage.getItem('products');
-      let products = existingProducts ? JSON.parse(existingProducts) : [];
-      console.log("Produtos existentes:", products);  // Log para verificar os produtos existentes
-
+      let result;
       if (isEditing) {
-        products = products.map((p) => (p.id === productId ? product : p));
-        console.log("Produto atualizado:", product);  // Log para verificar se o produto foi atualizado
+        result = await firebaseProductService.updateProduct(productId, product);
+        console.log("Produto atualizado:", result);
+        // Atualiza o ID se mudou
+        if (result.id && result.id !== productId) {
+          setProductId(result.id);
+        }
       } else {
-        products.push(product);
-        console.log("Novo produto adicionado:", product);  // Log para verificar se o produto foi adicionado
+        result = await firebaseProductService.saveProduct(product);
+        console.log("Novo produto adicionado:", result);
       }
-
-      await AsyncStorage.setItem('products', JSON.stringify(products));
 
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
-        text2: isEditing ? 'Produto atualizado com sucesso!' : 'Produto salvo com sucesso!',
+        text2: result.message,
         visibilityTime: 2000,
       });
       navigation.navigate('HomeScreen');
@@ -260,7 +296,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Erro ao salvar produto',
+        text2: 'Erro ao salvar produto no Firebase',
         visibilityTime: 3000,
       });
     } finally {

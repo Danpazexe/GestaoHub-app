@@ -9,6 +9,7 @@ import { Animated, LayoutAnimation } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import SwipeableListItem from '../Components/SwipeableListItem';
+import firebaseProductService from '../../services/firebaseProductService';
 
 const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -17,18 +18,62 @@ const useProducts = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
+      // Primeiro tenta carregar do Firebase
+      const firebaseProducts = await firebaseProductService.getProducts();
+      console.log('Produtos carregados do Firebase:', firebaseProducts.length);
+      
+      // Carrega também do AsyncStorage para produtos locais
       const storedProducts = await AsyncStorage.getItem('products');
+      let asyncStorageProducts = [];
+      
       if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
+        asyncStorageProducts = JSON.parse(storedProducts);
+        console.log('Produtos carregados do AsyncStorage:', asyncStorageProducts.length);
       }
+      
+      // Combina os produtos, evitando duplicatas
+      const firebaseIds = new Set(firebaseProducts.map(p => p.id));
+      const localProducts = asyncStorageProducts.filter(p => !firebaseIds.has(p.id));
+      
+      const allProducts = [...firebaseProducts, ...localProducts];
+      setProducts(allProducts);
+      
+      console.log('Total de produtos carregados:', allProducts.length);
+      
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao carregar produtos',
-        text2: 'Não foi possível carregar os produtos.',
-        visibilityTime: 3000,
-      });
+      console.error('Erro ao carregar produtos do Firebase:', error);
+      
+      // Se o erro for de autenticação, mostra mensagem específica
+      if (error.message.includes('não autenticado')) {
+        Toast.show({
+          type: 'info',
+          text1: 'Usuário não autenticado',
+          text2: 'Carregando produtos locais...',
+          visibilityTime: 2000,
+        });
+      }
+      
+      // Fallback para AsyncStorage
+      try {
+        const storedProducts = await AsyncStorage.getItem('products');
+        if (storedProducts) {
+          const parsedProducts = JSON.parse(storedProducts);
+          setProducts(parsedProducts);
+          console.log('Produtos carregados do AsyncStorage (fallback):', parsedProducts.length);
+        } else {
+          setProducts([]);
+          console.log('Nenhum produto encontrado');
+        }
+      } catch (storageError) {
+        console.error('Erro ao carregar produtos do AsyncStorage:', storageError);
+        Toast.show({
+          type: 'error',
+          text1: 'Erro ao carregar produtos',
+          text2: 'Não foi possível carregar os produtos.',
+          visibilityTime: 3000,
+        });
+        setProducts([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -36,7 +81,25 @@ const useProducts = () => {
 
   const saveProducts = async (productsToSave) => {
     try {
+      // Tenta salvar no Firebase primeiro (se houver produtos com ID do Firebase)
+      // IDs do Firebase agora são baseados na descrição, então verificamos se não são IDs numéricos simples
+      const firebaseProducts = productsToSave.filter(p => p.id && !/^\d+$/.test(p.id));
+      const asyncStorageProducts = productsToSave.filter(p => !p.id || /^\d+$/.test(p.id));
+      
+      if (firebaseProducts.length > 0) {
+        try {
+          // Para produtos do Firebase, apenas atualiza o estado local
+          // A exclusão já foi feita individualmente
+          console.log('Produtos do Firebase atualizados no estado local');
+        } catch (firebaseError) {
+          console.log('Erro ao atualizar produtos do Firebase:', firebaseError.message);
+        }
+      }
+      
+      // Salva no AsyncStorage (todos os produtos)
       await AsyncStorage.setItem('products', JSON.stringify(productsToSave));
+      setProducts(productsToSave);
+      console.log('Produtos salvos no AsyncStorage');
     } catch (error) {
       console.error('Erro ao salvar produtos:', error);
       Toast.show({
@@ -80,7 +143,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
       setProducts((prevProducts) => {
         const productExists = prevProducts.some(
-          (p) => p.name === newProduct.name || p.codprod === newProduct.codprod
+          (p) => p.descricao === newProduct.descricao
         );
 
         if (!productExists) {
@@ -160,16 +223,37 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
   const confirmDelete = async () => {
     if (productToDelete) {
-      const updatedProducts = products.filter(p => p.id !== productToDelete.id);
-      setProducts(updatedProducts);
-      await saveProducts(updatedProducts);
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Produto excluído',
-        text2: 'O produto foi excluído com sucesso!',
-        visibilityTime: 2000,
-      });
+      try {
+        // Remove do estado local
+        const updatedProducts = products.filter(p => p.id !== productToDelete.id);
+        setProducts(updatedProducts);
+        
+        // Tenta excluir do Firebase primeiro
+        try {
+          await firebaseProductService.deleteProduct(productToDelete.id);
+          console.log('Produto excluído do Firebase');
+        } catch (firebaseError) {
+          console.log('Erro ao excluir do Firebase, salvando apenas no AsyncStorage:', firebaseError.message);
+        }
+        
+        // Salva no AsyncStorage como fallback
+        await saveProducts(updatedProducts);
+        
+        Toast.show({
+          type: 'success',
+          text1: 'Produto excluído',
+          text2: 'O produto foi excluído com sucesso!',
+          visibilityTime: 2000,
+        });
+      } catch (error) {
+        console.error('Erro ao excluir produto:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Erro ao excluir produto',
+          text2: 'Não foi possível excluir o produto.',
+          visibilityTime: 3000,
+        });
+      }
     }
     setDeleteConfirmationVisible(false);
     setProductToDelete(null);
@@ -179,13 +263,29 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     navigation.navigate('AddProductScreen', { product });
   };
 
+  // Função auxiliar para converter data PT-BR para Date
+  const parseDate = (dateString) => {
+    if (dateString.includes('/')) {
+      const [dia, mes, ano] = dateString.split('/').map(Number);
+      return new Date(ano, mes - 1, dia);
+    }
+    return new Date(dateString);
+  };
+
   const calculatediasrestantes = (validade) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const expDate = new Date(validade);
-    expDate.setHours(0, 0, 0, 0);
-    const timeDiff = expDate - today;
-    return Math.max(Math.floor(timeDiff / (1000 * 3600 * 24)), 0);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const expDate = parseDate(validade);
+      expDate.setHours(0, 0, 0, 0);
+      
+      const timeDiff = expDate - today;
+      return Math.max(Math.floor(timeDiff / (1000 * 3600 * 24)), 0);
+    } catch (error) {
+      console.error('Erro ao calcular dias restantes:', error);
+      return 0;
+    }
   };
 
   const filterAndSortProducts = useMemo(() => {
@@ -203,7 +303,11 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     }
     
     if (!normalizedSearchText) {
-      return filteredProducts.sort((a, b) => new Date(a.validade) - new Date(b.validade));
+      return filteredProducts.sort((a, b) => {
+        const dateA = parseDate(a.validade);
+        const dateB = parseDate(b.validade);
+        return dateA - dateB;
+      });
     }
 
     return filteredProducts
@@ -230,7 +334,9 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         if (!aMatch && bMatch) return 1;
         
         // Depois ordena por data de validade
-        return new Date(a.validade) - new Date(b.validade);
+        const dateA = parseDate(a.validade);
+        const dateB = parseDate(b.validade);
+        return dateA - dateB;
       });
   }, [products, searchText, filterType, showExpiring]);
 
@@ -252,7 +358,9 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
       switch (field) {
         case 'validade':
-          return multiplier * (new Date(a.validade) - new Date(b.validade));
+          const dateA = parseDate(a.validade);
+          const dateB = parseDate(b.validade);
+          return multiplier * (dateA - dateB);
         case 'quantidade':
           return multiplier * (a.quantidade - b.quantidade);
         case 'nome':
@@ -417,7 +525,6 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         <ProductItem
           product={{
             ...item,
-            validade: new Date(item.validade).toLocaleDateString('pt-BR'),
             diasrestantes,
           }}
           isDarkMode={isDarkMode}
@@ -584,7 +691,21 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       // Flatten o array de produtos
       const flattenedProducts = updatedProducts.flat();
 
-      await AsyncStorage.setItem('products', JSON.stringify(flattenedProducts));
+      // Tenta atualizar no Firebase se o produto original veio do Firebase
+      if (product.id && product.id.length > 20) { // ID do Firebase é mais longo
+        try {
+          const updatedProduct = flattenedProducts.find(p => p.id === product.id);
+          if (updatedProduct) {
+            await firebaseProductService.updateProduct(product.id, updatedProduct);
+            console.log('Produto atualizado no Firebase');
+          }
+        } catch (firebaseError) {
+          console.log('Erro ao atualizar produto no Firebase:', firebaseError.message);
+        }
+      }
+
+      // Salva no AsyncStorage e atualiza o estado
+      await saveProducts(flattenedProducts);
       setProducts(flattenedProducts);
       setTreatmentModalVisible(false);
       setSelectedProduct(null);

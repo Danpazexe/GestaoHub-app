@@ -69,12 +69,19 @@ const ProductItem = ({ product, isDarkMode }) => {
   // Cálculo dos dias restantes
   const calcularDiasRestantes = () => {
     try {
-      // Converte a string de data para partes
-      const [dia, mes, ano] = product.validade.split('/').map(Number);
+      let dataValidade;
       
-      // Cria as datas
+      // Converte a data do formato PT-BR (DD/MM/YYYY) para Date
+      if (product.validade.includes('/')) {
+        const [dia, mes, ano] = product.validade.split('/').map(Number);
+        dataValidade = new Date(ano, mes - 1, dia);
+      } else {
+        // Fallback para outros formatos
+        dataValidade = new Date(product.validade);
+      }
+      
+      // Cria a data de hoje
       const hoje = new Date();
-      const dataValidade = new Date(ano, mes - 1, dia); // mes - 1 porque em JS os meses começam do 0
       
       // Reseta as horas para comparar apenas as datas
       hoje.setHours(0, 0, 0, 0);
@@ -200,7 +207,9 @@ const ProductItem = ({ product, isDarkMode }) => {
             <View style={styles.infoRow}>
               <MaterialIcons name="event" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Validade:</Text>
-              <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.validade}</Text>
+              <Text style={[styles.value, isDarkMode && styles.darkValue]}>
+                {product.validade}
+              </Text>
             </View>
           </View>
         </View>
