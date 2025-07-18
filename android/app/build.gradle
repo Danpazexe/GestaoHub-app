@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: 'com.google.gms.google-services'
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -169,6 +170,24 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // Firebase BoM (Bill of Materials)
+    implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
+
+    // Firebase Analytics
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Firebase Authentication
+    implementation("com.google.firebase:firebase-auth")
+
+    // Firebase Firestore
+    implementation("com.google.firebase:firebase-firestore")
+
+    // Firebase Storage
+    implementation("com.google.firebase:firebase-storage")
+
+    // Firebase Cloud Messaging
+    implementation("com.google.firebase:firebase-messaging")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

@@ -10,13 +10,13 @@
     "check-deps": "depcheck",
     "build android": "cd android && gradlew.bat assembleRelease",
     "limpar Build": "cd android && gradlew.bat clean"
-    
-
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.3",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "8.0.1",
+    "@react-native-firebase/app": "^22.4.0",
+    "@react-native-firebase/auth": "^22.4.0",
     "@react-native-picker/picker": "^2.11.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
@@ -38,6 +38,7 @@
     "expo-notifications": "~0.28.19",
     "expo-print": "~13.0.1",
     "expo-sharing": "~12.0.1",
+    "firebase": "^12.0.0",
     "lodash.debounce": "^4.0.8",
     "lottie-react-native": "^6.7.0",
     "react": "18.2.0",
@@ -65,5 +66,6 @@
   "overrides": {
     "react-native-svg": "15.2.0"
   },
-  "private": true
+  "private": true,
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

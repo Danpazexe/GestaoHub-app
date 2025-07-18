@@ -18,7 +18,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import authService from '../../services/authService';
+import firebaseAuthService from '../../services/firebaseAuthService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -111,9 +111,9 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
     setIsLoading(true);
 
     try {
-      const response = await authService.register(name, email, password);
+      const response = await firebaseAuthService.register(name, email, password);
       
-      if (response.status === 201 || response.status === 200) {
+      if (response.success || response.status === 200) {
         Toast.show({
           type: 'success',
           text1: 'Sucesso!',
@@ -126,7 +126,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
       Toast.show({
         type: 'error',
         text1: 'Erro no Cadastro',
-        text2: error.response?.data?.message || 'Erro ao criar conta',
+        text2: 'Erro ao criar conta',
       });
     } finally {
       setIsLoading(false);

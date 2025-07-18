@@ -2,25 +2,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import firebaseAuthService from '../../services/firebaseAuthService';
+import Toast from 'react-native-toast-message';
 
 const ProfileScreen = ({ isDarkMode }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [profileImage, setProfileImage] = useState(null);
 
   // Função para carregar os dados salvos no AsyncStorage
   const loadProfileData = useCallback(async () => {
     try {
-      const savedName = await AsyncStorage.getItem('name');
-      const savedEmail = await AsyncStorage.getItem('email');
-      const savedPassword = await AsyncStorage.getItem('password');
-      const savedProfileImage = await AsyncStorage.getItem('profileImage');
-
-      if (savedName) setName(savedName);
-      if (savedEmail) setEmail(savedEmail);
-      if (savedPassword) setPassword(savedPassword);
-      if (savedProfileImage) setProfileImage(savedProfileImage);
+      const userData = await firebaseAuthService.getUserData();
+      if (userData) {
+        setName(userData.name || '');
+        setEmail(userData.email || '');
+        setProfileImage(userData.photoURL || null);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados do perfil:', error);
     }
@@ -31,7 +29,7 @@ const ProfileScreen = ({ isDarkMode }) => {
     loadProfileData();
   }, [loadProfileData]);
 
-  // Função para salvar as alterações no AsyncStorage
+  // Função para salvar as alterações no Firebase
   const handleSaveChanges = useCallback(async () => {
     if (!name.trim()) {
       Alert.alert('Erro', 'O campo Nome é obrigatório.');
@@ -44,28 +42,23 @@ const ProfileScreen = ({ isDarkMode }) => {
       return;
     }
 
-    if (!password.trim()) {
-      Alert.alert('Erro', 'O campo Senha é obrigatório.');
-      return;
-    }
-
     try {
-      // Salvando os dados no AsyncStorage
-      await AsyncStorage.setItem('name', name);
-      await AsyncStorage.setItem('email', email);
-      await AsyncStorage.setItem('password', password);
-      await AsyncStorage.setItem('profileImage', profileImage || '');
-
-      console.log('[ProfileScreen] Alterações salvas!');
-      console.log('[ProfileScreen] Nome atualizado:', name);
-      console.log('[ProfileScreen] E-mail atualizado:', email);
-      console.log('[ProfileScreen] Senha atualizada.');
-      Alert.alert('Sucesso', 'Alterações salvas com sucesso!');
+      await firebaseAuthService.updateProfile(name.trim(), profileImage);
+      
+      Toast.show({
+        type: 'success',
+        text1: 'Sucesso!',
+        text2: 'Perfil atualizado com sucesso',
+      });
     } catch (error) {
       console.error('Erro ao salvar dados do perfil:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao salvar os dados. Tente novamente.');
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Ocorreu um erro ao salvar os dados',
+      });
     }
-  }, [name, email, password, profileImage]);
+  }, [name, profileImage]);
 
   // Função para selecionar uma imagem
   const handleImagePick = async () => {
@@ -121,17 +114,7 @@ const ProfileScreen = ({ isDarkMode }) => {
           placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
         />
       </View>
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Senha</Text>
-        <TextInput
-          style={[styles.input, isDarkMode ? styles.darkInput : styles.lightInput]}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Digite sua senha"
-          placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
-          secureTextEntry
-        />
-      </View>
+
       <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
         <Text style={styles.saveButtonText}>Salvar Alterações</Text>
       </TouchableOpacity>

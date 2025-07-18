@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "633814177400",
+    "project_id": "gestao-app-6d6a7",
+    "storage_bucket": "gestao-app-6d6a7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:633814177400:android:de80367e804eea7bee3f8d",
+        "android_client_info": {
+          "package_name": "com.avante.gestao"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6_8UFymWwWJpOf421ehLlWh1OVfFPQOQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,6 +8,7 @@ import Toast from 'react-native-toast-message';
 import { toastConfig } from './Screen/Constants/toastConfig';
 import { Provider as PaperProvider } from 'react-native-paper';
 import * as Notifications from 'expo-notifications';
+import '@react-native-firebase/app';
 
 // Importações de telas
 import EntryScreen from './Screen/Entrada/EntryScreen';

@@ -21,7 +21,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import authService from '../../services/authService';
+import firebaseAuthService from '../../services/firebaseAuthService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -82,7 +82,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const loadSavedCredentials = async () => {
     try {
-      const { savedEmail, savedRememberMe } = await authService.loadSavedCredentials();
+      const { savedEmail, savedRememberMe } = await firebaseAuthService.loadSavedCredentials();
       
       if (savedEmail && savedRememberMe === 'true') {
         setEmail(savedEmail);
@@ -95,7 +95,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const saveCredentials = async () => {
     try {
-      await authService.saveCredentials(email, rememberMe);
+      await firebaseAuthService.saveCredentials(email, rememberMe);
     } catch (error) {
       console.error('Erro ao salvar credenciais:', error);
     }
@@ -109,7 +109,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     setIsLoading(true);
 
     try {
-      const response = await authService.login(email, password);
+      const response = await firebaseAuthService.login(email, password);
       
       if (response.success || response.status === 200) {
         await handleSuccessfulLogin();
@@ -135,7 +135,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const handleSuccessfulLogin = async () => {
     await saveCredentials();
-    const userData = await authService.getUserData();
+    const userData = await firebaseAuthService.getUserData();
     Toast.show({
       type: 'success',
       text1: `Bem-vindo, ${userData?.name || 'Usuário'}!`,
