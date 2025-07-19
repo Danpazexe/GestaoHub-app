@@ -7,11 +7,6 @@ class FirebaseProductService {
     this.productsCollection = 'products';
   }
 
-  async getCurrentUserId() {
-    const user = await firebaseAuthService.getCurrentUser();
-    return user ? user.id : null;
-  }
-
   // Função auxiliar para gerar ID baseado na descrição
   generateProductId(descricao) {
     return descricao
@@ -23,23 +18,16 @@ class FirebaseProductService {
 
   async saveProduct(productData) {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
       // Usa a descrição como ID
       const productId = this.generateProductId(productData.descricao);
 
-      const productWithUser = {
+      const productWithTimestamps = {
         ...productData,
-        userId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
 
-      // Usa setDoc para definir o ID personalizado
-      await setDoc(doc(this.db, this.productsCollection, productId), productWithUser);
+      await setDoc(doc(this.db, this.productsCollection, productId), productWithTimestamps);
       
       return {
         success: true,
@@ -54,28 +42,20 @@ class FirebaseProductService {
 
   async updateProduct(productId, productData) {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
       // Se a descrição mudou, cria um novo ID baseado na nova descrição
       const newProductId = this.generateProductId(productData.descricao);
 
-      const productWithUser = {
+      const productWithTimestamps = {
         ...productData,
-        userId,
         updatedAt: new Date().toISOString()
       };
 
-      // Se o ID mudou, deleta o documento antigo e cria um novo
       if (newProductId !== productId) {
         await deleteDoc(doc(this.db, this.productsCollection, productId));
-        await setDoc(doc(this.db, this.productsCollection, newProductId), productWithUser);
+        await setDoc(doc(this.db, this.productsCollection, newProductId), productWithTimestamps);
       } else {
-        // Se o ID não mudou, apenas atualiza
         const productRef = doc(this.db, this.productsCollection, productId);
-        await updateDoc(productRef, productWithUser);
+        await updateDoc(productRef, productWithTimestamps);
       }
       
       return {
@@ -91,17 +71,8 @@ class FirebaseProductService {
 
   async getProducts() {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      // Consulta simplificada sem orderBy para evitar necessidade de índice
-      const q = query(
-        collection(this.db, this.productsCollection),
-        where('userId', '==', userId)
-      );
-
+      // Busca todos os produtos sem filtro de usuário
+      const q = query(collection(this.db, this.productsCollection));
       const querySnapshot = await getDocs(q);
       const products = [];
 
@@ -112,11 +83,10 @@ class FirebaseProductService {
         });
       });
 
-      // Ordena localmente após buscar
       products.sort((a, b) => {
         const dateA = new Date(a.createdAt || 0);
         const dateB = new Date(b.createdAt || 0);
-        return dateB - dateA; // Ordem decrescente
+        return dateB - dateA;
       });
 
       return products;
@@ -128,17 +98,8 @@ class FirebaseProductService {
 
   async getRecentProducts(limitCount = 5) {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      // Consulta simplificada sem orderBy para evitar necessidade de índice
-      const q = query(
-        collection(this.db, this.productsCollection),
-        where('userId', '==', userId)
-      );
-
+      // Busca todos os produtos sem filtro de usuário
+      const q = query(collection(this.db, this.productsCollection));
       const querySnapshot = await getDocs(q);
       const products = [];
 
@@ -149,11 +110,10 @@ class FirebaseProductService {
         });
       });
 
-      // Ordena localmente e limita
       products.sort((a, b) => {
         const dateA = new Date(a.createdAt || 0);
         const dateB = new Date(b.createdAt || 0);
-        return dateB - dateA; // Ordem decrescente
+        return dateB - dateA;
       });
 
       return products.slice(0, limitCount);
@@ -165,11 +125,6 @@ class FirebaseProductService {
 
   async deleteProduct(productId) {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
       await deleteDoc(doc(this.db, this.productsCollection, productId));
       
       return {
@@ -184,11 +139,6 @@ class FirebaseProductService {
 
   async searchProductByEAN(ean) {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
       const q = query(
         collection(this.db, 'cached_products'),
         where('CODAUXILIAR', '==', ean)
@@ -213,11 +163,6 @@ class FirebaseProductService {
 
   async syncProductsFromAsyncStorage() {
     try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) {
-        throw new Error('Usuário não autenticado');
-      }
-
       // Buscar produtos do AsyncStorage
       const AsyncStorage = require('@react-native-async-storage/async-storage');
       const existingProducts = await AsyncStorage.getItem('products');
@@ -225,9 +170,8 @@ class FirebaseProductService {
       if (existingProducts) {
         const products = JSON.parse(existingProducts);
         
-        // Migrar produtos para o Firebase
         for (const product of products) {
-          if (!product.firebaseId) { // Evitar duplicatas
+          if (!product.firebaseId) {
             await this.saveProduct(product);
           }
         }
@@ -246,6 +190,22 @@ class FirebaseProductService {
       console.error('Erro ao sincronizar produtos:', error);
       throw new Error('Erro ao sincronizar produtos com Firebase');
     }
+  }
+
+  async listenProducts(onUpdate) {
+    const collectionRef = collection(this.db, this.productsCollection);
+    return collectionRef.onSnapshot((querySnapshot) => {
+      const products = [];
+      querySnapshot.forEach((doc) => {
+        products.push({ id: doc.id, ...doc.data() });
+      });
+      products.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      });
+      onUpdate(products);
+    });
   }
 }
 

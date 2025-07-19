@@ -134,6 +134,25 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   }, []);
 
   useEffect(() => {
+    // Listener em tempo real do Firebase
+    const unsubscribe = firebaseProductService.listenProducts((firebaseProducts) => {
+      // Carrega também do AsyncStorage para produtos locais
+      AsyncStorage.getItem('products').then((storedProducts) => {
+        let asyncStorageProducts = [];
+        if (storedProducts) {
+          asyncStorageProducts = JSON.parse(storedProducts);
+        }
+        // Combina os produtos, evitando duplicatas
+        const firebaseIds = new Set(firebaseProducts.map(p => p.id));
+        const localProducts = asyncStorageProducts.filter(p => !firebaseIds.has(p.id));
+        const allProducts = [...firebaseProducts, ...localProducts];
+        setProducts(allProducts);
+      });
+    });
+    return () => unsubscribe && unsubscribe();
+  }, []);
+
+  useEffect(() => {
     if (route?.params?.newProduct) {
       const newProduct = {
         ...route.params.newProduct,
