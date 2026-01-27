@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, Alert, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as DocumentPicker from 'expo-document-picker';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import DocumentPicker from 'react-native-document-picker';
 import * as XLSX from 'xlsx';
-import * as Sharing from 'expo-sharing';
+import Share from 'react-native-share';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Paleta de cores
 const colors = {
@@ -65,15 +65,16 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
       XLSX.utils.book_append_sheet(workBook, workSheet, 'Produtos');
 
       const excelBuffer = XLSX.write(workBook, { bookType: 'xlsx', type: 'base64' });
-      const fileUri = `${FileSystem.documentDirectory}produtos.xlsx`;
+      const filePath = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/produtos.xlsx`;
 
-      await FileSystem.writeAsStringAsync(fileUri, excelBuffer, { encoding: FileSystem.EncodingType.Base64 });
+      await ReactNativeBlobUtil.fs.writeFile(filePath, excelBuffer, 'base64');
 
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
-      } else {
-        Alert.alert('Erro', 'Compartilhamento não suportado neste dispositivo.');
-      }
+      const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      await Share.open({
+        url: fileUrl,
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        title: 'Exportar planilha',
+      });
     } catch (error) {
       Alert.alert('Erro ao exportar para Excel', error.message);
     } finally {
@@ -84,19 +85,19 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
   const importFromExcel = async () => {
     setIsProcessing(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+      const result = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.allFiles],
+        copyTo: 'cachesDirectory',
+      });
 
-      if (result.canceled) {
-        return Alert.alert('Importação', 'Importação cancelada');
-      }
+      const fileUri = result.fileCopyUri || result.uri;
 
-      const { uri } = result.assets[0];
-
-      if (!uri.endsWith('.xlsx')) {
+      if (!fileUri.endsWith('.xlsx')) {
         return Alert.alert('Erro', 'Por favor, selecione um arquivo .xlsx.');
       }
 
-      const fileContent = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const normalizedPath = fileUri.startsWith('file://') ? fileUri.replace('file://', '') : fileUri;
+      const fileContent = await ReactNativeBlobUtil.fs.readFile(normalizedPath, 'base64');
       const workBook = XLSX.read(fileContent, { type: 'base64' });
       const workSheet = workBook.Sheets[workBook.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(workSheet);
@@ -105,6 +106,9 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
       setProductsCount(data.length);
       Alert.alert('Importação', `${data.length} itens importados e salvos com sucesso!`);
     } catch (error) {
+      if (DocumentPicker.isCancel(error)) {
+        return Alert.alert('Importação', 'Importação cancelada');
+      }
       Alert.alert('Erro ao importar Excel', error.message);
     } finally {
       setIsProcessing(false);

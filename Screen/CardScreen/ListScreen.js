@@ -6,7 +6,7 @@ import TreatmentModal from '../Components/TreatmentModal';
 import DeleteConfirmationModal from '../Components/DeleteConfirmationModal';
 import debounce from 'lodash.debounce';
 import { Animated, LayoutAnimation } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Toast from 'react-native-toast-message';
 import SwipeableListItem from '../Components/SwipeableListItem';
 

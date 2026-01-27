@@ -1,0 +1,1 @@
+../../../../../node_modules/react-native-biometrics/ios/ReactNativeBiometrics.h

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, Image, StyleSheet, Animated, ImageBackground, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
-import appInfo from '../../app.json';
+import { version } from '../../package.json';
 
 const { width, height } = Dimensions.get('window');
 
@@ -220,7 +220,7 @@ const EntryScreen = () => {
             {/* Informação simples */}
             <View style={styles.infoContainer}>
               <Text style={styles.versionInfo}>
-                v{appInfo.expo.version}
+                v{version}
               </Text>
               <Text style={styles.developerInfo}>
                 Desenvolvido por Daniel Paz

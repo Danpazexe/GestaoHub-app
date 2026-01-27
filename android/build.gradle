@@ -1,4 +1,5 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
     ext {
@@ -39,7 +40,28 @@ allprojects {
         maven { url 'https://www.jitpack.io' }
     }
 }
-// @generated begin expo-camera-import - expo prebuild (DO NOT MODIFY) sync-f244f4f3d8bf7229102e8f992b525b8602c74770
-def expoCameraMavenPath = new File(["node", "--print", "require.resolve('expo-camera/package.json')"].execute(null, rootDir).text.trim(), "../android/maven")
-allprojects { repositories { maven { url(expoCameraMavenPath) } } }
-// @generated end expo-camera-import
+
+// Some RN libraries (e.g., VisionCamera) use RN internal APIs that require opt-in.
+subprojects { project ->
+    // RN 0.74+ marks these APIs with @RequiresOptIn(level = ERROR).
+    def optInArgs = [
+        "-opt-in=com.facebook.react.common.annotations.UnstableReactNativeAPI",
+        "-opt-in=com.facebook.react.common.annotations.FrameworkAPI",
+    ]
+
+    project.plugins.withId("kotlin-android") {
+        project.tasks.withType(KotlinCompile).configureEach { task ->
+            task.kotlinOptions.freeCompilerArgs += optInArgs
+        }
+    }
+    project.plugins.withId("org.jetbrains.kotlin.android") {
+        project.tasks.withType(KotlinCompile).configureEach { task ->
+            task.kotlinOptions.freeCompilerArgs += optInArgs
+        }
+    }
+    project.plugins.withId("org.jetbrains.kotlin.jvm") {
+        project.tasks.withType(KotlinCompile).configureEach { task ->
+            task.kotlinOptions.freeCompilerArgs += optInArgs
+        }
+    }
+}

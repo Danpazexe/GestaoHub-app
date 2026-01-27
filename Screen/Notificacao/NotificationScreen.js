@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, Switch, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Notifications from 'expo-notifications';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import notifee, { AndroidImportance, TriggerType } from '@notifee/react-native';
 import Toast from 'react-native-toast-message';
 
 const { width } = Dimensions.get('window');
@@ -75,13 +76,15 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
     if (Platform.OS === 'android') {
       try {
         console.log('Configurando canal de notificação...');
-        
-        await Notifications.setNotificationChannelAsync('default', {
+
+        await notifee.createChannel({
+          id: 'default',
           name: 'Notificações de Validade',
-          importance: Notifications.AndroidImportance.HIGH,
+          importance: AndroidImportance.HIGH,
+          vibration: true,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF231F7C',
-          sound: true,
+          sound: 'notification',
         });
         console.log('Canal "default" configurado com sucesso');
       } catch (error) {
@@ -92,12 +95,12 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
   const loadNotificationStats = async () => {
     try {
-      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      const scheduledNotifications = await notifee.getTriggerNotifications();
       const stats = {
         total: scheduledNotifications.length,
-        daily: scheduledNotifications.filter(n => n.content.data?.strategy === 'daily').length,
-        alternate: scheduledNotifications.filter(n => n.content.data?.strategy === 'alternate').length,
-        once: scheduledNotifications.filter(n => n.content.data?.strategy === 'once').length
+        daily: scheduledNotifications.filter(n => n.notification?.data?.strategy === 'daily').length,
+        alternate: scheduledNotifications.filter(n => n.notification?.data?.strategy === 'alternate').length,
+        once: scheduledNotifications.filter(n => n.notification?.data?.strategy === 'once').length
       };
       setNotificationStats(stats);
     } catch (error) {
@@ -152,7 +155,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
     try {
       setIsLoading(true);
       
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await notifee.cancelAllNotifications();
       
       console.log('Todas as notificações agendadas foram canceladas');
       setNotificationStats({ total: 0, daily: 0, alternate: 0, once: 0 });
@@ -179,20 +182,24 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
       const style = getNotificationStyle(alertLevel);
       const testBody = formatExpirationMessage(5, 'Produto Teste', '15/07/2025');
       
-      await Notifications.scheduleNotificationAsync({
-        content: {
+      await notifee.createTriggerNotification(
+        {
           title: `${style.icon} Teste de Notificação`,
           body: testBody,
           data: { test: true },
-          sound: true,
-          priority: 'high',
-          vibrate: vibrationEnabled ? [0, 250, 250, 250] : null,
-          channelId: 'default',
+          android: {
+            channelId: 'default',
+            sound: 'notification',
+            vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+            importance: AndroidImportance.HIGH,
+            pressAction: { id: 'default' },
+          },
         },
-        trigger: {
-          seconds: 3,
-        },
-      });
+        {
+          type: TriggerType.TIMESTAMP,
+          timestamp: Date.now() + 3000,
+        }
+      );
       
       Toast.show({
         type: 'success',
@@ -211,7 +218,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
   const updateNotificationSchedule = async () => {
     if (!isNotificationsEnabled) {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await notifee.cancelAllNotifications();
       setNotificationStats({ total: 0, daily: 0, alternate: 0, once: 0 });
       Toast.show({
         type: 'info',
@@ -224,7 +231,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
     try {
       setIsLoading(true);
       
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await notifee.cancelAllNotifications();
       
       const productsJson = await AsyncStorage.getItem('products');
       if (!productsJson) {
@@ -295,19 +302,19 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                       daysUntilExpiration: daysLeft,
                       strategy: 'daily'
                     },
-                    sound: true,
-                    priority: 'high',
-                    vibrate: vibrationEnabled ? [0, 250, 250, 250] : null,
-                    channelId: 'default',
+                    android: {
+                      channelId: 'default',
+                      sound: 'notification',
+                      vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+                      importance: AndroidImportance.HIGH,
+                      pressAction: { id: 'default' },
+                    },
                   };
 
                   try {
-                    await Notifications.scheduleNotificationAsync({
-                      content: notificationContent,
-                      trigger: {
-                        date: notificationDate,
-                        repeats: false
-                      },
+                    await notifee.createTriggerNotification(notificationContent, {
+                      type: TriggerType.TIMESTAMP,
+                      timestamp: notificationDate.getTime(),
                     });
                     
                     scheduledCount++;
@@ -344,19 +351,19 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                       daysUntilExpiration: daysLeft,
                       strategy: 'alternate'
                     },
-                    sound: true,
-                    priority: 'high',
-                    vibrate: vibrationEnabled ? [0, 250, 250, 250] : null,
-                    channelId: 'default',
+                    android: {
+                      channelId: 'default',
+                      sound: 'notification',
+                      vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+                      importance: AndroidImportance.HIGH,
+                      pressAction: { id: 'default' },
+                    },
                   };
 
                   try {
-                    await Notifications.scheduleNotificationAsync({
-                      content: notificationContent,
-                      trigger: {
-                        date: notificationDate,
-                        repeats: false
-                      },
+                    await notifee.createTriggerNotification(notificationContent, {
+                      type: TriggerType.TIMESTAMP,
+                      timestamp: notificationDate.getTime(),
                     });
                     
                     scheduledCount++;
@@ -394,19 +401,19 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                       daysUntilExpiration: 21,
                       strategy: 'once'
                     },
-                    sound: true,
-                    priority: 'high',
-                    vibrate: vibrationEnabled ? [0, 250, 250, 250] : null,
-                    channelId: 'default',
+                    android: {
+                      channelId: 'default',
+                      sound: 'notification',
+                      vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+                      importance: AndroidImportance.HIGH,
+                      pressAction: { id: 'default' },
+                    },
                   };
 
                   try {
-                    await Notifications.scheduleNotificationAsync({
-                      content: notificationContent,
-                      trigger: {
-                        date: notificationDate,
-                        repeats: false
-                      },
+                    await notifee.createTriggerNotification(notificationContent, {
+                      type: TriggerType.TIMESTAMP,
+                      timestamp: notificationDate.getTime(),
                     });
                     
                     scheduledCount++;

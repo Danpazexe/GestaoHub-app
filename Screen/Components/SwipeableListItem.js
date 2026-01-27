@@ -1,7 +1,7 @@
 import React, { useRef, useImperativeHandle, forwardRef, useState } from 'react';
 import { View, Animated, TouchableOpacity, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const BUTTON_WIDTH = 80;
 const BUTTONS = [

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ProfileScreen = ({ isDarkMode }) => {
@@ -69,24 +69,29 @@ const ProfileScreen = ({ isDarkMode }) => {
 
   // Função para selecionar uma imagem
   const handleImagePick = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.granted) {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      includeBase64: false,
+      quality: 0.8,
+      selectionLimit: 1,
+    });
 
-      if (!result.canceled && result.assets && result.assets[0]?.uri) {
-        const selectedImageUri = result.assets[0].uri;
-        setProfileImage(selectedImageUri);
-        console.log('[ProfileScreen] Nova imagem de perfil selecionada:', selectedImageUri);
-      } else {
-        console.log('[ProfileScreen] Seleção de imagem cancelada ou nenhum arquivo válido.');
-      }
+    if (result.didCancel) {
+      console.log('[ProfileScreen] Seleção de imagem cancelada.');
+      return;
+    }
+
+    if (result.errorCode) {
+      Alert.alert('Erro', 'Não foi possível acessar a galeria.');
+      return;
+    }
+
+    const selectedImageUri = result.assets?.[0]?.uri;
+    if (selectedImageUri) {
+      setProfileImage(selectedImageUri);
+      console.log('[ProfileScreen] Nova imagem de perfil selecionada:', selectedImageUri);
     } else {
-      Alert.alert('Permissão Negada', 'É necessário permitir o acesso à galeria.');
+      console.log('[ProfileScreen] Nenhum arquivo válido foi selecionado.');
     }
   };
 

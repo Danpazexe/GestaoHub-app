@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Modal, FlatList, Switch } from 'react-native';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Modal, FlatList, Switch, Image } from 'react-native';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import Share from 'react-native-share';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import { Asset } from 'expo-asset';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import PdfViewerScreen from '../Pdf/PdfViewerScreen';
 
 const PdfScreen = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(false);
@@ -39,7 +37,8 @@ const PdfScreen = ({ isDarkMode }) => {
     if (!uri) return null;
     if (uri.startsWith('file://')) {
       try {
-        const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+        const path = uri.replace('file://', '');
+        const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
         let ext = uri.split('.').pop().toLowerCase();
         let mime = 'image/jpeg';
         if (ext === 'png') mime = 'image/png';
@@ -54,9 +53,11 @@ const PdfScreen = ({ isDarkMode }) => {
 
   const getLogoBase64 = async () => {
     try {
-      const asset = Asset.fromModule(require('../../assets/Image/LOGOCOMFRASE.png'));
-      await asset.downloadAsync();
-      const base64 = await FileSystem.readAsStringAsync(asset.localUri || asset.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const assetSource = Image.resolveAssetSource(require('../../assets/Image/LOGOCOMFRASE.png'));
+      const assetUri = assetSource?.uri;
+      if (!assetUri) return null;
+      const path = assetUri.startsWith('file://') ? assetUri.replace('file://', '') : assetUri;
+      const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
       return `data:image/png;base64,${base64}`;
     } catch (e) {
       return null;
@@ -76,10 +77,7 @@ const PdfScreen = ({ isDarkMode }) => {
   // Função para carregar o template HTML
   const loadHtmlTemplate = async () => {
     try {
-      const templatePath = Asset.fromModule(require('../../Screen/Pdf/pdfTemplate.html'));
-      await templatePath.downloadAsync();
-      const templateContent = await FileSystem.readAsStringAsync(templatePath.localUri || templatePath.uri);
-      return templateContent;
+      return await ReactNativeBlobUtil.fs.readFileAssets('pdfTemplate.html');
     } catch (error) {
       console.error('Erro ao carregar template HTML:', error);
       return null;
@@ -227,13 +225,19 @@ const PdfScreen = ({ isDarkMode }) => {
         .replace('{{PRODUTOS_HTML}}', produtosHtml)
         .replace('{{LEGENDA_HTML}}', legendaHtml);
 
-      const { uri } = await Print.printToFileAsync({ 
+      const { filePath } = await RNHTMLtoPDF.convert({
         html,
-        width: 595.28, // Largura A4 em pontos (210mm)
-        height: 841.89, // Altura A4 em pontos (297mm)
-        base64: false
+        fileName: `relatorio-${Date.now()}`,
+        directory: 'Documents',
+        width: 595.28,
+        height: 841.89,
       });
-      await Sharing.shareAsync(uri);
+      const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      await Share.open({
+        url: fileUrl,
+        type: 'application/pdf',
+        title: 'Compartilhar PDF',
+      });
     } catch (error) {
       Alert.alert('Erro ao compartilhar PDF', error.message);
     } finally {
@@ -680,14 +684,16 @@ const PdfScreen = ({ isDarkMode }) => {
                   .replace('{{PRODUTOS_HTML}}', produtosHtml)
                   .replace('{{LEGENDA_HTML}}', legendaHtml);
 
-                const { uri } = await Print.printToFileAsync({ 
+                const { filePath } = await RNHTMLtoPDF.convert({
                   html,
+                  fileName: `relatorio-${Date.now()}`,
+                  directory: 'Documents',
                   width: 595.28,
                   height: 841.89,
-                  base64: false
                 });
                 setLoading(false);
-                navigation.navigate('PdfViewerScreen', { pdfUri: uri });
+                const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+                navigation.navigate('PdfViewerScreen', { pdfUri: fileUrl });
               } catch (error) {
                 setLoading(false);
                 Alert.alert('Erro ao visualizar PDF', error.message);

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Switch, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons } from '@expo/vector-icons';
-import * as LocalAuthentication from 'expo-local-authentication';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import ReactNativeBiometrics from 'react-native-biometrics';
 import Toast from 'react-native-toast-message';
 
 
 
 const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
+  const rnBiometrics = new ReactNativeBiometrics();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isBiometricEnabled, setBiometricEnabled] = useState(false);
   const [isAutoBackupEnabled, setAutoBackupEnabled] = useState(false);
@@ -65,10 +66,9 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
 
   const toggleBiometric = async () => {
     try {
-      const compatible = await LocalAuthentication.hasHardwareAsync();
-      const enrolled = await LocalAuthentication.isEnrolledAsync();
-      
-      if (compatible && enrolled) {
+      const { available, biometryType } = await rnBiometrics.isSensorAvailable();
+
+      if (available && biometryType) {
         // Verifica se existem credenciais salvas
         const savedEmail = await AsyncStorage.getItem('savedEmail');
         const savedPassword = await AsyncStorage.getItem('savedPassword');

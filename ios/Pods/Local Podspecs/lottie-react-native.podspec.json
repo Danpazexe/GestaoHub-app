@@ -1,0 +1,97 @@
+{
+  "name": "lottie-react-native",
+  "version": "6.7.2",
+  "summary": "React Native bindings for Lottie",
+  "license": "Apache-2.0",
+  "authors": "Emilio Rodriguez <emiliorodriguez@gmail.com>",
+  "homepage": "https://github.com/airbnb/lottie-react-native#readme",
+  "platforms": {
+    "ios": "12.4",
+    "osx": "10.12",
+    "tvos": "12.4"
+  },
+  "source": {
+    "git": "https://github.com/lottie-react-native/lottie-react-native.git",
+    "tag": "v6.7.2"
+  },
+  "source_files": "ios/**/*.{h,m,mm,swift}",
+  "resource_bundles": {
+    "Lottie_React_Native_Privacy": [
+      "ios/PrivacyInfo.xcprivacy"
+    ]
+  },
+  "dependencies": {
+    "lottie-ios": [
+      "4.4.1"
+    ],
+    "React-Core": [
+
+    ],
+    "RCT-Folly": [
+      "2024.01.01.00"
+    ],
+    "glog": [
+
+    ],
+    "React-RCTFabric": [
+
+    ],
+    "React-Codegen": [
+
+    ],
+    "RCTRequired": [
+
+    ],
+    "RCTTypeSafety": [
+
+    ],
+    "ReactCommon/turbomodule/bridging": [
+
+    ],
+    "ReactCommon/turbomodule/core": [
+
+    ],
+    "React-NativeModulesApple": [
+
+    ],
+    "Yoga": [
+
+    ],
+    "React-Fabric": [
+
+    ],
+    "React-graphics": [
+
+    ],
+    "React-utils": [
+
+    ],
+    "React-featureflags": [
+
+    ],
+    "React-debug": [
+
+    ],
+    "React-ImageManager": [
+
+    ],
+    "React-rendererdebug": [
+
+    ],
+    "DoubleConversion": [
+
+    ],
+    "hermes-engine": [
+
+    ]
+  },
+  "swift_versions": "5.7",
+  "compiler_flags": "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -DFOLLY_CFG_NO_COROUTINES=1 -DFOLLY_HAVE_CLOCK_GETTIME=1 -Wno-comma -Wno-shorten-64-to-32",
+  "pod_target_xcconfig": {
+    "HEADER_SEARCH_PATHS": "\"$(PODS_ROOT)/boost\" \"$(PODS_ROOT)/Headers/Private/Yoga\"",
+    "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
+    "OTHER_CPLUSPLUSFLAGS": "$(inherited) -DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -DFOLLY_CFG_NO_COROUTINES=1 -DFOLLY_HAVE_CLOCK_GETTIME=1 -Wno-comma -Wno-shorten-64-to-32"
+  },
+  "exclude_files": "ios/Fabric",
+  "swift_version": "5.7"
+}

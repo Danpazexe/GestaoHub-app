@@ -6,30 +6,29 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Dimensions,
-  Vibration,
   Animated,
-  Platform,
   StatusBar,
   BackHandler
 } from 'react-native';
-import { Camera } from 'expo-camera';
-import { Audio } from 'expo-av';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { Camera, useCameraDevice, useCameraPermission, useCodeScanner } from 'react-native-vision-camera';
+import Sound from 'react-native-sound';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import HapticFeedback from 'react-native-haptic-feedback';
 import Toast from 'react-native-toast-message';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const BarcodeScannerScreen = ({ navigation }) => {
-  const [hasPermission, setHasPermission] = useState(null);
+  const device = useCameraDevice('back');
+  const { hasPermission, requestPermission } = useCameraPermission();
   const [scanned, setScanned] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [sound, setSound] = useState();
   const [barcodeData, setBarcodeData] = useState('');
   const [scanLineAnim] = useState(new Animated.Value(0));
   const cameraRef = useRef(null);
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
   const startScanLineAnimation = () => {
     Animated.loop(
@@ -80,12 +79,13 @@ const BarcodeScannerScreen = ({ navigation }) => {
 
   const setupScanner = async () => {
     try {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-      if (status === 'granted') {
-        await loadSound();
+      const status = await requestPermission();
+      if (status === 'authorized') {
+        loadSound();
       }
+      setPermissionChecked(true);
     } catch (error) {
+      setPermissionChecked(true);
       Toast.show({
         type: 'error',
         text1: 'Erro',
@@ -96,20 +96,19 @@ const BarcodeScannerScreen = ({ navigation }) => {
 
   const cleanupResources = async () => {
     if (sound) {
-      await sound.unloadAsync();
+      sound.release();
     }
   };
 
-  const handleBarCodeScanned = async ({ type, data }) => {
+  const handleBarCodeScanned = async (data) => {
     if (!scanned) {
       setScanned(true);
       
       // Feedback tátil mais forte ao escanear
-      if (Platform.OS === 'ios') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        Vibration.vibrate(100);
-      }
+      HapticFeedback.trigger('notificationSuccess', {
+        enableVibrateFallback: true,
+        ignoreAndroidSystemSettings: false,
+      });
 
       await playBeep();
       setBarcodeData(data);
@@ -127,22 +126,33 @@ const BarcodeScannerScreen = ({ navigation }) => {
     setScanned(false);
   };
 
-  const loadSound = async () => {
-    const { sound } = await Audio.Sound.createAsync(require('../../assets/Sound/Beep.mp3'));
-    setSound(sound);
+  const loadSound = () => {
+    Sound.setCategory('Playback');
+    const beep = new Sound(require('../../assets/Sound/Beep.mp3'), (error) => {
+      if (!error) {
+        setSound(beep);
+      }
+    });
   };
 
   const playBeep = async () => {
     if (sound) {
-      try {
-        await sound.replayAsync();
-      } catch (error) {
-        console.log('Erro ao reproduzir som:', error);
-      }
+      sound.stop(() => {
+        sound.play();
+      });
     }
   };
 
-  if (hasPermission === null) {
+  const codeScanner = useCodeScanner({
+    codeTypes: ['ean-13'],
+    onCodeScanned: (codes) => {
+      if (codes.length > 0 && codes[0]?.value) {
+        handleBarCodeScanned(codes[0].value);
+      }
+    },
+  });
+
+  if (!permissionChecked) {
     return (
       <View style={styles.permissionContainer}>
         <MaterialCommunityIcons name="camera" size={50} color="#666" />
@@ -180,11 +190,16 @@ const BarcodeScannerScreen = ({ navigation }) => {
         />
       </TouchableOpacity>
 
-      <BarCodeScanner
-        style={styles.camera}
-        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-        barCodeTypes={[BarCodeScanner.Constants.BarCodeType.ean13]}
-      >
+      <View style={styles.camera}>
+        {device && (
+          <Camera
+            ref={cameraRef}
+            style={StyleSheet.absoluteFill}
+            device={device}
+            isActive={!modalVisible}
+            codeScanner={codeScanner}
+          />
+        )}
         <View style={styles.overlay}>
           <View style={styles.unfocusedContainer}></View>
           <View style={styles.middleContainer}>
@@ -221,7 +236,7 @@ const BarcodeScannerScreen = ({ navigation }) => {
           </View>
           <View style={styles.unfocusedContainer}></View>
         </View>
-      </BarCodeScanner>
+      </View>
 
       {/* Modal com novo estilo */}
       <Modal

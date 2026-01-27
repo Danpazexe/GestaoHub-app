@@ -1,7 +1,25 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class AuthService {
+  async postJson(url, payload) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      data = null;
+    }
+    const result = { status: response.status, data };
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  }
+
   async login(email, password) {
     // Verificar credenciais fixas primeiro
     if (email.trim() === 'admin@gmail.com' && password === '123456') {
@@ -19,14 +37,11 @@ class AuthService {
     }
 
     // login com API
-    const response = await axios.post(
-      "https://api.gestao.aviait.com.br/sessions",
+    const response = await this.postJson(
+      'https://api.gestao.aviait.com.br/sessions',
       {
         email: email.trim(),
         password: password.trim(),
-      },
-      {
-        headers: { "Content-Type": "application/json" },
       }
     );
 
@@ -58,15 +73,12 @@ class AuthService {
   }
 
   async register(name, email, password) {
-    const response = await axios.post(
-      "https://api.gestao.aviait.com.br/users",
+    const response = await this.postJson(
+      'https://api.gestao.aviait.com.br/users',
       {
         name: name.trim(),
         email: email.trim(),
         password: password.trim(),
-      },
-      {
-        headers: { "Content-Type": "application/json" },
       }
     );
 

@@ -14,9 +14,8 @@ import {
   ScrollView
 } from 'react-native';
 import Pdf from 'react-native-pdf';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Share from 'react-native-share';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const PdfViewerScreen = ({ route, navigation }) => {
   const { pdfUri } = route.params;
@@ -50,7 +49,12 @@ const PdfViewerScreen = ({ route, navigation }) => {
   const handleShare = async () => {
     try {
       setShareLoading(true);
-      await Sharing.shareAsync(pdfUri);
+      const fileUrl = pdfUri.startsWith('file://') ? pdfUri : `file://${pdfUri}`;
+      await Share.open({
+        url: fileUrl,
+        type: 'application/pdf',
+        title: 'Compartilhar PDF',
+      });
     } catch (e) {
       Alert.alert('Erro ao compartilhar PDF', e.message);
     } finally {

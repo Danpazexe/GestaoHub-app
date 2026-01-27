@@ -13,11 +13,12 @@ import {
   Modal,
   Animated,
 } from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { List, Menu, Divider, FAB, Portal, Provider } from 'react-native-paper';
-import * as FileSystem from 'expo-file-system';
-import * as DocumentPicker from 'expo-document-picker';
-import * as Sharing from 'expo-sharing';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import DocumentPicker from 'react-native-document-picker';
+import ShareFile from 'react-native-share';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
@@ -790,30 +791,15 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       const fileName = `produtos_filtrados_${timestamp}.json`;
       const fileString = JSON.stringify(filteredDados, null, 2);
       
-      // Garante que o diretório existe
-      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(FileSystem.documentDirectory);
-      }
-      
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-      await FileSystem.writeAsStringAsync(fileUri, fileString, {
-        encoding: FileSystem.EncodingType.UTF8
+      const filePath = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}`;
+      await ReactNativeBlobUtil.fs.writeFile(filePath, fileString, 'utf8');
+
+      const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      await ShareFile.open({
+        url: fileUrl,
+        type: 'application/json',
+        title: 'Exportar dados filtrados',
       });
-      
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/json',
-          dialogTitle: 'Exportar dados filtrados'
-        });
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Erro',
-          text2: 'Compartilhamento não disponível neste dispositivo',
-          visibilityTime: 3000,
-        });
-      }
     } catch (error) {
       console.error('Erro ao exportar:', error);
       Toast.show({
@@ -831,12 +817,15 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       const fileName = `todos_produtos_${timestamp}.json`;
       const fileString = JSON.stringify(dados, null, 2);
       
-      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-      await FileSystem.writeAsStringAsync(fileUri, fileString);
-      
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
-      }
+      const filePath = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}`;
+      await ReactNativeBlobUtil.fs.writeFile(filePath, fileString, 'utf8');
+
+      const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      await ShareFile.open({
+        url: fileUrl,
+        type: 'application/json',
+        title: 'Exportar dados',
+      });
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -849,157 +838,89 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   const importData = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true
+      const result = await DocumentPicker.pickSingle({
+        type: [DocumentPicker.types.json],
+        copyTo: 'cachesDirectory',
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
-        // Novo formato do DocumentPicker
-        const file = result.assets[0];
-        
-        try {
-          const content = await FileSystem.readAsStringAsync(file.uri);
-          const parsedData = JSON.parse(content);
-          
-          // Verifica se é um array direto ou tem estrutura aninhada
-          let produtos = [];
-          if (Array.isArray(parsedData)) {
-            // Se é um array direto, usa como está
-            produtos = parsedData;
-          } else if (parsedData.produtos && Array.isArray(parsedData.produtos)) {
-            // Se tem estrutura com produtos, extrai
-            produtos = parsedData.produtos;
-          } else if (parsedData[0] && parsedData[0].produtos) {
-            // Se é array com objeto que tem produtos
-            produtos = parsedData[0].produtos;
-          }
-          
-          if (produtos.length > 0) {
-            // Validação básica da estrutura dos dados
-            const isValidStructure = produtos.every(item => 
-              item.hasOwnProperty('CODPROD') || item.hasOwnProperty('id') ||
-              item.hasOwnProperty('DESCRICAO') || item.hasOwnProperty('descricao') ||
-              item.hasOwnProperty('MARCA') || item.hasOwnProperty('nome')
-            );
+      const fileUri = result.fileCopyUri || result.uri;
+      const normalizedPath = fileUri.startsWith('file://') ? fileUri.replace('file://', '') : fileUri;
 
-            if (isValidStructure) {
-              // Normaliza os dados para o formato esperado
-              const normalizedData = produtos.map(item => ({
-                CODPROD: item.CODPROD || item.id || 0,
-                DESCRICAO: item.DESCRICAO || item.descricao || item.nome || '',
-                MARCA: item.MARCA || item.marca || 'N/A',
-                DEPARTAMENTO: item.DEPARTAMENTO || item.departamento || 'Geral',
-                SECAO: item.SECAO || item.secao || 'Geral',
-                CODAUXILIAR: item.CODAUXILIAR || item.codauxiliar || item.ean || '',
-                CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
-              }));
+      try {
+        const content = await ReactNativeBlobUtil.fs.readFile(normalizedPath, 'utf8');
+        const parsedData = JSON.parse(content);
 
-              await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
-              setDados(normalizedData);
-              setFilteredDados(normalizedData);
-              Toast.show({
-                type: 'success',
-                text1: 'Sucesso',
-                text2: `${normalizedData.length} produtos importados com sucesso`,
-                visibilityTime: 3000,
-              });
-            } else {
-              Toast.show({
-                type: 'error',
-                text1: 'Erro',
-                text2: 'O arquivo não contém a estrutura de dados esperada',
-                visibilityTime: 4000,
-              });
-            }
+        // Verifica se é um array direto ou tem estrutura aninhada
+        let produtos = [];
+        if (Array.isArray(parsedData)) {
+          // Se é um array direto, usa como está
+          produtos = parsedData;
+        } else if (parsedData.produtos && Array.isArray(parsedData.produtos)) {
+          // Se tem estrutura com produtos, extrai
+          produtos = parsedData.produtos;
+        } else if (parsedData[0] && parsedData[0].produtos) {
+          // Se é array com objeto que tem produtos
+          produtos = parsedData[0].produtos;
+        }
+
+        if (produtos.length > 0) {
+          // Validação básica da estrutura dos dados
+          const isValidStructure = produtos.every(item =>
+            item.hasOwnProperty('CODPROD') || item.hasOwnProperty('id') ||
+            item.hasOwnProperty('DESCRICAO') || item.hasOwnProperty('descricao') ||
+            item.hasOwnProperty('MARCA') || item.hasOwnProperty('nome')
+          );
+
+          if (isValidStructure) {
+            // Normaliza os dados para o formato esperado
+            const normalizedData = produtos.map(item => ({
+              CODPROD: item.CODPROD || item.id || 0,
+              DESCRICAO: item.DESCRICAO || item.descricao || item.nome || '',
+              MARCA: item.MARCA || item.marca || 'N/A',
+              DEPARTAMENTO: item.DEPARTAMENTO || item.departamento || 'Geral',
+              SECAO: item.SECAO || item.secao || 'Geral',
+              CODAUXILIAR: item.CODAUXILIAR || item.codauxiliar || item.ean || '',
+              CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
+            }));
+
+            await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
+            setDados(normalizedData);
+            setFilteredDados(normalizedData);
+            Toast.show({
+              type: 'success',
+              text1: 'Sucesso',
+              text2: `${normalizedData.length} produtos importados com sucesso`,
+              visibilityTime: 3000,
+            });
           } else {
             Toast.show({
               type: 'error',
               text1: 'Erro',
-              text2: 'O arquivo não contém uma lista válida de produtos',
+              text2: 'O arquivo não contém a estrutura de dados esperada',
               visibilityTime: 4000,
             });
           }
-        } catch (parseError) {
-          console.error('Erro ao processar arquivo:', parseError);
+        } else {
           Toast.show({
             type: 'error',
             text1: 'Erro',
-            text2: 'O arquivo selecionado não é um JSON válido',
+            text2: 'O arquivo não contém uma lista válida de produtos',
             visibilityTime: 4000,
           });
         }
-      } else if (result.type === 'success') {
-        // Formato antigo do DocumentPicker
-        try {
-          const content = await FileSystem.readAsStringAsync(result.uri);
-          const parsedData = JSON.parse(content);
-          
-          // Verifica se é um array direto ou tem estrutura aninhada
-          let produtos = [];
-          if (Array.isArray(parsedData)) {
-            produtos = parsedData;
-          } else if (parsedData.produtos && Array.isArray(parsedData.produtos)) {
-            produtos = parsedData.produtos;
-          } else if (parsedData[0] && parsedData[0].produtos) {
-            produtos = parsedData[0].produtos;
-          }
-          
-          if (produtos.length > 0) {
-            const isValidStructure = produtos.every(item => 
-              item.hasOwnProperty('CODPROD') || item.hasOwnProperty('id') ||
-              item.hasOwnProperty('DESCRICAO') || item.hasOwnProperty('descricao') ||
-              item.hasOwnProperty('MARCA') || item.hasOwnProperty('nome')
-            );
-
-            if (isValidStructure) {
-              // Normaliza os dados para o formato esperado
-              const normalizedData = produtos.map(item => ({
-                CODPROD: item.CODPROD || item.id || 0,
-                DESCRICAO: item.DESCRICAO || item.descricao || item.nome || '',
-                MARCA: item.MARCA || item.marca || 'N/A',
-                DEPARTAMENTO: item.DEPARTAMENTO || item.departamento || 'Geral',
-                SECAO: item.SECAO || item.secao || 'Geral',
-                CODAUXILIAR: item.CODAUXILIAR || item.codauxiliar || item.ean || '',
-                CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
-              }));
-
-              await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
-              setDados(normalizedData);
-              setFilteredDados(normalizedData);
-              Toast.show({
-                type: 'success',
-                text1: 'Sucesso',
-                text2: `${normalizedData.length} produtos importados com sucesso`,
-                visibilityTime: 3000,
-              });
-            } else {
-              Toast.show({
-                type: 'error',
-                text1: 'Erro',
-                text2: 'O arquivo não contém a estrutura de dados esperada',
-                visibilityTime: 4000,
-              });
-            }
-          } else {
-            Toast.show({
-              type: 'error',
-              text1: 'Erro',
-              text2: 'O arquivo não contém uma lista válida de produtos',
-              visibilityTime: 4000,
-            });
-          }
-        } catch (parseError) {
-          console.error('Erro ao processar arquivo:', parseError);
-          Toast.show({
-            type: 'error',
-            text1: 'Erro',
-            text2: 'O arquivo selecionado não é um JSON válido',
-            visibilityTime: 4000,
-          });
-        }
+      } catch (parseError) {
+        console.error('Erro ao processar arquivo:', parseError);
+        Toast.show({
+          type: 'error',
+          text1: 'Erro',
+          text2: 'O arquivo selecionado não é um JSON válido',
+          visibilityTime: 4000,
+        });
       }
     } catch (error) {
+      if (DocumentPicker.isCancel(error)) {
+        return;
+      }
       console.error('Erro ao importar:', error);
       Toast.show({
         type: 'error',

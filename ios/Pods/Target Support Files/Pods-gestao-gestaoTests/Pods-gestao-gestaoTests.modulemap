@@ -1,0 +1,6 @@
+module Pods_gestao_gestaoTests {
+  umbrella header "Pods-gestao-gestaoTests-umbrella.h"
+
+  export *
+  module * { export * }
+}

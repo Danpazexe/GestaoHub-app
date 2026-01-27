@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, Modal, TouchableOpacity, Pressable } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ImageViewer from 'react-native-image-zoom-viewer';
 
 // Componente para exibir detalhes sobre um produto

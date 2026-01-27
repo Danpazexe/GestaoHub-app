@@ -1,0 +1,55 @@
+{
+  "name": "VisionCamera",
+  "version": "3.9.2",
+  "summary": "A powerful, high-performance React Native Camera library.",
+  "description": "A powerful, high-performance React Native Camera library.",
+  "homepage": "https://react-native-vision-camera.com/",
+  "license": "MIT",
+  "authors": "Marc Rousavy <me@mrousavy.com> (https://github.com/mrousavy)",
+  "platforms": {
+    "ios": "12.4"
+  },
+  "source": {
+    "git": "https://github.com/mrousavy/react-native-vision-camera.git",
+    "tag": "3.9.2"
+  },
+  "pod_target_xcconfig": {
+    "GCC_PREPROCESSOR_DEFINITIONS": "$(inherited) SK_METAL=1 SK_GANESH=1 VISION_CAMERA_ENABLE_FRAME_PROCESSORS=false",
+    "OTHER_SWIFT_FLAGS": "$(inherited) ",
+    "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+    "HEADER_SEARCH_PATHS": "\"$(PODS_TARGET_SRCROOT)/cpp/\"/** "
+  },
+  "requires_arc": true,
+  "source_files": [
+    "ios/*.{m,mm,swift}",
+    "ios/Core/*.{m,mm,swift}",
+    "ios/Extensions/*.{m,mm,swift}",
+    "ios/Parsers/*.{m,mm,swift}",
+    "ios/React Utils/*.{m,mm,swift}",
+    "ios/Types/*.{m,mm,swift}",
+    "ios/CameraBridge.h",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "preserve_paths": [
+    "cpp/**/*.h",
+    "ios/**/*.h"
+  ],
+  "dependencies": {
+    "React": [
+
+    ],
+    "React-Core": [
+
+    ],
+    "React-callinvoker": [
+
+    ]
+  }
+}

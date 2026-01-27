@@ -8,12 +8,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import Share from 'react-native-share';
 import { Menu, Provider } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
-import * as FileSystem from 'expo-file-system';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 const TratarScreen = ({ navigation, isDarkMode }) => {
   const [treatedItems, setTreatedItems] = useState([]);
@@ -177,21 +177,18 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
   const exportToPDF = async () => {
     try {
       const html = generatePDFContent();
-      const { uri } = await Print.printToFileAsync({
+      const { filePath } = await RNHTMLtoPDF.convert({
         html,
-        base64: false
+        fileName: `produtos-tratados-${Date.now()}`,
+        directory: 'Documents',
       });
-      
-      if (!(await Sharing.isAvailableAsync())) {
-        Toast.show({
-          type: 'error',
-          text1: 'Compartilhamento não disponível',
-          text2: 'Seu dispositivo não suporta compartilhamento'
-        });
-        return;
-      }
 
-      await Sharing.shareAsync(uri);
+      const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      await Share.open({
+        url: fileUrl,
+        type: 'application/pdf',
+        title: 'Exportar PDF',
+      });
     } catch (error) {
       console.error('Erro ao exportar PDF:', error);
       Toast.show({
@@ -215,22 +212,15 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
 
       const shareText = JSON.stringify(dataToShare, null, 2);
 
-      if (!(await Sharing.isAvailableAsync())) {
-        Toast.show({
-          type: 'error',
-          text1: 'Compartilhamento não disponível',
-          text2: 'Seu dispositivo não suporta compartilhamento'
-        });
-        return;
-      }
-
       // Criar arquivo temporário para compartilhar
-      const fileUri = `${FileSystem.cacheDirectory}produtos-tratados.txt`;
-      await FileSystem.writeAsStringAsync(fileUri, shareText);
-      
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'text/plain',
-        dialogTitle: 'Compartilhar dados dos produtos tratados'
+      const filePath = `${ReactNativeBlobUtil.fs.dirs.CacheDir}/produtos-tratados.txt`;
+      await ReactNativeBlobUtil.fs.writeFile(filePath, shareText, 'utf8');
+
+      const fileUrl = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+      await Share.open({
+        url: fileUrl,
+        type: 'text/plain',
+        title: 'Compartilhar dados dos produtos tratados',
       });
     } catch (error) {
       console.error('Erro ao compartilhar dados:', error);

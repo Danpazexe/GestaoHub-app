@@ -3,11 +3,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, SafeAreaView } from 'react-native';
-import * as NavigationBar from 'expo-navigation-bar';
+import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './Screen/Components/toastConfig';
 import { Provider as PaperProvider } from 'react-native-paper';
-import * as Notifications from 'expo-notifications';
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
 // Importações de telas
 import EntryScreen from './Screen/Entrada/EntryScreen';
@@ -44,39 +44,28 @@ const CustomStatusBar = ({ isDarkMode }) => (
 
 // Configure as notificações em segundo plano
 const configurePushNotifications = async () => {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
+  try {
+    await notifee.requestPermission();
 
-  if (finalStatus !== 'granted') {
+    if (Platform.OS === 'android') {
+      await notifee.createChannel({
+        id: 'default',
+        name: 'Validade de Produtos',
+        importance: AndroidImportance.HIGH,
+        vibration: true,
+        vibrationPattern: [0, 250, 250, 250],
+        lights: true,
+        lightColor: '#FF231F7C',
+        sound: 'notification',
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao configurar notificações:', error);
     return false;
   }
-
-  // Configuração específica para Android
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-    });
-  }
-
-  return true;
 };
-
-// Configuração do handler de notificações (adicionar antes do App component)
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(Appearance.getColorScheme() === 'dark');
@@ -91,20 +80,8 @@ export default function App() {
 
   const checkNotificationPermissions = async () => {
     try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        console.log('Permissões de notificação não concedidas');
-        return false;
-      }
-
-      console.log('Permissões de notificação concedidas');
+      await notifee.requestPermission();
+      console.log('Permissões de notificação solicitadas');
       return true;
     } catch (error) {
       console.error('Erro ao verificar permissões de notificação:', error);
@@ -113,48 +90,46 @@ export default function App() {
   };
 
   useEffect(() => {
-    const configureNotifications = async () => {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
+    let unsubscribe;
 
-      if (finalStatus !== 'granted') {
-        Alert.alert(
-          'Permissão Necessária',
-          'As notificações são necessárias para alertar sobre produtos próximos do vencimento.'
-        );
-        return;
-      }
+    const configureNotifications = async () => {
+      await notifee.requestPermission();
 
       if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
+        await notifee.createChannel({
+          id: 'default',
           name: 'Validade de Produtos',
-          importance: Notifications.AndroidImportance.MAX,
+          importance: AndroidImportance.HIGH,
+          vibration: true,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF231F7C',
-          sound: true,
+          sound: 'notification',
         });
       }
 
-      // Adicionar listener para notificações
-      const subscription = Notifications.addNotificationReceivedListener(notification => {
-        console.log('Notificação recebida:', notification);
+      unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
+        if (type === EventType.DELIVERED) {
+          console.log('Notificação recebida:', detail.notification);
+        }
       });
-
-      return () => subscription.remove();
     };
 
     configureNotifications();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   useEffect(() => {
     const updateNavigationBar = async () => {
-      await NavigationBar.setBackgroundColorAsync('transparent');
-      await NavigationBar.setButtonStyleAsync(isDarkMode ? 'light' : 'dark');
+      try {
+        await changeNavigationBarColor('transparent', !isDarkMode);
+      } catch (error) {
+        console.warn('Não foi possível atualizar a barra de navegação:', error);
+      }
     };
     updateNavigationBar();
 

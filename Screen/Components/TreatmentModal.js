@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, TextInput, Pressable, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const getModalStyles = (isDarkMode) => StyleSheet.create({
   quantitySection: {

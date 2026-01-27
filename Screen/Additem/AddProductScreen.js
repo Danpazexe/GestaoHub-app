@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import * as ImagePicker from 'expo-image-picker';
+import { Camera } from 'react-native-vision-camera';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 // Removida importação do Dados.json - agora usa dados do AsyncStorage
-import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import Toast from 'react-native-toast-message';
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
@@ -269,10 +270,10 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const handleScanBarcode = async () => {
-    const { status } = await BarCodeScanner.requestPermissionsAsync();
+    const status = await Camera.requestCameraPermission();
     console.log("Status da permissão para a câmera:", status);
-    
-    if (status === 'granted') {
+
+    if (status === 'authorized') {
       Toast.show({
         type: 'info',
         text1: 'Scanner Ativo',
@@ -741,9 +742,19 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   // Função para capturar foto
   const handleTakePhoto = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (status !== 'granted') {
+      const result = await launchCamera({
+        mediaType: 'photo',
+        includeBase64: false,
+        quality: 0.8,
+        saveToPhotos: true,
+        cameraType: 'back',
+      });
+
+      if (result.didCancel) {
+        return;
+      }
+
+      if (result.errorCode) {
         Toast.show({
           type: 'error',
           text1: 'Permissão necessária',
@@ -753,14 +764,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         return;
       }
 
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (result.assets && result.assets[0]) {
         setProductImage(result.assets[0].uri);
         setShowImageOptions(false);
         Toast.show({
@@ -784,9 +788,18 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   // Função para escolher foto da galeria
   const handleChooseFromGallery = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        includeBase64: false,
+        quality: 0.8,
+        selectionLimit: 1,
+      });
+
+      if (result.didCancel) {
+        return;
+      }
+
+      if (result.errorCode) {
         Toast.show({
           type: 'error',
           text1: 'Permissão necessária',
@@ -796,14 +809,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (result.assets && result.assets[0]) {
         setProductImage(result.assets[0].uri);
         setShowImageOptions(false);
         Toast.show({
