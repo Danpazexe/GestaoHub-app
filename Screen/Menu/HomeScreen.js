@@ -251,7 +251,7 @@ const HomeScreen = ({ isDarkMode }) => {
   return (
     <SafeAreaView style={styles.safeArea}> 
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Image source={require('../../assets/Image/LOGOSEMFRASE.png')} style={styles.logo} resizeMode="contain" />
+        <Image source={require('../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
         <View style={styles.headerText}></View>
         <View style={styles.headerButtons}>
           <TouchableOpacity 
