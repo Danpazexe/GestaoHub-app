@@ -1,5 +1,5 @@
 // LoginScreen.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  ImageBackground,
   ActivityIndicator,
   Animated,
   Keyboard,
@@ -22,8 +21,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../services/authService';
+import { CORESLOGIN } from '../../assets/cores/coresAuth';
 
 const { width, height } = Dimensions.get('window');
+
+const COLORS = CORESLOGIN;
 
 const LoginScreen = ({ navigation, isDarkMode }) => {
   const insets = useSafeAreaInsets();
@@ -37,10 +39,10 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [pressedButton, setPressedButton] = useState(false);
   
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
-  const shakeAnimation = new Animated.Value(0);
-  const logoScale = new Animated.Value(0.8);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     const initializeScreen = async () => {
@@ -188,205 +190,197 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc' }]}>
-      <ImageBackground
-        source={require('../../assets/Image/FUNDOAPP.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <LinearGradient
-          colors={[
-            'rgba(255, 255, 255, 0.92)',
-            'rgba(240, 248, 255, 0.88)',
-            'rgba(245, 247, 250, 0.90)',
-            'rgba(255, 255, 255, 0.92)',
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.centeredContent}>
-            <Animated.View style={styles.header}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]}>
+      <View style={styles.background}>
+        <View style={styles.centeredContent}>
+          <Animated.View style={styles.header}>
+            <Animated.View style={{ transform: [{ scale: logoScale }] }}>
               <Image
                 source={require("../../assets/Image/LOGOCOMFRASE.png")}
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <View style={styles.welcomeContainer}>
-                <Text style={[styles.subtitleText, { color: isDarkMode ? '#64748b' : '#64748b' }]}>Faça login para continuar</Text>
-              </View>
             </Animated.View>
-            <Animated.View 
-              style={[
-                styles.formContainer,
-                {
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: slideAnim },
-                    { translateX: shakeAnimation }
-                  ]
+            <View style={styles.welcomeContainer}>
+              <Text style={[styles.subtitleText, { color: COLORS.textoSecundario }]}>
+                Faça login para continuar
+              </Text>
+            </View>
+          </Animated.View>
+          <Animated.View 
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateY: slideAnim },
+                  { translateX: shakeAnimation }
+                ]
+              }
+            ]}
+          >
+            {/* Campo Email */}
+            <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputContainer, 
+                { 
+                  backgroundColor: COLORS.fundo,
+                  borderColor: emailError ? COLORS.erro : COLORS.borda,
                 }
-              ]}
-            >
-              {/* Campo Email */}
-              <View style={styles.inputWrapper}>
-                <View style={[
-                  styles.inputContainer, 
-                  { 
-                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-                    borderColor: emailError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name="email" 
-                    size={22} 
-                    color={emailError ? '#ef4444' : '#3b82f6'} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
-                    ]}
-                    placeholder="Digite seu email"
-                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
-                    value={email}
-                    onChangeText={(text) => {
-                      setEmail(text);
-                      setEmailError("");
-                    }}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
-                {emailError ? (
-                  <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color="#ef4444" />
-                    <Text style={styles.errorText}>{emailError}</Text>
-                  </View>
-                ) : null}
+              ]}>
+                <MaterialIcons 
+                  name="email" 
+                  size={22} 
+                  color={emailError ? COLORS.erro : COLORS.destaqueAzul} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: COLORS.textoPrincipal }
+                  ]}
+                  placeholder="Digite seu email"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setEmailError("");
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
               </View>
-
-              {/* Campo Senha */}
-              <View style={styles.inputWrapper}>
-                <View style={[
-                  styles.inputContainer, 
-                  { 
-                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-                    borderColor: passwordError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name="lock" 
-                    size={22} 
-                    color={passwordError ? '#ef4444' : '#3b82f6'} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
-                    ]}
-                    placeholder="Digite sua senha"
-                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      setPasswordError("");
-                    }}
-                    secureTextEntry={secureText}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setSecureText(!secureText)}
-                  >
-                    <MaterialIcons
-                      name={secureText ? "visibility" : "visibility-off"}
-                      size={22}
-                      color="#64748b"
-                    />
-                  </TouchableOpacity>
+              {emailError ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error" size={16} color={COLORS.erro} />
+                  <Text style={styles.errorText}>{emailError}</Text>
                 </View>
-                {passwordError ? (
-                  <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color="#ef4444" />
-                    <Text style={styles.errorText}>{passwordError}</Text>
-                  </View>
-                ) : null}
-              </View>
+              ) : null}
+            </View>
 
-              {/* Opções */}
-              <View style={styles.optionsContainer}>
-                <TouchableOpacity 
-                  style={styles.checkboxContainer}
-                  onPress={handleRememberMeToggle}
-                  activeOpacity={0.7}
+            {/* Campo Senha */}
+            <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputContainer, 
+                { 
+                  backgroundColor: COLORS.fundo,
+                  borderColor: passwordError ? COLORS.erro : COLORS.borda,
+                }
+              ]}>
+                <MaterialIcons 
+                  name="lock" 
+                  size={22} 
+                  color={passwordError ? COLORS.erro : COLORS.destaqueAzul} 
+                  style={styles.inputIcon} 
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: COLORS.textoPrincipal }
+                  ]}
+                  placeholder="Digite sua senha"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setPasswordError("");
+                  }}
+                  secureTextEntry={secureText}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setSecureText(!secureText)}
                 >
-                  <View style={[
-                    styles.checkbox,
-                    { 
-                      backgroundColor: rememberMe ? '#3b82f6' : 'transparent',
-                      borderColor: rememberMe ? '#3b82f6' : (isDarkMode ? '#64748b' : '#cbd5e1'),
-                    }
-                  ]}>
-                    {rememberMe && (
-                      <MaterialIcons name="check" size={16} color="#ffffff" />
-                    )}
-                  </View>
-                  <Text style={[
-                    styles.checkboxText,
-                    { color: isDarkMode ? '#cbd5e1' : '#475569' }
-                  ]}>
-                    Lembrar-me
-                  </Text>
+                  <MaterialIcons
+                    name={secureText ? "visibility" : "visibility-off"}
+                    size={22}
+                    color={COLORS.textoSecundario}
+                  />
                 </TouchableOpacity>
               </View>
+              {passwordError ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error" size={16} color={COLORS.erro} />
+                  <Text style={styles.errorText}>{passwordError}</Text>
+                </View>
+              ) : null}
+            </View>
 
-              {/* Botão de Login */}
-              <TouchableOpacity
-                style={styles.loginButtonWrapper}
-                activeOpacity={0.9}
-                onPressIn={() => setPressedButton(true)}
-                onPressOut={() => setPressedButton(false)}
-                onPress={handleLogin}
-                disabled={isLoading}
+            {/* Opções */}
+            <View style={styles.optionsContainer}>
+              <TouchableOpacity 
+                style={styles.checkboxContainer}
+                onPress={handleRememberMeToggle}
+                activeOpacity={0.7}
               >
-                <LinearGradient
-                  colors={pressedButton ? ['#1d4ed8', '#2563eb'] : ['#2563eb', '#3b82f6']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.loginButton}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <MaterialIcons name="login" size={20} color="#ffffff" />
-                      <Text style={styles.loginButtonText}>Entrar</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Link para Registro */}
-              <TouchableOpacity
-                style={styles.registerLink}
-                onPress={() => navigation.navigate("RegisterScreen")}
-              >
-                <Text style={[
-                  styles.registerLinkText,
-                  { color: isDarkMode ? '#94a3b8' : '#64748b' }
+                <View style={[
+                  styles.checkbox,
+                  { 
+                    backgroundColor: rememberMe ? COLORS.destaqueAzul : 'transparent',
+                    borderColor: rememberMe ? COLORS.destaqueAzul : COLORS.borda,
+                  }
                 ]}>
-                  Não tem uma conta?{' '}
-                  <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
+                  {rememberMe && (
+                    <MaterialIcons name="check" size={16} color="#ffffff" />
+                  )}
+                </View>
+                <Text style={[
+                  styles.checkboxText,
+                  { color: COLORS.textoPrincipal }
+                ]}>
+                  Lembrar-me
                 </Text>
               </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </LinearGradient>
-      </ImageBackground>
+            </View>
+
+            {/* Botão de Login */}
+            <TouchableOpacity
+              style={styles.loginButtonWrapper}
+              activeOpacity={0.9}
+              onPressIn={() => setPressedButton(true)}
+              onPressOut={() => setPressedButton(false)}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              <LinearGradient
+                colors={
+                  pressedButton
+                    ? [COLORS.textoPrincipal, COLORS.textoSecundario]
+                    : [COLORS.destaqueAzul, COLORS.textoPrincipal]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.loginButton}
+              >
+                {isLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.branco} />
+                ) : (
+                  <>
+                    <MaterialIcons name="login" size={20} color={COLORS.branco} />
+                    <Text style={styles.loginButtonText}>Entrar</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Link para Registro */}
+            <TouchableOpacity
+              style={styles.registerLink}
+              onPress={() => navigation.navigate("RegisterScreen")}
+            >
+              <Text style={[
+                styles.registerLinkText,
+                { color: COLORS.textoSecundario }
+              ]}>
+                Não tem uma conta?{' '}
+                <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -395,11 +389,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  backgroundImage: {
+  background: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: COLORS.fundo,
   },
   centeredContent: {
     flex: 1,
@@ -432,7 +424,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: COLORS.cartao,
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -444,6 +436,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     width: '100%',
     maxWidth: 400,
+    borderWidth: 1,
+    borderColor: COLORS.borda,
   },
   inputWrapper: {
     marginBottom: 20,
@@ -479,7 +473,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   errorText: {
-    color: '#ef4444',
+    color: COLORS.erro,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 6,
@@ -504,7 +498,7 @@ const styles = StyleSheet.create({
   },
   loginButtonWrapper: {
     borderRadius: 16,
-    shadowColor: '#2563eb',
+    shadowColor: COLORS.destaqueAzul,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -520,7 +514,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loginButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.branco,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -533,12 +527,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   registerLinkTextBold: {
-    color: '#3b82f6',
+    color: COLORS.destaqueAzul,
     fontWeight: '700',
   },
   decorativeLine: {
     height: 1,
-    backgroundColor: 'rgba(100, 116, 139, 0.2)',
+    backgroundColor: 'rgba(64, 68, 76, 0.18)',
     marginVertical: 5,
   },
 });

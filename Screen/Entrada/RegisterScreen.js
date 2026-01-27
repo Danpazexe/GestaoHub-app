@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  ImageBackground,
   ActivityIndicator,
   Animated,
   Keyboard,
@@ -19,8 +18,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../services/authService';
+import { CORESREGISTER } from '../../assets/cores/coresAuth';
 
 const { width, height } = Dimensions.get('window');
+
+const COLORS = CORESREGISTER;
 
 const RegisterScreen = ({ navigation, isDarkMode }) => {
   const insets = useSafeAreaInsets();
@@ -38,10 +40,10 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
   const [pressedButton, setPressedButton] = useState(false);
 
   // Animações
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
-  const shakeAnimation = new Animated.Value(0);
-  const logoScale = new Animated.Value(0.8);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const shakeAnimation = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     startAnimations();
@@ -159,24 +161,9 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc' }]}>
-      <ImageBackground
-        source={require('../../assets/Image/FUNDOAPP.png')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <LinearGradient
-          colors={[
-            'rgba(255, 255, 255, 0.92)',
-            'rgba(240, 248, 255, 0.88)',
-            'rgba(245, 247, 250, 0.90)',
-            'rgba(255, 255, 255, 0.92)',
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.centeredContent}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]}>
+      <View style={styles.background}>
+        <View style={styles.centeredContent}>
             <Animated.View style={styles.header}>
               <Image
                 source={require("../../assets/Image/LOGOCOMFRASE.png")}
@@ -184,7 +171,9 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 resizeMode="contain"
               />
               <View style={styles.welcomeContainer}>
-                <Text style={[styles.subtitleText, { color: isDarkMode ? '#64748b' : '#64748b' }]}>Crie sua conta para começar</Text>
+                <Text style={[styles.subtitleText, { color: COLORS.textoSecundario }]}>
+                  Crie sua conta para começar
+                </Text>
               </View>
             </Animated.View>
             <Animated.View 
@@ -204,23 +193,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.inputContainer, 
                   { 
-                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-                    borderColor: nameError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
+                    backgroundColor: COLORS.fundo,
+                    borderColor: nameError ? COLORS.erro : COLORS.borda,
                   }
                 ]}>
                   <MaterialIcons 
                     name="person" 
                     size={22} 
-                    color={nameError ? '#ef4444' : '#3b82f6'} 
+                    color={nameError ? COLORS.erro : COLORS.destaqueAzul} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
                     style={[
                       styles.input,
-                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
+                      { color: COLORS.textoPrincipal }
                     ]}
                     placeholder="Nome completo"
-                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
+                    placeholderTextColor={COLORS.placeholder}
                     value={name}
                     onChangeText={(text) => {
                       setName(text);
@@ -231,7 +220,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 </View>
                 {nameError ? (
                   <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color="#ef4444" />
+                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
                     <Text style={styles.errorText}>{nameError}</Text>
                   </View>
                 ) : null}
@@ -242,23 +231,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.inputContainer, 
                   { 
-                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-                    borderColor: emailError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
+                    backgroundColor: COLORS.fundo,
+                    borderColor: emailError ? COLORS.erro : COLORS.borda,
                   }
                 ]}>
                   <MaterialIcons 
                     name="email" 
                     size={22} 
-                    color={emailError ? '#ef4444' : '#3b82f6'} 
+                    color={emailError ? COLORS.erro : COLORS.destaqueAzul} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
                     style={[
                       styles.input,
-                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
+                      { color: COLORS.textoPrincipal }
                     ]}
                     placeholder="Digite seu email"
-                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
+                    placeholderTextColor={COLORS.placeholder}
                     value={email}
                     onChangeText={(text) => {
                       setEmail(text);
@@ -271,7 +260,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 </View>
                 {emailError ? (
                   <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color="#ef4444" />
+                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
                     <Text style={styles.errorText}>{emailError}</Text>
                   </View>
                 ) : null}
@@ -282,23 +271,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.inputContainer, 
                   { 
-                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-                    borderColor: passwordError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
+                    backgroundColor: COLORS.fundo,
+                    borderColor: passwordError ? COLORS.erro : COLORS.borda,
                   }
                 ]}>
                   <MaterialIcons 
                     name="lock" 
                     size={22} 
-                    color={passwordError ? '#ef4444' : '#3b82f6'} 
+                    color={passwordError ? COLORS.erro : COLORS.destaqueAzul} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
                     style={[
                       styles.input,
-                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
+                      { color: COLORS.textoPrincipal }
                     ]}
                     placeholder="Digite sua senha"
-                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
+                    placeholderTextColor={COLORS.placeholder}
                     value={password}
                     onChangeText={(text) => {
                       setPassword(text);
@@ -314,13 +303,13 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                     <MaterialIcons
                       name={secureText ? "visibility" : "visibility-off"}
                       size={22}
-                      color="#64748b"
+                      color={COLORS.textoSecundario}
                     />
                   </TouchableOpacity>
                 </View>
                 {passwordError ? (
                   <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color="#ef4444" />
+                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
                     <Text style={styles.errorText}>{passwordError}</Text>
                   </View>
                 ) : null}
@@ -331,23 +320,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.inputContainer, 
                   { 
-                    backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
-                    borderColor: confirmPasswordError ? '#ef4444' : (isDarkMode ? '#334155' : '#e2e8f0')
+                    backgroundColor: COLORS.fundo,
+                    borderColor: confirmPasswordError ? COLORS.erro : COLORS.borda,
                   }
                 ]}>
                   <MaterialIcons 
                     name="lock-outline" 
                     size={22} 
-                    color={confirmPasswordError ? '#ef4444' : '#3b82f6'} 
+                    color={confirmPasswordError ? COLORS.erro : COLORS.destaqueAzul} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
                     style={[
                       styles.input,
-                      { color: isDarkMode ? '#f1f5f9' : '#1e293b' }
+                      { color: COLORS.textoPrincipal }
                     ]}
                     placeholder="Confirme sua senha"
-                    placeholderTextColor={isDarkMode ? '#94a3b8' : '#64748b'}
+                    placeholderTextColor={COLORS.placeholder}
                     value={confirmPassword}
                     onChangeText={(text) => {
                       setConfirmPassword(text);
@@ -363,13 +352,13 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                     <MaterialIcons
                       name={secureConfirmText ? "visibility" : "visibility-off"}
                       size={22}
-                      color="#64748b"
+                      color={COLORS.textoSecundario}
                     />
                   </TouchableOpacity>
                 </View>
                 {confirmPasswordError ? (
                   <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color="#ef4444" />
+                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
                     <Text style={styles.errorText}>{confirmPasswordError}</Text>
                   </View>
                 ) : null}
@@ -385,16 +374,20 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 disabled={isLoading}
               >
                 <LinearGradient
-                  colors={pressedButton ? ['#1d4ed8', '#2563eb'] : ['#2563eb', '#3b82f6']}
+                  colors={
+                    pressedButton
+                      ? [COLORS.textoPrincipal, COLORS.textoSecundario]
+                      : [COLORS.destaqueAzul, COLORS.textoPrincipal]
+                  }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.registerButton}
                 >
                   {isLoading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={COLORS.branco} />
                   ) : (
                     <>
-                      <MaterialIcons name="person-add" size={20} color="#ffffff" />
+                    <MaterialIcons name="person-add" size={20} color={COLORS.branco} />
                       <Text style={styles.registerButtonText}>Cadastrar</Text>
                     </>
                   )}
@@ -408,7 +401,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               >
                 <Text style={[
                   styles.loginLinkText,
-                  { color: isDarkMode ? '#94a3b8' : '#64748b' }
+                { color: COLORS.textoSecundario }
                 ]}>
                   Já tem uma conta?{' '}
                   <Text style={styles.loginLinkTextBold}>Faça login</Text>
@@ -416,8 +409,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               </TouchableOpacity>
             </Animated.View>
           </View>
-        </LinearGradient>
-      </ImageBackground>
+        </View>
     </SafeAreaView>
   );
 };
@@ -426,11 +418,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  backgroundImage: {
+  background: {
     flex: 1,
-  },
-  gradient: {
-    flex: 1,
+    backgroundColor: COLORS.fundo,
   },
   centeredContent: {
     flex: 1,
@@ -457,7 +447,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: COLORS.cartao,
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -469,6 +459,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     width: '100%',
     maxWidth: 400,
+    borderWidth: 1,
+    borderColor: COLORS.borda,
   },
   inputWrapper: {
     marginBottom: 20,
@@ -504,14 +496,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   errorText: {
-    color: '#ef4444',
+    color: COLORS.erro,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 6,
   },
   registerButtonWrapper: {
     borderRadius: 16,
-    shadowColor: '#2563eb',
+    shadowColor: COLORS.destaqueAzul,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -527,7 +519,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   registerButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.branco,
     fontSize: 18,
     fontWeight: '700',
   },
@@ -540,7 +532,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loginLinkTextBold: {
-    color: '#3b82f6',
+    color: COLORS.destaqueAzul,
     fontWeight: '700',
   },
 });
