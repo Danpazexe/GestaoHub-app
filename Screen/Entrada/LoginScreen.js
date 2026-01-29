@@ -11,14 +11,13 @@ import {
   ActivityIndicator,
   Animated,
   Keyboard,
-  SafeAreaView,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../services/authService';
 import { CORESLOGIN } from '../../assets/cores/coresAuth';
@@ -190,7 +189,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]} edges={['top', 'left', 'right']}>
       <View style={styles.background}>
         <View style={styles.centeredContent}>
           <Animated.View style={styles.header}>
@@ -231,7 +230,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 <MaterialIcons 
                   name="email" 
                   size={22} 
-                  color={emailError ? COLORS.erro : COLORS.destaqueAzul} 
+                  color={emailError ? COLORS.erro : COLORS.textoSecundario} 
                   style={styles.inputIcon} 
                 />
                 <TextInput
@@ -271,7 +270,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 <MaterialIcons 
                   name="lock" 
                   size={22} 
-                  color={passwordError ? COLORS.erro : COLORS.destaqueAzul} 
+                  color={passwordError ? COLORS.erro : COLORS.textoSecundario} 
                   style={styles.inputIcon} 
                 />
                 <TextInput
@@ -318,12 +317,12 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.checkbox,
                   { 
-                    backgroundColor: rememberMe ? COLORS.destaqueAzul : 'transparent',
-                    borderColor: rememberMe ? COLORS.destaqueAzul : COLORS.borda,
+                    backgroundColor: rememberMe ? COLORS.textoPrincipal : 'transparent',
+                    borderColor: rememberMe ? COLORS.textoPrincipal : COLORS.borda,
                   }
                 ]}>
                   {rememberMe && (
-                    <MaterialIcons name="check" size={16} color="#ffffff" />
+                    <MaterialIcons name="check" size={16} color={COLORS.branco} />
                   )}
                 </View>
                 <Text style={[
@@ -336,34 +335,26 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
             </View>
 
             {/* Botão de Login */}
-            <TouchableOpacity
-              style={styles.loginButtonWrapper}
-              activeOpacity={0.9}
-              onPressIn={() => setPressedButton(true)}
-              onPressOut={() => setPressedButton(false)}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              <LinearGradient
-                colors={
-                  pressedButton
-                    ? [COLORS.textoPrincipal, COLORS.textoSecundario]
-                    : [COLORS.destaqueAzul, COLORS.textoPrincipal]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.loginButton}
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  pressedButton && styles.loginButtonPressed,
+                ]}
+                activeOpacity={0.9}
+                onPressIn={() => setPressedButton(true)}
+                onPressOut={() => setPressedButton(false)}
+                onPress={handleLogin}
+                disabled={isLoading}
               >
                 {isLoading ? (
-                    <ActivityIndicator size="small" color={COLORS.branco} />
+                  <ActivityIndicator size="small" color={COLORS.branco} />
                 ) : (
                   <>
                     <MaterialIcons name="login" size={20} color={COLORS.branco} />
                     <Text style={styles.loginButtonText}>Entrar</Text>
                   </>
                 )}
-              </LinearGradient>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
             {/* Link para Registro */}
             <TouchableOpacity
@@ -375,9 +366,9 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 { color: COLORS.textoSecundario }
               ]}>
                 Não tem uma conta?{' '}
-                <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
-              </Text>
-            </TouchableOpacity>
+                  <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
+                </Text>
+              </TouchableOpacity>
           </Animated.View>
         </View>
       </View>
@@ -440,7 +431,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borda,
   },
   inputWrapper: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -449,11 +440,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     height: 56,
     paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   inputIcon: {
     marginRight: 12,
@@ -482,6 +468,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
+    marginBottom: 6,
   },
   checkbox: {
     width: 22,
@@ -496,15 +483,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
-  loginButtonWrapper: {
-    borderRadius: 16,
-    shadowColor: COLORS.destaqueAzul,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 24,
-  },
   loginButton: {
     height: 56,
     borderRadius: 16,
@@ -512,6 +490,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: COLORS.textoPrincipal,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  loginButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   loginButtonText: {
     color: COLORS.branco,
@@ -527,7 +516,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   registerLinkTextBold: {
-    color: COLORS.destaqueAzul,
+    color: COLORS.destaqueDourado,
     fontWeight: '700',
   },
   decorativeLine: {

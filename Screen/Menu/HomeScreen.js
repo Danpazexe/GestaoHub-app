@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CORESHOME } from '../../assets/cores/coresAuth';
+
+const COLORS = CORESHOME;
 
 const HomeScreen = ({ isDarkMode }) => {
   const navigation = useNavigation();
@@ -20,7 +22,7 @@ const HomeScreen = ({ isDarkMode }) => {
       subtitle: "Acompanhar produtos",
       icon: "fact-check",
       screen: "ListScreen",
-      gradient: ['#2563eb', '#1d4ed8'],
+      color: COLORS.destaqueAzul,
     },
     {
       id: 2,
@@ -28,7 +30,7 @@ const HomeScreen = ({ isDarkMode }) => {
       subtitle: "Novo produto",
       icon: "add-circle-outline",
       screen: "AddProductScreen",
-      gradient: ['#059669', '#047857'],
+      color: COLORS.destaqueVerde,
     },
     {
       id: 3,
@@ -36,7 +38,7 @@ const HomeScreen = ({ isDarkMode }) => {
       subtitle: "Análise e relatórios",
       icon: "analytics",
       screen: "DashboardScreen",
-      gradient: ['#dc2626', '#b91c1c'],
+      color: COLORS.destaqueRoxo,
     },
     {
       id: 4,
@@ -44,7 +46,7 @@ const HomeScreen = ({ isDarkMode }) => {
       subtitle: "Produtos processados",
       icon: "assignment-turned-in",
       screen: "TratarScreen",
-      gradient: ['#d97706', '#b45309'],
+      color: COLORS.destaqueCinza,
     }
   ];
 
@@ -95,33 +97,52 @@ const HomeScreen = ({ isDarkMode }) => {
   const getStyles = (isDarkMode) => StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: isDarkMode ? '#181A20' : '#f8fafc',
+      backgroundColor: COLORS.fundo,
     },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 20,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 6,
       backgroundColor: 'transparent',
       marginBottom: 8,
     },
     logo: {
-      width: 200,
-      height: 80,
+      width: 170,
+      height: 64,
     },
     headerText: {
       flex: 1,
     },
+    greetingText: {
+      marginTop: 6,
+      fontSize: 14,
+      fontWeight: '600',
+      color: COLORS.textoSecundario,
+    },
+    greetingTitle: {
+      marginTop: 2,
+      fontSize: 20,
+      fontWeight: '700',
+      color: COLORS.textoPrincipal,
+    },
     headerTitle: {
       fontSize: 20,
       fontWeight: 'bold',
+      color: COLORS.textoPrincipal,
     },
     headerSubtitle: {
       fontSize: 13,
       marginTop: 2,
+      color: COLORS.textoSecundario,
     },
     headerButtons: {
       flexDirection: 'row',
       gap: 8,
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      marginTop: 6,
     },
     headerButton: {
       width: 40,
@@ -129,9 +150,9 @@ const HomeScreen = ({ isDarkMode }) => {
       borderRadius: 20,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: isDarkMode ? '#23262F' : '#fff',
+      backgroundColor: COLORS.cartao,
       borderWidth: 1,
-      borderColor: isDarkMode ? '#23262F' : 'rgba(0,0,0,0.05)',
+      borderColor: COLORS.borda,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.10,
@@ -140,7 +161,7 @@ const HomeScreen = ({ isDarkMode }) => {
     },
     scrollContent: {
       padding: 16,
-      paddingBottom: 80,
+      paddingBottom: 32,
     },
     statsContainer: {
       flexDirection: 'row',
@@ -149,11 +170,13 @@ const HomeScreen = ({ isDarkMode }) => {
     },
     statCard: {
       flex: 1,
-      backgroundColor: '#fff',
+      backgroundColor: COLORS.cartao,
       borderRadius: 12,
       padding: 16,
       alignItems: 'center',
       justifyContent: 'flex-start',
+      borderWidth: 1,
+      borderColor: COLORS.borda,
       elevation: 2,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -167,18 +190,18 @@ const HomeScreen = ({ isDarkMode }) => {
     statValue: {
       fontSize: 22,
       fontWeight: 'bold',
-      color: '#2563eb',
+      color: COLORS.destaqueAzul,
       marginBottom: 4,
     },
     statLabel: {
       fontSize: 12,
-      color: '#64748b',
+      color: COLORS.textoSecundario,
       textAlign: 'center',
     },
     menuContainer: {
-      marginTop: 24,
+      marginTop: 6,
       paddingHorizontal: 20,
-      paddingBottom: 32,
+      paddingBottom: 20,
     },
     menuCardWrapper: {
       marginBottom: 22,
@@ -188,26 +211,29 @@ const HomeScreen = ({ isDarkMode }) => {
       shadowOpacity: 0.10,
       shadowRadius: 12,
       elevation: 6,
-      backgroundColor: isDarkMode ? '#23262F' : 'transparent',
-      borderWidth: isDarkMode ? 1 : 0,
-      borderColor: isDarkMode ? '#23262F' : 'transparent',
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      borderColor: 'transparent',
     },
     menuCardGradient: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 26,
-      paddingHorizontal: 22,
+      paddingVertical: 22,
+      paddingHorizontal: 20,
       borderRadius: 22,
-      minHeight: 90,
+      minHeight: 86,
+    },
+    menuCardSolid: {
+      backgroundColor: COLORS.destaqueCinza,
     },
     iconCircle: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: COLORS.iconeFundo,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 18,
+      marginRight: 16,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.10,
@@ -227,56 +253,74 @@ const HomeScreen = ({ isDarkMode }) => {
       fontWeight: '500',
       letterSpacing: 0.1,
     },
-    userInfoContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 16,
-      position: 'absolute',
-      bottom: 12,
-      left: 0,
-      right: 0,
-    },
     userName: {
       fontSize: 14,
-      fontWeight: '500',
-      marginLeft: 6,
-      opacity: 0.8,
-      color: isDarkMode ? '#B0B3B8' : '#64748b',
+      fontWeight: '600',
+      color: COLORS.textoSecundario,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: COLORS.textoPrincipal,
+      marginBottom: 12,
+      letterSpacing: 0.2,
     },
   });
 
   const styles = getStyles(isDarkMode);
 
   return (
-    <SafeAreaView style={styles.safeArea}> 
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Image source={require('../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
-        <View style={styles.headerText}></View>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}> 
+      <View style={[styles.header, { paddingTop: 12 }]}>
+        <View style={styles.headerText}>
+          <Image source={require('../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.greetingText}>Bem-vindo,</Text>
+          <Text style={styles.greetingTitle}>{userName}</Text>
+        </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#23262F' : '#fff' }]}
+            style={styles.headerButton}
             onPress={() => navigation.navigate('ProfileScreen')}
           >
             <MaterialIcons 
               name="account-circle" 
               size={24} 
-              color="#3b82f6" 
+              color={COLORS.destaqueAzul} 
             />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: isDarkMode ? '#23262F' : '#fff' }]}
+            style={styles.headerButton}
             onPress={() => navigation.navigate('SettingsScreen')}
           >
             <MaterialIcons 
               name="settings" 
               size={24} 
-              color="#10b981" 
+              color={COLORS.destaqueVerde} 
             />
           </TouchableOpacity>
         </View>
       </View>
-      <View style={styles.menuContainer}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.menuContainer,
+          { paddingBottom: 24 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <MaterialIcons name="inventory-2" size={26} color={COLORS.destaqueAzul} style={styles.statIcon} />
+            <Text style={styles.statValue}>{stats.totalProducts}</Text>
+            <Text style={styles.statLabel}>Produtos cadastrados</Text>
+          </View>
+          <View style={styles.statCard}>
+            <MaterialIcons name="event" size={26} color={COLORS.destaqueDourado} style={styles.statIcon} />
+            <Text style={[styles.statValue, { color: COLORS.destaqueDourado }]}>{stats.expiringSoon}</Text>
+            <Text style={styles.statLabel}>Vencendo em 30 dias</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Acesso rápido</Text>
         {menuItems.map((item, idx) => (
           <React.Fragment key={item.id}>
             <TouchableOpacity
@@ -286,11 +330,12 @@ const HomeScreen = ({ isDarkMode }) => {
               onPressOut={() => setPressedCard(null)}
               onPress={() => navigation.navigate(item.screen)}
             >
-              <LinearGradient
-                colors={pressedCard === item.id ? [item.gradient[1], item.gradient[0]] : item.gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.menuCardGradient}
+              <View
+                style={[
+                  styles.menuCardGradient,
+                  { backgroundColor: item.color },
+                  pressedCard === item.id && { opacity: 0.92 },
+                ]}
               >
                 <View style={styles.iconCircle}>
                   <MaterialIcons name={item.icon} size={40} color="#fff" />
@@ -300,17 +345,12 @@ const HomeScreen = ({ isDarkMode }) => {
                   <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={30} color="#fff" />
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
             {/* Card de Inventário em manutenção após Adicionar */}
             {item.id === 2 && (
               <View style={[styles.menuCardWrapper, { opacity: 0.5 }]}> 
-                <LinearGradient
-                  colors={["#64748b", "#94a3b8"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.menuCardGradient}
-                >
+                <View style={[styles.menuCardGradient, { backgroundColor: COLORS.neutro }]}>
                   <View style={styles.iconCircle}>
                     <MaterialIcons name="inventory-2" size={40} color="#fff" />
                     <MaterialIcons name="lock" size={22} color="#fff" style={{ position: 'absolute', bottom: 2, right: 2, opacity: 0.8 }} />
@@ -320,23 +360,13 @@ const HomeScreen = ({ isDarkMode }) => {
                     <Text style={styles.menuSubtitle}>Em manutenção</Text>
                   </View>
                   <MaterialIcons name="block" size={30} color="#fff" />
-                </LinearGradient>
+                </View>
               </View>
             )}
           </React.Fragment>
         ))}
-      </View>
-      
-      <View style={styles.userInfoContainer}>
-        <MaterialIcons 
-          name="person" 
-          size={16} 
-          color={isDarkMode ? '#B0B3B8' : '#64748b'} 
-        />
-        <Text style={[styles.userName, { color: isDarkMode ? '#B0B3B8' : '#64748b' }]}>
-          {userName}
-        </Text>
-      </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
 };

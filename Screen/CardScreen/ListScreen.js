@@ -9,6 +9,21 @@ import { Animated, LayoutAnimation } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Toast from 'react-native-toast-message';
 import SwipeableListItem from '../Components/SwipeableListItem';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const COLORS = {
+  primary: '#40444c',
+  secondary: '#f4cc84',
+  accent: '#3c446c',
+  background: '#f7f7f8',
+  darkBackground: '#2f333a',
+  card: '#ffffff',
+  border: 'rgba(64, 68, 76, 0.22)',
+  text: '#40444c',
+  textMuted: 'rgba(64, 68, 76, 0.75)',
+  white: '#ffffff',
+  error: '#ef4444',
+};
 
 const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -107,46 +122,56 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       marginLeft: 8,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: isDarkMode ? '#1e88e5' : 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.22)',
     };
 
     navigation.setOptions({
       headerShown: true,
       headerStyle: {
-        backgroundColor: isDarkMode ? '#2e2e2e' : '#0077ed',
-        elevation: 4,
+        backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.primary,
+        elevation: 0,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
       },
-      headerTintColor: '#FFFFFF',
+      headerTintColor: COLORS.white,
       headerTitleStyle: {
-        fontSize: 20,
-        fontWeight: '600',
-        letterSpacing: 0.5,
+        fontSize: 18,
+        fontWeight: '700',
+        letterSpacing: 0.4,
       },
-      headerTitle: 'Lista de Produtos',
+      headerTitle: () => (
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.headerTitleIcon}>
+            <MaterialIcons name="list-alt" size={18} color={COLORS.white} />
+          </View>
+          <View>
+            <Text style={styles.headerTitleText}>Lista de Produtos</Text>
+            <Text style={styles.headerSubtitleText}>Gerencie seu estoque</Text>
+          </View>
+        </View>
+      ),
       headerRight: () => (
         <View style={{ flexDirection: 'row', marginRight: 8 }}>
           <TouchableOpacity 
             style={[
               headerButtonStyle,
-              showExpiring && { backgroundColor: isDarkMode ? '#ef5350' : '#ff7043' }
+              showExpiring && { backgroundColor: COLORS.secondary }
             ]}
             onPress={() => setShowExpiring(!showExpiring)}
           >
             <MaterialIcons 
               name="warning" 
               size={24} 
-              color="#FFF" 
+              color={COLORS.white} 
             />
           </TouchableOpacity>
           <TouchableOpacity 
             style={headerButtonStyle}
             onPress={() => navigation.navigate('AddProductScreen')}
           >
-            <MaterialIcons name="add" size={24} color="#FFF" />
+            <MaterialIcons name="add" size={24} color={COLORS.white} />
           </TouchableOpacity>
         </View>
       ),
@@ -613,7 +638,8 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   };
 
   return (
-    <View style={[styles.container, isDarkMode && styles.darkBackground]}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <View style={[styles.container, isDarkMode && styles.darkBackground]}>
       {renderSearchBar()}
       {renderSortOptions()}
       <View style={styles.statsContainer}>
@@ -623,7 +649,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         </Text>
       </View>
       {loading ? (
-        <ActivityIndicator size="large" color="#0077ed" style={styles.loadingIndicator} />
+        <ActivityIndicator size="large" color={COLORS.accent} style={styles.loadingIndicator} />
       ) : (
         <FlatList
           data={sortProducts(filterAndSortProducts)}
@@ -661,19 +687,24 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         product={productToDelete}
         isDarkMode={isDarkMode}
       />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   // ==================== Estilos do Container Principal ====================
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     padding: 8,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   darkBackground: {
-    backgroundColor: '#121212',
+    backgroundColor: COLORS.darkBackground,
   },
 
   // ==================== Estilos da Barra de Pesquisa ====================
@@ -685,9 +716,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -699,7 +732,7 @@ const styles = StyleSheet.create({
     borderColor: '#444',
   },
   filterButton: {
-    backgroundColor: '#0077ed',
+    backgroundColor: COLORS.accent,
     padding: 8,
     borderRadius: 8,
     marginRight: 8,
@@ -712,7 +745,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     fontSize: 15,
-    color: '#333',
+    color: COLORS.text,
   },
   darkSearchInput: {
     color: '#fff',
@@ -724,7 +757,7 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.card,
     borderRadius: 12,
     marginTop: 8,
     padding: 8,
@@ -747,7 +780,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   filterOptionSelected: {
-    backgroundColor: '#0077ed',
+    backgroundColor: COLORS.accent,
   },
   darkFilterOption: {
     borderColor: '#444',
@@ -755,7 +788,7 @@ const styles = StyleSheet.create({
   filterOptionText: {
     marginLeft: 12,
     fontSize: 15,
-    color: '#666',
+    color: COLORS.textMuted,
     fontWeight: '500',
   },
   
@@ -782,7 +815,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textMuted,
     textAlign: 'center',
     marginTop: 10,
   },
@@ -800,7 +833,7 @@ const styles = StyleSheet.create({
   },
   statsText: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
     fontWeight: '500',
   },
   darkStatsText: {
@@ -811,7 +844,7 @@ const styles = StyleSheet.create({
   sortContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.card,
     borderRadius: 8,
     marginVertical: 6,
     padding: 4,
@@ -820,6 +853,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitleIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  headerSubtitleText: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 12,
+    fontWeight: '500',
   },
   darkSortContainer: {
     backgroundColor: '#2e2e2e',
@@ -833,7 +889,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeSortButton: {
-    backgroundColor: '#0077ed',
+    backgroundColor: COLORS.accent,
   },
   sortButtonText: {
     marginLeft: 4,

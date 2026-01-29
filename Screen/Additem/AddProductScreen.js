@@ -9,6 +9,20 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Toast from 'react-native-toast-message';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const COLORS = {
+  primary: '#40444c',
+  secondary: '#f4cc84',
+  accent: '#3c446c',
+  background: '#f7f7f8',
+  darkBackground: '#2f333a',
+  card: '#ffffff',
+  border: 'rgba(64, 68, 76, 0.22)',
+  text: '#40444c',
+  textMuted: 'rgba(64, 68, 76, 0.7)',
+  white: '#ffffff',
+};
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [productName, setProductName] = useState('');
@@ -124,20 +138,20 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       marginLeft: 8,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: isDarkMode ? '#1a4645' : 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.2)',
     };
 
     navigation.setOptions({
       headerShown: true,
       headerStyle: {
-        backgroundColor: isDarkMode ? '#1a4645' : '#2d5a57',
+        backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.primary,
         elevation: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,
       },
-      headerTintColor: '#FFFFFF',
+      headerTintColor: COLORS.white,
       headerTitleStyle: {
         fontSize: 20,
         fontWeight: '600',
@@ -148,7 +162,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           <MaterialCommunityIcons 
             name={isEditing ? "pencil-circle" : "plus-circle"} 
             size={24} 
-            color="#FFFFFF" 
+            color={COLORS.white} 
           />
           <Text style={styles.headerTitleText}>
             {isEditing ? 'Editar Produto' : 'Cadastrar Produto'}
@@ -160,7 +174,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           <TouchableOpacity 
             style={[
               headerButtonStyle,
-              showHistory && { backgroundColor: isDarkMode ? '#2d5a57' : '#1a4645' }
+              showHistory && { backgroundColor: isDarkMode ? COLORS.primary : COLORS.accent }
             ]}
             onPress={() => {
               loadRecentProducts();
@@ -170,7 +184,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
             <MaterialCommunityIcons 
               name="history" 
               size={24} 
-              color="#FFF" 
+              color={COLORS.white} 
             />
           </TouchableOpacity>
         </View>
@@ -345,6 +359,9 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
   // Mova a definição dos styles para dentro do componente
   const getStyles = (isDarkMode) => StyleSheet.create({
+    safeArea: {
+      flex: 1,
+    },
     container: {
       flex: 1,
       padding: 12,
@@ -353,7 +370,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       flex: 1,
       padding: 16,
       borderRadius: 12,
-      backgroundColor: isDarkMode ? '#1E1E1E' : '#FFFFFF',
+      backgroundColor: isDarkMode ? '#1E1E1E' : COLORS.card,
       elevation: 4,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -394,15 +411,15 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       fontSize: 14,
       fontWeight: '600',
       marginBottom: 4,
-      color: isDarkMode ? '#FFFFFF' : '#333333',
+      color: isDarkMode ? COLORS.white : COLORS.text,
     },
     inputContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       borderWidth: 1,
       borderRadius: 8,
-      borderColor: isDarkMode ? '#404040' : '#E0E0E0',
-      backgroundColor: isDarkMode ? '#1E1E1E' : '#FFFFFF',
+      borderColor: isDarkMode ? '#404040' : COLORS.border,
+      backgroundColor: isDarkMode ? '#1E1E1E' : COLORS.card,
       padding: 4,
       shadowColor: "#000",
       shadowOffset: {
@@ -414,7 +431,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       elevation: 1,
     },
     focusedInput: {
-      borderColor: isDarkMode ? '#3d7a77' : '#2d5a57',
+      borderColor: isDarkMode ? COLORS.secondary : COLORS.accent,
       borderWidth: 2,
     },
     input: {
@@ -422,7 +439,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       height: 40,
       paddingHorizontal: 12,
       fontSize: 14,
-      color: isDarkMode ? '#FFFFFF' : '#000000',
+      color: isDarkMode ? COLORS.white : COLORS.text,
     },
     lightInput: {
       backgroundColor: '#FFFFFF',
@@ -445,12 +462,12 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       paddingHorizontal: 16,
       fontSize: 16,
       borderWidth: 1,
-      borderColor: isDarkMode ? '#404040' : '#E0E0E0',
+      borderColor: isDarkMode ? '#404040' : COLORS.border,
     },
     scanButton: {
       width: 40,
       height: 40,
-      backgroundColor: isDarkMode ? '#2d5a57' : '#1a4645',
+      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
       borderRadius: 8,
       justifyContent: 'center',
       alignItems: 'center',
@@ -468,7 +485,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     },
     saveButton: {
       flexDirection: 'row',
-      backgroundColor: isDarkMode ? '#2d5a57' : '#1a4645',
+      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
       height: 48,
       borderRadius: 8,
       justifyContent: 'center',
@@ -488,22 +505,22 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       transform: [{ scale: 0.98 }]
     },
     saveButtonText: {
-      color: '#FFFFFF',
+      color: COLORS.white,
       fontSize: 16,
       fontWeight: 'bold',
       marginLeft: 8,
     },
     lightBackground: {
-      backgroundColor: '#F5F5F5',
+      backgroundColor: COLORS.background,
     },
     darkBackground: {
-      backgroundColor: '#121212',
+      backgroundColor: COLORS.darkBackground,
     },
     lightText: {
-      color: '#333333',
+      color: COLORS.text,
     },
     darkText: {
-      color: '#E0E0E0',
+      color: 'rgba(255, 255, 255, 0.88)',
     },
     fieldIcon: {
       marginRight: 12,
@@ -529,7 +546,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       gap: 8,
     },
     headerTitleText: {
-      color: '#FFFFFF',
+      color: COLORS.white,
       fontSize: 20,
       fontWeight: 'bold',
     },
@@ -551,7 +568,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       top: 80,
       right: 16,
       width: '80%',
-      backgroundColor: isDarkMode ? '#1E1E1E' : '#FFFFFF',
+      backgroundColor: isDarkMode ? '#1E1E1E' : COLORS.card,
       borderRadius: 12,
       elevation: 5,
       shadowColor: '#000',
@@ -842,10 +859,17 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   return (
-    <View style={[
-      styles.container, 
-      isDarkMode ? styles.darkBackground : styles.lightBackground
-    ]}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        { backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.background },
+      ]}
+      edges={['top', 'left', 'right']}
+    >
+      <View style={[
+        styles.container, 
+        isDarkMode ? styles.darkBackground : styles.lightBackground
+      ]}>
       <View style={styles.formCard}>
         {/* Campo Foto do Produto */}
         <View style={styles.fieldContainer}>
@@ -1236,7 +1260,8 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           </Animated.View>
         </TouchableOpacity>
       )}
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 

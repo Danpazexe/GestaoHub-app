@@ -10,12 +10,11 @@ import {
   ActivityIndicator,
   Animated,
   Keyboard,
-  SafeAreaView,
   Dimensions,
+  Modal,
 } from "react-native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../services/authService';
 import { CORESREGISTER } from '../../assets/cores/coresAuth';
@@ -38,6 +37,12 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
   const [secureConfirmText, setSecureConfirmText] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [pressedButton, setPressedButton] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState('');
+  const [termsVisible, setTermsVisible] = useState(false);
+  const [termsAnchorY, setTermsAnchorY] = useState(0);
+  const [privacyAnchorY, setPrivacyAnchorY] = useState(0);
+  const termsScrollRef = useRef(null);
 
   // Animações
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -94,6 +99,11 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
 
     if (password !== confirmPassword) {
       setConfirmPasswordError("As senhas não coincidem");
+      isValid = false;
+    }
+
+    if (!termsAccepted) {
+      setTermsError('Aceite os termos para continuar');
       isValid = false;
     }
 
@@ -160,8 +170,18 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
     ]).start();
   };
 
+  const openTerms = (section) => {
+    setTermsVisible(true);
+    setTimeout(() => {
+      const y = section === 'privacy' ? privacyAnchorY : termsAnchorY;
+      if (termsScrollRef.current && y) {
+        termsScrollRef.current.scrollTo({ y, animated: true });
+      }
+    }, 250);
+  };
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]} edges={['top', 'left', 'right']}>
       <View style={styles.background}>
         <View style={styles.centeredContent}>
             <Animated.View style={styles.header}>
@@ -200,7 +220,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   <MaterialIcons 
                     name="person" 
                     size={22} 
-                    color={nameError ? COLORS.erro : COLORS.destaqueAzul} 
+                    color={nameError ? COLORS.erro : COLORS.textoSecundario} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
@@ -238,7 +258,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   <MaterialIcons 
                     name="email" 
                     size={22} 
-                    color={emailError ? COLORS.erro : COLORS.destaqueAzul} 
+                    color={emailError ? COLORS.erro : COLORS.textoSecundario} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
@@ -278,7 +298,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   <MaterialIcons 
                     name="lock" 
                     size={22} 
-                    color={passwordError ? COLORS.erro : COLORS.destaqueAzul} 
+                    color={passwordError ? COLORS.erro : COLORS.textoSecundario} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
@@ -327,7 +347,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   <MaterialIcons 
                     name="lock-outline" 
                     size={22} 
-                    color={confirmPasswordError ? COLORS.erro : COLORS.destaqueAzul} 
+                    color={confirmPasswordError ? COLORS.erro : COLORS.textoSecundario} 
                     style={styles.inputIcon} 
                   />
                   <TextInput
@@ -364,34 +384,57 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 ) : null}
               </View>
 
+              {/* Termos e Privacidade */}
+              <TouchableOpacity
+                style={styles.termsContainer}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setTermsAccepted(!termsAccepted);
+                  setTermsError('');
+                }}
+              >
+                <View style={[
+                  styles.termsCheckbox,
+                  {
+                    backgroundColor: termsAccepted ? COLORS.textoPrincipal : 'transparent',
+                    borderColor: termsAccepted ? COLORS.textoPrincipal : COLORS.borda,
+                  }
+                ]}>
+                  {termsAccepted && (
+                    <MaterialIcons name="check" size={16} color={COLORS.branco} />
+                  )}
+                </View>
+                <Text style={styles.termsText}>
+                  Li e aceito os{' '}
+                  <Text style={styles.termsLink} onPress={() => openTerms('terms')}>Termos de Uso</Text>
+                  {' '}e a{' '}
+                  <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>Política de Privacidade</Text>
+                </Text>
+              </TouchableOpacity>
+              {termsError ? (
+                <Text style={styles.termsError}>{termsError}</Text>
+              ) : null}
+
               {/* Botão de Cadastro */}
               <TouchableOpacity
-                style={styles.registerButtonWrapper}
+                style={[
+                  styles.registerButton,
+                  pressedButton && styles.registerButtonPressed,
+                ]}
                 activeOpacity={0.9}
                 onPressIn={() => setPressedButton(true)}
                 onPressOut={() => setPressedButton(false)}
                 onPress={handleRegister}
                 disabled={isLoading}
               >
-                <LinearGradient
-                  colors={
-                    pressedButton
-                      ? [COLORS.textoPrincipal, COLORS.textoSecundario]
-                      : [COLORS.destaqueAzul, COLORS.textoPrincipal]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.registerButton}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color={COLORS.branco} />
-                  ) : (
-                    <>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.branco} />
+                ) : (
+                  <>
                     <MaterialIcons name="person-add" size={20} color={COLORS.branco} />
-                      <Text style={styles.registerButtonText}>Cadastrar</Text>
-                    </>
-                  )}
-                </LinearGradient>
+                    <Text style={styles.registerButtonText}>Cadastrar</Text>
+                  </>
+                )}
               </TouchableOpacity>
 
               {/* Link para Login */}
@@ -408,8 +451,58 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 </Text>
               </TouchableOpacity>
             </Animated.View>
+        </View>
+      </View>
+      <Modal
+        visible={termsVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setTermsVisible(false)}
+      >
+        <View style={styles.termsModalOverlay}>
+          <View style={styles.termsModalCard}>
+            <View style={styles.termsModalHeader}>
+              <Text style={styles.termsModalTitle}>Termos e Privacidade</Text>
+              <TouchableOpacity onPress={() => setTermsVisible(false)}>
+                <MaterialIcons name="close" size={22} color={COLORS.textoSecundario} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView ref={termsScrollRef} showsVerticalScrollIndicator={false}>
+              <Text
+                style={styles.termsSectionTitle}
+                onLayout={(e) => setTermsAnchorY(e.nativeEvent.layout.y)}
+              >
+                Termos de Uso
+              </Text>
+              <Text style={styles.termsSectionText}>
+                Ao criar sua conta, você concorda em utilizar o aplicativo de forma responsável,
+                respeitando as políticas internas e a legislação vigente. Você é responsável pelas
+                informações cadastradas e pela segurança do seu acesso.
+              </Text>
+              <Text style={styles.termsSectionText}>
+                É proibido utilizar o aplicativo para fins ilícitos, inserir dados falsos ou
+                comprometer o funcionamento do sistema. Podemos suspender ou encerrar contas que
+                violem estes termos.
+              </Text>
+
+              <Text
+                style={styles.termsSectionTitle}
+                onLayout={(e) => setPrivacyAnchorY(e.nativeEvent.layout.y)}
+              >
+                Política de Privacidade
+              </Text>
+              <Text style={styles.termsSectionText}>
+                Coletamos apenas os dados necessários para o funcionamento do aplicativo, como nome,
+                e-mail e informações de produtos cadastrados. Seus dados não são vendidos a terceiros.
+              </Text>
+              <Text style={styles.termsSectionText}>
+                Você pode solicitar a atualização ou exclusão dos seus dados a qualquer momento.
+                Utilizamos medidas de segurança para proteger suas informações.
+              </Text>
+            </ScrollView>
           </View>
         </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -463,7 +556,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borda,
   },
   inputWrapper: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -472,11 +565,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     height: 56,
     paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   inputIcon: {
     marginRight: 12,
@@ -501,14 +589,73 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
   },
-  registerButtonWrapper: {
-    borderRadius: 16,
-    shadowColor: COLORS.destaqueAzul,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 24,
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  termsCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  termsText: {
+    fontSize: 13,
+    color: COLORS.textoSecundario,
+    lineHeight: 18,
+    marginRight: 4,
+  },
+  termsLink: {
+    color: COLORS.destaqueDourado,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  termsError: {
+    color: COLORS.erro,
+    fontSize: 12,
+    marginBottom: 12,
+    marginLeft: 32,
+  },
+  termsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  termsModalCard: {
+    backgroundColor: COLORS.cartao,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 16,
+    maxHeight: '75%',
+  },
+  termsModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  termsModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textoPrincipal,
+  },
+  termsSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textoPrincipal,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  termsSectionText: {
+    fontSize: 13,
+    color: COLORS.textoSecundario,
+    lineHeight: 18,
+    marginBottom: 10,
   },
   registerButton: {
     height: 56,
@@ -517,6 +664,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: COLORS.textoPrincipal,
+    marginBottom: 24,
+  },
+  registerButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   registerButtonText: {
     color: COLORS.branco,
@@ -532,7 +685,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loginLinkTextBold: {
-    color: COLORS.destaqueAzul,
+    color: COLORS.destaqueDourado,
     fontWeight: '700',
   },
 });

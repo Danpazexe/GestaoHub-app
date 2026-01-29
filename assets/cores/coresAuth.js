@@ -43,3 +43,26 @@ export const CORESREGISTER = {
   erro: '#ef4444',
   branco: '#ffffff',
 };
+
+export const CORESHOME = {
+  // Base da marca
+  fundo: '#f7f7f8',
+  textoPrincipal: '#2f333a',
+  textoSecundario: 'rgba(64, 68, 76, 0.92)',
+
+  // Destaques da paleta
+  destaqueDourado: '#f4cc84',
+  destaqueAzul: '#3c446c',
+  destaqueVerde: '#688c68',
+  destaqueRoxo: '#6c4468',
+  destaqueCinza: '#40444c',
+  neutro: '#3c444c',
+
+  // Componentes
+  cartao: '#ffffff',
+  borda: 'rgba(64, 68, 76, 0.22)',
+  iconeFundo: 'rgba(255, 255, 255, 0.32)',
+
+  // Estados
+  branco: '#ffffff',
+};

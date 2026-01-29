@@ -8,6 +8,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
 import { version } from '../../package.json';
@@ -63,7 +64,8 @@ const EntryScreen = () => {
   }, [navigation, opacity, startAnimation]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <View style={styles.container}>
       <ImageBackground
         source={require('../../assets/Image/FUNDOAPP.png')}
         style={styles.background}
@@ -120,14 +122,19 @@ const EntryScreen = () => {
           </View>
         </Animated.View>
       </ImageBackground>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+  },
   container: {
     flex: 1,
-    backgroundColor: COLORS.primaryDeep,
+    backgroundColor: COLORS.overlay,
   },
   background: {
     flex: 1,
