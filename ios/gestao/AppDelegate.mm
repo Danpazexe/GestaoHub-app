@@ -1,6 +1,7 @@
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
+#import <React/RCTRootView.h>
 
 @implementation AppDelegate
 
@@ -11,7 +12,17 @@
   // They will be passed down to the ViewController used by React Native.
   self.initialProps = @{};
 
-  return [super application:application didFinishLaunchingWithOptions:launchOptions];
+  BOOL result = [super application:application didFinishLaunchingWithOptions:launchOptions];
+  self.window.backgroundColor = [UIColor clearColor];
+  self.window.rootViewController.view.backgroundColor = [UIColor clearColor];
+  self.window.rootViewController.view.opaque = NO;
+  return result;
+}
+
+- (void)customizeRootView:(RCTRootView *)rootView
+{
+  rootView.backgroundColor = [UIColor clearColor];
+  rootView.opaque = NO;
 }
 
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge

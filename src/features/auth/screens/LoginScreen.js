@@ -19,8 +19,8 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import authService from '../../services/authService';
-import { CORESLOGIN } from '../../assets/cores/coresAuth';
+import authService from '../../../../services/authService';
+import { CORESLOGIN } from '../../../../assets/cores/coresAuth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,7 +44,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   const logoScale = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    const initializeScreen = async () => {
+    const initializeView = async () => {
       startAnimations();
       try {
         await loadSavedCredentials();
@@ -53,7 +53,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
       }
     };
 
-    initializeScreen();
+    initializeView();
   }, []);
 
   const startAnimations = () => {
@@ -195,7 +195,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
           <Animated.View style={styles.header}>
             <Animated.View style={{ transform: [{ scale: logoScale }] }}>
               <Image
-                source={require("../../assets/Image/LOGOCOMFRASE.png")}
+                source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
                 style={styles.logo}
                 resizeMode="contain"
               />

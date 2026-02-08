@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Animatable from 'react-native-animatable';
-import { version } from '../../package.json';
+import { version } from '../../../../package.json';
 
 const { width, height } = Dimensions.get('window');
 
@@ -67,7 +67,7 @@ const EntryScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
       <ImageBackground
-        source={require('../../assets/Image/FUNDOAPP.png')}
+        source={require('../../../../assets/Image/FUNDOAPP.png')}
         style={styles.background}
         imageStyle={styles.backgroundImage}
         resizeMode="cover"
@@ -87,7 +87,7 @@ const EntryScreen = () => {
             animation="fadeInUp"
             duration={900}
             delay={100}
-            source={require('../../assets/Image/LOGO.png')}
+            source={require('../../../../assets/Image/LOGO.png')}
             style={styles.logo}
           />
 

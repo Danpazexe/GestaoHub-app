@@ -16,8 +16,8 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-import authService from '../../services/authService';
-import { CORESREGISTER } from '../../assets/cores/coresAuth';
+import authService from '../../../../services/authService';
+import { CORESREGISTER } from '../../../../assets/cores/coresAuth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -186,7 +186,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
         <View style={styles.centeredContent}>
             <Animated.View style={styles.header}>
               <Image
-                source={require("../../assets/Image/LOGOCOMFRASE.png")}
+                source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
                 style={styles.logo}
                 resizeMode="contain"
               />

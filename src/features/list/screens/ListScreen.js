@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, Alert, TextInput, ActivityIndicator, Image, TouchableOpacity, Text, Modal, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ProductItem from '../Components/ProductItem';
-import TreatmentModal from '../Components/TreatmentModal';
-import DeleteConfirmationModal from '../Components/DeleteConfirmationModal';
+import ProductItem from '../../../shared/components/ProductItem';
+import TreatmentModal from '../../../shared/components/TreatmentModal';
+import DeleteConfirmationModal from '../../../shared/components/DeleteConfirmationModal';
 import debounce from 'lodash.debounce';
 import { Animated, LayoutAnimation } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Toast from 'react-native-toast-message';
-import SwipeableListItem from '../Components/SwipeableListItem';
+import SwipeableListItem from '../../../shared/components/SwipeableListItem';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const COLORS = {

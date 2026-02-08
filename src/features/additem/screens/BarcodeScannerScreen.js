@@ -128,7 +128,7 @@ const BarcodeScannerScreen = ({ navigation }) => {
 
   const loadSound = () => {
     Sound.setCategory('Playback');
-    const beep = new Sound(require('../../assets/Sound/Beep.mp3'), (error) => {
+    const beep = new Sound(require('../../../../assets/Sound/Beep.mp3'), (error) => {
       if (!error) {
         setSound(beep);
       }

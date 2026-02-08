@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"],
+      "@assets/*": ["assets/*"],
+      "@services/*": ["services/*"]
+    }
+  },
+  "exclude": ["node_modules", "android", "ios"]
+}

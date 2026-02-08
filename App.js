@@ -2,33 +2,37 @@ import 'react-native-gesture-handler';
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
-import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, TouchableOpacity, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import Toast from 'react-native-toast-message';
-import { toastConfig } from './Screen/Components/toastConfig';
-import { Provider as PaperProvider } from 'react-native-paper';
+import { toastConfig } from './src/shared/components/toastConfig';
+import { Provider as PaperProvider, Portal } from 'react-native-paper';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { enableScreens } from 'react-native-screens';
 
 // Importações de telas
-import EntryScreen from './Screen/Entrada/EntryScreen';
-import ListScreen from './Screen/CardScreen/ListScreen';
-import HomeScreen from './Screen/Menu/HomeScreen';
-import AddProductScreen from './Screen/Additem/AddProductScreen';
-import BarcodeScannerScreen from './Screen/Additem/BarcodeScannerScreen';
-import SettingsScreen from './Screen/Opcoes/SettingsScreen';
-import DashboardScreen from './Screen/Dashboard/DashboardScreen';
-import ExcelScreen from './Screen/Excel/ExcelScreen';
-import LoginScreen from './Screen/Entrada/LoginScreen';
-import ProfileScreen from "./Screen/Perfil/ProfileScreen";
-import TratarScreen from './Screen/Tratativas/TratarScreen';
-import NotificationScreen from './Screen/Notificacao/NotificationScreen';
-import SqlScreen from './Screen/SQL/SqlScreen';
-import RegisterScreen from './Screen/Entrada/RegisterScreen';
-import PdfScreen from './Screen/Pdf/PdfScreen';
-import PdfViewerScreen from './Screen/Pdf/PdfViewerScreen';
+import EntryScreen from './src/features/auth/screens/EntryScreen';
+import ListScreen from './src/features/list/screens/ListScreen';
+import HomeScreen from './src/features/home/screens/HomeScreen';
+import AddProductScreen from './src/features/additem/screens/AddProductScreen';
+import BarcodeScannerScreen from './src/features/additem/screens/BarcodeScannerScreen';
+import SettingsScreen from './src/features/settings/screens/SettingsScreen';
+import DashboardScreen from './src/features/dashboard/screens/DashboardScreen';
+import ExcelScreen from './src/features/excel/screens/ExcelScreen';
+import LoginScreen from './src/features/auth/screens/LoginScreen';
+import ProfileScreen from "./src/features/profile/screens/ProfileScreen";
+import TratarScreen from './src/features/tratar/screens/TratarScreen';
+import NotificationScreen from './src/features/notification/screens/NotificationScreen';
+import SqlScreen from './src/features/sql/screens/SqlScreen';
+import RegisterScreen from './src/features/auth/screens/RegisterScreen';
+import PdfScreen from './src/features/pdf/screens/PdfScreen';
+import PdfViewerScreen from './src/features/pdf/screens/PdfViewerScreen';
 
 const Stack = createStackNavigator();
+// Aggressive fix for iOS status bar background issues.
+enableScreens(Platform.OS === 'android');
 
 const getStatusBarBackground = (routeName, isDarkMode) => {
   const light = {
@@ -93,16 +97,50 @@ const isColorDark = (hex) => {
 
 // Componente StatusBar customizado
 const CustomStatusBar = ({ isDarkMode, backgroundColor }) => (
-  <SafeAreaView style={{ backgroundColor }}>
+  <View style={{ backgroundColor }}>
     <StatusBar
       translucent
-      backgroundColor={backgroundColor}
+      backgroundColor="transparent"
       animated
       barStyle={isColorDark(backgroundColor) ? 'light-content' : 'dark-content'}
       hidden={false}
     />
-  </SafeAreaView>
+  </View>
 );
+
+const AppBackground = ({ backgroundColor, children }) => {
+  const insets = useSafeAreaInsets();
+  const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
+  const overlayHeight = Math.max(topInset, 60);
+
+  return (
+    <View style={{ flex: 1, backgroundColor, position: 'relative', overflow: 'visible' }}>
+      <View style={{ flex: 1 }}>
+        {children}
+      </View>
+    </View>
+  );
+};
+
+const StatusBarOverlay = ({ color }) => {
+  const insets = useSafeAreaInsets();
+  const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
+  const overlayHeight = Math.max(topInset, 60);
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: overlayHeight,
+        backgroundColor: color,
+        zIndex: 9999,
+      }}
+    />
+  );
+};
 
 const BackButton = ({ tintColor, canGoBack, onPress }) => {
   if (!canGoBack) return null;
@@ -148,6 +186,14 @@ export default function App() {
   const [statusBarBackground, setStatusBarBackground] = useState('#f7f7f8');
   const navigationRef = useNavigationContainerRef();
   const routeNameRef = useRef();
+  const theme = isDarkMode ? DarkTheme : DefaultTheme;
+  const themed = {
+    ...theme,
+    colors: {
+      ...theme.colors,
+      background: statusBarBackground,
+    },
+  };
 
   useEffect(() => {
     configurePushNotifications();
@@ -217,6 +263,13 @@ export default function App() {
   }, [isDarkMode]);
 
   useEffect(() => {
+    const currentRouteName = navigationRef.getCurrentRoute()?.name;
+    if (currentRouteName) {
+      setStatusBarBackground(getStatusBarBackground(currentRouteName, isDarkMode));
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
     const backAction = () => {
       const currentRoute = routeNameRef.current;
       
@@ -258,26 +311,32 @@ export default function App() {
   }, [lastBackPress]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: statusBarBackground }}>
-      <PaperProvider>
-        <NavigationContainer 
-          ref={navigationRef}
-          theme={isDarkMode ? DarkTheme : DefaultTheme}
-          onReady={() => {
-            routeNameRef.current = navigationRef.getCurrentRoute()?.name;
-            setStatusBarBackground(getStatusBarBackground(routeNameRef.current, isDarkMode));
-          }}
-          onStateChange={() => {
-            const currentRouteName = navigationRef.getCurrentRoute()?.name;
-            routeNameRef.current = currentRouteName;
-            setStatusBarBackground(getStatusBarBackground(currentRouteName, isDarkMode));
-          }}
-        >
-          <CustomStatusBar isDarkMode={isDarkMode} backgroundColor={statusBarBackground} />
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <AppBackground backgroundColor={statusBarBackground}>
+        <PaperProvider>
+          <Portal>
+            <StatusBarOverlay color={statusBarBackground} />
+          </Portal>
+          <NavigationContainer 
+            ref={navigationRef}
+            theme={themed}
+            onReady={() => {
+              routeNameRef.current = navigationRef.getCurrentRoute()?.name;
+              setStatusBarBackground(getStatusBarBackground(routeNameRef.current, isDarkMode));
+            }}
+            onStateChange={() => {
+              const currentRouteName = navigationRef.getCurrentRoute()?.name;
+              routeNameRef.current = currentRouteName;
+              setStatusBarBackground(getStatusBarBackground(currentRouteName, isDarkMode));
+            }}
+          >
+            <CustomStatusBar isDarkMode={isDarkMode} backgroundColor={statusBarBackground} />
 
           <Stack.Navigator
             initialRouteName="EntryScreen"
-            screenOptions={{
+            screenOptions={({ route }) => {
+              const routeColor = getStatusBarBackground(route?.name, isDarkMode);
+              return {
               headerBackTitleVisible: false,
               headerBackTitle: '',
               headerLeftContainerStyle: { paddingLeft: 12 },
@@ -291,6 +350,11 @@ export default function App() {
                   onPress={() => navigationRef.current?.goBack()}
                 />
               ),
+              headerStyle: { backgroundColor: routeColor },
+              headerTintColor: isColorDark(routeColor) ? '#FFFFFF' : '#111827',
+              cardStyle: { backgroundColor: routeColor },
+              contentStyle: { backgroundColor: routeColor },
+            };
             }}
           >
 
@@ -364,8 +428,9 @@ export default function App() {
 
           <Toast config={toastConfig} position="bottom" bottomOffset={20} />
           
-        </NavigationContainer>
-      </PaperProvider>
-    </SafeAreaView>
+          </NavigationContainer>
+        </PaperProvider>
+      </AppBackground>
+    </SafeAreaProvider>
   );
 }

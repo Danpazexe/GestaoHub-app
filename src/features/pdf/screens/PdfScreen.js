@@ -53,7 +53,7 @@ const PdfScreen = ({ isDarkMode }) => {
 
   const getLogoBase64 = async () => {
     try {
-      const assetSource = Image.resolveAssetSource(require('../../assets/Image/LOGOCOMFRASE.png'));
+      const assetSource = Image.resolveAssetSource(require('../../../../assets/Image/LOGOCOMFRASE.png'));
       const assetUri = assetSource?.uri;
       if (!assetUri) return null;
       const path = assetUri.startsWith('file://') ? assetUri.replace('file://', '') : assetUri;

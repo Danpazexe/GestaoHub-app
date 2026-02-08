@@ -100,7 +100,7 @@ const ProfileScreen = ({ isDarkMode }) => {
       <Text style={[styles.title, isDarkMode ? styles.darkText : styles.lightText]}>Perfil do Usuário</Text>
       <TouchableOpacity onPress={handleImagePick}>
         <Image
-          source={profileImage ? { uri: profileImage } : require('../../assets/Perfil/default-profile.png')}
+          source={profileImage ? { uri: profileImage } : require('../../../../assets/Perfil/default-profile.png')}
           style={styles.profileImage}
         />
         <Text style={[styles.editPhotoText, isDarkMode ? styles.darkText : styles.lightText]}>Alterar Foto</Text>
