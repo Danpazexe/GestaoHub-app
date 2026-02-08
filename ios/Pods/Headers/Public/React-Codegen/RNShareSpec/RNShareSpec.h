@@ -1,1 +1,0 @@
-../../../../../build/generated/ios/RNShareSpec/RNShareSpec.h

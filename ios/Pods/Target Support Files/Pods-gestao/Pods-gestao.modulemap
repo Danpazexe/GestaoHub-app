@@ -1,6 +1,0 @@
-module Pods_gestao {
-  umbrella header "Pods-gestao-umbrella.h"
-
-  export *
-  module * { export * }
-}
