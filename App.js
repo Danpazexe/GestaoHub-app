@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
-import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, TouchableOpacity, View } from 'react-native';
+import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, TouchableOpacity, View, Easing } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import Toast from 'react-native-toast-message';
@@ -11,11 +11,19 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { enableScreens } from 'react-native-screens';
+import {
+  getNavigationBarColor,
+  getRouteHeaderBackground,
+  getStatusBarStyle,
+  isColorDark,
+  shouldUseDarkNavigationBarIcons,
+} from './src/shared/utils/systemBars';
 
 // Importações de telas
 import EntryScreen from './src/features/auth/screens/EntryScreen';
 import ListScreen from './src/features/list/screens/ListScreen';
 import HomeScreen from './src/features/home/screens/HomeScreen';
+import EasterEggScreen from './src/features/home/screens/EasterEggScreen';
 import ModuleFunctionsScreen from './src/features/home/screens/ModuleFunctionsScreen';
 import ModuleBaseScreen from './src/features/modules/screens/ModuleBaseScreen';
 import AddProductScreen from './src/features/additem/screens/AddProductScreen';
@@ -36,80 +44,30 @@ const Stack = createStackNavigator();
 // Aggressive fix for iOS status bar background issues.
 enableScreens(Platform.OS === 'android');
 
-const getStatusBarBackground = (routeName, isDarkMode) => {
-  const light = {
-    EntryScreen: '#ffffff',
-    LoginScreen: '#ffffff',
-    RegisterScreen: '#ffffff',
-    HomeScreen: '#f7f7f8',
-    ModuleFunctionsScreen: '#f7f7f8',
-    ModuleBaseScreen: '#f7f7f8',
-    ListScreen: '#40444c',
-    AddProductScreen: '#40444c',
-    DashboardScreen: '#C42D2F',
-    SettingsScreen: '#374151',
-    ProfileScreen: '#f7f7f8',
-    NotificationSettings: '#6cb6a5',
-    SqlScreen: '#2563EB',
-    TratarScreen: '#FFA500',
-    ExcelScreen: '#012677',
-    PdfScreen: '#d7263d',
-    PdfViewerScreen: '#f7f7f8',
-    BarcodeScannerScreen: '#000000',
-  };
-
-  const dark = {
-    EntryScreen: '#2f333a',
-    LoginScreen: '#2f333a',
-    RegisterScreen: '#2f333a',
-    HomeScreen: '#2f333a',
-    ModuleFunctionsScreen: '#2f333a',
-    ModuleBaseScreen: '#2f333a',
-    ListScreen: '#2f333a',
-    AddProductScreen: '#2f333a',
-    DashboardScreen: '#2f333a',
-    SettingsScreen: '#1F2937',
-    ProfileScreen: '#2f333a',
-    NotificationSettings: '#1a4645',
-    SqlScreen: '#1E40AF',
-    TratarScreen: '#2e2e2e',
-    ExcelScreen: '#012677',
-    PdfScreen: '#d7263d',
-    PdfViewerScreen: '#2f333a',
-    BarcodeScannerScreen: '#000000',
-  };
-
-  const palette = isDarkMode ? dark : light;
-  return palette[routeName] || (isDarkMode ? '#2f333a' : '#f7f7f8');
-};
-
-const hexToRgb = (hex) => {
-  const normalized = hex.replace('#', '');
-  const isShort = normalized.length === 3;
-  const full = isShort
-    ? normalized.split('').map((c) => c + c).join('')
-    : normalized;
-  const num = parseInt(full, 16);
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255,
-  };
-};
-
-const isColorDark = (hex) => {
-  const { r, g, b } = hexToRgb(hex);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance < 0.6;
+const STANDARD_TRANSITION_SPEC = {
+  open: {
+    animation: 'timing',
+    config: {
+      duration: 260,
+      easing: Easing.out(Easing.poly(4)),
+    },
+  },
+  close: {
+    animation: 'timing',
+    config: {
+      duration: 220,
+      easing: Easing.in(Easing.poly(4)),
+    },
+  },
 };
 
 // Componente StatusBar customizado
-const CustomStatusBar = ({ backgroundColor, hidden = false }) => (
+const CustomStatusBar = ({ backgroundColor, barStyle, hidden = false, translucent = false }) => (
   <StatusBar
-    translucent={false}
+    translucent={translucent}
     backgroundColor={backgroundColor}
     animated
-    barStyle={isColorDark(backgroundColor) ? 'light-content' : 'dark-content'}
+    barStyle={barStyle || (isColorDark(backgroundColor) ? 'light-content' : 'dark-content')}
     hidden={hidden}
   />
 );
@@ -166,10 +124,16 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(Appearance.getColorScheme() === 'dark');
   const [lastBackPress, setLastBackPress] = useState(0);
   const [statusBarBackground, setStatusBarBackground] = useState('#f7f7f8');
+  const [currentRoute, setCurrentRoute] = useState({ name: 'EntryScreen', params: undefined });
   const navigationRef = useNavigationContainerRef();
   const routeNameRef = useRef();
+  const currentRouteName = currentRoute?.name || 'EntryScreen';
   const theme = isDarkMode ? DarkTheme : DefaultTheme;
-  const isScannerRoute = routeNameRef.current === 'BarcodeScannerScreen';
+  const isHomeRoute = currentRouteName === 'HomeScreen';
+  const isScannerRoute = currentRouteName === 'BarcodeScannerScreen';
+  const statusBarStyle = getStatusBarStyle(currentRouteName);
+  const statusBarColor = isHomeRoute ? 'transparent' : statusBarBackground;
+  const statusBarTranslucent = Platform.OS === 'android' && isHomeRoute;
   const themed = {
     ...theme,
     colors: {
@@ -229,28 +193,37 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const updateNavigationBar = async () => {
-      try {
-        await changeNavigationBarColor('transparent', !isDarkMode);
-      } catch (error) {
-        console.warn('Não foi possível atualizar a barra de navegação:', error);
-      }
-    };
-    updateNavigationBar();
-
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
       setIsDarkMode(colorScheme === 'dark');
     });
 
     return () => subscription?.remove();
-  }, [isDarkMode]);
+  }, []);
 
   useEffect(() => {
-    const currentRouteName = navigationRef.getCurrentRoute()?.name;
-    if (currentRouteName) {
-      setStatusBarBackground(getStatusBarBackground(currentRouteName, isDarkMode));
+    if (Platform.OS !== 'android' || isScannerRoute) {
+      return;
     }
-  }, [isDarkMode]);
+
+    const updateNavigationBar = async () => {
+      try {
+        const navBarColor = getNavigationBarColor(currentRoute, isDarkMode);
+        const darkIcons = shouldUseDarkNavigationBarIcons(currentRoute, isDarkMode);
+        await changeNavigationBarColor(navBarColor, darkIcons, true);
+      } catch (error) {
+        console.warn('Não foi possível atualizar a barra de navegação:', error);
+      }
+    };
+
+    updateNavigationBar();
+  }, [currentRoute, isDarkMode, isScannerRoute]);
+
+  useEffect(() => {
+    const route = navigationRef.getCurrentRoute() || currentRoute;
+    if (route) {
+      setStatusBarBackground(getRouteHeaderBackground(route, isDarkMode));
+    }
+  }, [isDarkMode, currentRoute]);
 
   useEffect(() => {
     const backAction = () => {
@@ -301,28 +274,42 @@ export default function App() {
             ref={navigationRef}
             theme={themed}
             onReady={() => {
-              routeNameRef.current = navigationRef.getCurrentRoute()?.name;
-              setStatusBarBackground(getStatusBarBackground(routeNameRef.current, isDarkMode));
+              const route = navigationRef.getCurrentRoute() || { name: 'EntryScreen', params: undefined };
+              routeNameRef.current = route.name;
+              setCurrentRoute(route);
+              setStatusBarBackground(getRouteHeaderBackground(route, isDarkMode));
             }}
             onStateChange={() => {
-              const currentRouteName = navigationRef.getCurrentRoute()?.name;
-              routeNameRef.current = currentRouteName;
-              setStatusBarBackground(getStatusBarBackground(currentRouteName, isDarkMode));
+              const route = navigationRef.getCurrentRoute() || { name: 'EntryScreen', params: undefined };
+              routeNameRef.current = route.name;
+              setCurrentRoute(route);
+              setStatusBarBackground(getRouteHeaderBackground(route, isDarkMode));
             }}
           >
-            <CustomStatusBar backgroundColor={statusBarBackground} hidden={isScannerRoute} />
+            <CustomStatusBar
+              key={`${currentRouteName}-${statusBarStyle}-${statusBarColor}-${statusBarTranslucent ? 'translucent' : 'opaque'}-${isScannerRoute ? 'hidden' : 'shown'}`}
+              backgroundColor={statusBarColor}
+              barStyle={statusBarStyle}
+              hidden={isScannerRoute}
+              translucent={statusBarTranslucent}
+            />
 
           <Stack.Navigator
             initialRouteName="EntryScreen"
             screenOptions={({ route }) => {
-              const routeColor = getStatusBarBackground(route?.name, isDarkMode);
+              const routeColor = getRouteHeaderBackground(route, isDarkMode);
+              const transitionBackground = isDarkMode ? '#1f2438' : '#f7f7f8';
               return {
               headerBackTitleVisible: false,
               headerBackTitle: '',
               headerLeftContainerStyle: { paddingLeft: 12 },
               headerTitleAlign: 'left',
               animationEnabled: true,
+              gestureEnabled: true,
+              gestureDirection: 'horizontal',
+              animationTypeForReplace: 'push',
               ...TransitionPresets.SlideFromRightIOS,
+              transitionSpec: STANDARD_TRANSITION_SPEC,
               headerLeft: (props) => (
                 <BackButton
                   tintColor={props.tintColor}
@@ -332,8 +319,8 @@ export default function App() {
               ),
               headerStyle: { backgroundColor: routeColor },
               headerTintColor: isColorDark(routeColor) ? '#FFFFFF' : '#111827',
-              cardStyle: { backgroundColor: routeColor },
-              contentStyle: { backgroundColor: routeColor },
+              cardStyle: { backgroundColor: transitionBackground },
+              contentStyle: { backgroundColor: transitionBackground },
             };
             }}
           >
@@ -344,6 +331,10 @@ export default function App() {
 
             <Stack.Screen name="HomeScreen" options={{ headerShown: false }}>
               {props => <HomeScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
+            <Stack.Screen name="EasterEggScreen" options={{ headerShown: false }}>
+              {props => <EasterEggScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
             <Stack.Screen

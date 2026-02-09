@@ -47,6 +47,7 @@ const BarcodeScannerScreen = ({ navigation }) => {
   const isFocused = useIsFocused();
   const device = useCameraDevice('back');
   const { hasPermission, requestPermission } = useCameraPermission();
+  const flashAvailable = Boolean(device?.hasTorch || device?.hasFlash);
 
   const [scanned, setScanned] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -60,6 +61,7 @@ const BarcodeScannerScreen = ({ navigation }) => {
   const soundRef = useRef(null);
   const mountedRef = useRef(true);
   const scanLineLoopRef = useRef(null);
+  const flashWarningShownRef = useRef(false);
 
   const cleanupResources = useCallback(() => {
     if (soundRef.current) {
@@ -198,6 +200,12 @@ const BarcodeScannerScreen = ({ navigation }) => {
     }
   }, [hasPermission, loadSound]);
 
+  useEffect(() => {
+    if (!flashAvailable && torchEnabled) {
+      setTorchEnabled(false);
+    }
+  }, [flashAvailable, torchEnabled]);
+
   useFocusEffect(
     useCallback(() => {
       navigation.setOptions({ headerShown: false });
@@ -301,6 +309,28 @@ const BarcodeScannerScreen = ({ navigation }) => {
     scannerLockedRef.current = false;
   }, []);
 
+  const handleCameraError = useCallback((error) => {
+    const cameraErrorCode = String(error?.code || '');
+    if (cameraErrorCode.includes('flash-unavailable')) {
+      setTorchEnabled(false);
+      if (!flashWarningShownRef.current) {
+        flashWarningShownRef.current = true;
+        Toast.show({
+          type: 'info',
+          text1: 'Flash indisponível',
+          text2: 'Este dispositivo não possui flash.',
+        });
+      }
+      return;
+    }
+
+    Toast.show({
+      type: 'error',
+      text1: 'Erro na câmera',
+      text2: 'Não foi possível iniciar o leitor.',
+    });
+  }, []);
+
   if (!permissionChecked) {
     return (
       <View style={styles.permissionContainer}>
@@ -346,7 +376,8 @@ const BarcodeScannerScreen = ({ navigation }) => {
         device={device}
         isActive={isFocused && hasPermission === true && !modalVisible}
         codeScanner={codeScanner}
-        torch={torchEnabled ? 'on' : 'off'}
+        torch={flashAvailable && torchEnabled ? 'on' : 'off'}
+        onError={handleCameraError}
         enableZoomGesture
       />
 
@@ -402,15 +433,36 @@ const BarcodeScannerScreen = ({ navigation }) => {
 
       <View style={styles.topRightControls}>
         <TouchableOpacity
-          style={[styles.controlButton, torchEnabled && styles.controlButtonActive]}
-          onPress={() => setTorchEnabled((prev) => !prev)}
+          style={[
+            styles.controlButton,
+            torchEnabled && styles.controlButtonActive,
+            !flashAvailable && styles.controlButtonDisabled,
+          ]}
+          onPress={() => {
+            if (!flashAvailable) {
+              if (!flashWarningShownRef.current) {
+                flashWarningShownRef.current = true;
+                Toast.show({
+                  type: 'info',
+                  text1: 'Flash indisponível',
+                  text2: 'Este dispositivo não possui flash.',
+                });
+              }
+              return;
+            }
+
+            setTorchEnabled((prev) => !prev);
+          }}
+          disabled={!flashAvailable}
         >
           <MaterialCommunityIcons
-            name={torchEnabled ? 'flashlight' : 'flashlight-off'}
+            name={flashAvailable ? (torchEnabled ? 'flashlight' : 'flashlight-off') : 'flash-alert'}
             size={20}
             color={COLORS.white}
           />
-          <Text style={styles.controlText}>{torchEnabled ? 'Flash ON' : 'Flash OFF'}</Text>
+          <Text style={[styles.controlText, !flashAvailable && styles.controlTextDisabled]}>
+            {flashAvailable ? (torchEnabled ? 'Flash ON' : 'Flash OFF') : 'Sem flash'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -560,10 +612,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.controlActive,
     borderColor: COLORS.controlActive,
   },
+  controlButtonDisabled: {
+    opacity: 0.6,
+  },
   controlText: {
     color: COLORS.white,
     fontSize: 12,
     fontWeight: '700',
+  },
+  controlTextDisabled: {
+    opacity: 0.9,
   },
   bottomPanel: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Pressable, useWindowDimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -7,6 +7,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CORESHOME } from '../../../../assets/cores/coresAuth';
 
 const COLORS = CORESHOME;
+const DEV_EASTER_EGG_TAP_TARGET = 7;
+const DEV_EASTER_EGG_TAP_WINDOW_MS = 1800;
 
 const HomeScreen = ({ isDarkMode }) => {
   const navigation = useNavigation();
@@ -14,6 +16,8 @@ const HomeScreen = ({ isDarkMode }) => {
   const { height: screenHeight } = useWindowDimensions();
   const [pressedCard, setPressedCard] = useState(null);
   const [userName, setUserName] = useState('Usuário');
+  const logoTapCountRef = useRef(0);
+  const logoTapTimerRef = useRef(null);
 
   const moduleCards = [
     {
@@ -271,6 +275,34 @@ const HomeScreen = ({ isDarkMode }) => {
     loadUserName();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (logoTapTimerRef.current) {
+        clearTimeout(logoTapTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleLogoPress = () => {
+    if (logoTapTimerRef.current) {
+      clearTimeout(logoTapTimerRef.current);
+      logoTapTimerRef.current = null;
+    }
+
+    logoTapCountRef.current += 1;
+
+    if (logoTapCountRef.current >= DEV_EASTER_EGG_TAP_TARGET) {
+      logoTapCountRef.current = 0;
+      navigation.navigate('EasterEggScreen');
+      return;
+    }
+
+    logoTapTimerRef.current = setTimeout(() => {
+      logoTapCountRef.current = 0;
+      logoTapTimerRef.current = null;
+    }, DEV_EASTER_EGG_TAP_WINDOW_MS);
+  };
+
   const getStyles = (isDarkMode) => StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -313,6 +345,9 @@ const HomeScreen = ({ isDarkMode }) => {
     logo: {
       width: 140,
       height: 52,
+    },
+    logoButton: {
+      borderRadius: 10,
     },
     headerText: {
       marginTop: 2,
@@ -357,14 +392,6 @@ const HomeScreen = ({ isDarkMode }) => {
     menuCardWrapper: {
       marginBottom: 16,
       borderRadius: 18,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.08,
-      shadowRadius: 10,
-      elevation: 6,
-      backgroundColor: 'transparent',
-      borderWidth: 0,
-      borderColor: 'transparent',
     },
     menuCardGradient: {
       flexDirection: 'row',
@@ -373,6 +400,12 @@ const HomeScreen = ({ isDarkMode }) => {
       paddingHorizontal: 18,
       borderRadius: 18,
       minHeight: 82,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      elevation: 6,
+      backgroundColor: COLORS.destaqueCinza,
     },
     menuCardSolid: {
       backgroundColor: COLORS.destaqueCinza,
@@ -424,7 +457,13 @@ const HomeScreen = ({ isDarkMode }) => {
         <View style={styles.backgroundGlowBottom} />
         <View style={styles.header}>
           <View style={styles.topRow}>
-            <Image source={require('../../../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
+            <TouchableOpacity
+              style={styles.logoButton}
+              onPress={handleLogoPress}
+              activeOpacity={0.85}
+            >
+              <Image source={require('../../../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
+            </TouchableOpacity>
             <View style={styles.headerButtons}>
               <TouchableOpacity
                 style={styles.headerButton}

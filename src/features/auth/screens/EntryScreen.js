@@ -6,7 +6,6 @@ import {
   Animated,
   ImageBackground,
   Dimensions,
-  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -48,7 +47,6 @@ const EntryScreen = () => {
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
-    StatusBar.setBarStyle('dark-content');
 
     startAnimation.start();
 
