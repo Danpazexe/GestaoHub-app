@@ -5,6 +5,11 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import notifee, { AndroidImportance, TriggerType } from '@notifee/react-native';
 import Toast from 'react-native-toast-message';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+  createHeaderActionsTemplate,
+} from '../../../shared/components/ScreenLayout';
 
 const { width } = Dimensions.get('window');
 
@@ -32,43 +37,43 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
       return;
     }
 
-    const headerButtonStyle = {
-      padding: 8,
-      borderRadius: 8,
-      marginLeft: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? '#2d5a57' : 'rgba(255, 255, 255, 0.2)',
-    };
-
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: isDarkMode ? '#1a4645' : '#6cb6a5',
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-      },
-      headerTintColor: '#FFFFFF',
-      headerTitle: 'Notificações',
-      headerRight: () => {
-        console.log('Renderizando botão de engrenagem no header!');
-        return (
-          <View style={{ flexDirection: 'row', marginRight: 8 }}>
-            <TouchableOpacity
-              style={[
-                headerButtonStyle,
-                showAdvanced && { backgroundColor: isDarkMode ? '#3d7a77' : '#1a4645' }
-              ]}
-              onPress={() => setShowAdvanced((prev) => !prev)}
-            >
-              <MaterialCommunityIcons name="cog-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        );
-      },
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: '#6cb6a5',
+        darkHeaderColor: '#1a4645',
+        tintColor: '#FFFFFF',
+        titleSize: 18,
+        titleWeight: '700',
+        headerStyleOverride: {
+          elevation: 4,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 3,
+        },
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Notificações',
+          iconName: 'notifications',
+          tintColor: '#FFFFFF',
+        }),
+      headerRight: () =>
+        createHeaderActionsTemplate({
+          isDarkMode,
+          actions: [
+            {
+              key: 'toggle-advanced',
+              iconName: 'cog-outline',
+              IconComponent: MaterialCommunityIcons,
+              onPress: () => setShowAdvanced((prev) => !prev),
+              isActive: showAdvanced,
+              activeBackgroundColor: isDarkMode ? '#3d7a77' : '#1a4645',
+              baseBackgroundColor: isDarkMode ? '#2d5a57' : 'rgba(255, 255, 255, 0.2)',
+              iconColor: '#FFFFFF',
+            },
+          ],
+        }),
     });
   }, [navigation, isDarkMode, setShowAdvanced, showAdvanced]);
 

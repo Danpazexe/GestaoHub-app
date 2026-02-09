@@ -6,6 +6,10 @@ import * as XLSX from 'xlsx';
 import Share from 'react-native-share';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+} from '../../../shared/components/ScreenLayout';
 
 // Paleta de cores
 const colors = {
@@ -27,13 +31,18 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
 
   useEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: '#012677',
-      },
-      headerTintColor: '#FFFFFF',
-      headerTitle: 'Exportação / Importação',
-      headerTitleAlign: 'center',
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: '#012677',
+        darkHeaderColor: '#012677',
+        tintColor: '#FFFFFF',
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Exportação / Importação',
+          iconName: 'table-chart',
+          tintColor: '#FFFFFF',
+        }),
     });
 
     loadProducts();

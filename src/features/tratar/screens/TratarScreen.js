@@ -11,9 +11,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import Share from 'react-native-share';
-import { Menu, Provider } from 'react-native-paper';
+import { Menu } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+} from '../../../shared/components/ScreenLayout';
+import { CORESTRATAR } from '../../../../assets/cores/coresAuth';
+
+const COLORS = CORESTRATAR;
 
 const TratarScreen = ({ navigation, isDarkMode }) => {
   const [treatedItems, setTreatedItems] = useState([]);
@@ -25,11 +32,18 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
     loadTreatedItems();
     
     navigation.setOptions({
-      title: 'Produtos Tratados',
-      headerStyle: {
-        backgroundColor: isDarkMode ? '#2e2e2e' : '#FFA500',
-      },
-      headerTintColor: '#FFFFFF',
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: COLORS.primary,
+        darkHeaderColor: COLORS.primary,
+        tintColor: COLORS.white,
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Produtos Tratados',
+          iconName: 'assignment-turned-in',
+          tintColor: COLORS.white,
+        }),
       headerRight: () => (
         <View style={{ flexDirection: 'row', marginRight: 10 }}>
           <Menu
@@ -37,7 +51,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
             onDismiss={() => setMenuVisible(false)}
             anchor={
               <TouchableOpacity onPress={() => setMenuVisible(true)}>
-                <MaterialIcons name="more-vert" size={24} color="#FFFFFF" />
+                <MaterialIcons name="more-vert" size={24} color={COLORS.white} />
               </TouchableOpacity>
             }
           >
@@ -74,12 +88,12 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
 
   const getTreatmentTypeInfo = (type) => {
     const types = {
-      sold: { label: 'Vendido', color: '#4CAF50', icon: 'shopping-cart' },
-      exchanged: { label: 'Trocado', color: '#2196F3', icon: 'swap-horiz' },
-      returned: { label: 'Devolvido', color: '#FF9800', icon: 'assignment-return' },
-      expired: { label: 'Vencido', color: '#FF5252', icon: 'error' },
+      sold: { label: 'Vendido', color: COLORS.sold, icon: 'shopping-cart' },
+      exchanged: { label: 'Trocado', color: COLORS.exchanged, icon: 'swap-horiz' },
+      returned: { label: 'Devolvido', color: COLORS.returned, icon: 'assignment-return' },
+      expired: { label: 'Vencido', color: COLORS.expired, icon: 'error' },
     };
-    return types[type] || { label: 'Desconhecido', color: '#999', icon: 'help' };
+    return types[type] || { label: 'Desconhecido', color: COLORS.unknown, icon: 'help' };
   };
 
   const renderItem = ({ item }) => {
@@ -92,7 +106,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
             {item.descricao}
           </Text>
           <View style={[styles.badge, { backgroundColor: treatmentInfo.color }]}>
-            <MaterialIcons name={treatmentInfo.icon} size={16} color="#FFF" />
+            <MaterialIcons name={treatmentInfo.icon} size={16} color={COLORS.white} />
             <Text style={styles.badgeText}>{treatmentInfo.label}</Text>
           </View>
         </View>
@@ -126,18 +140,19 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
         styles.filterButton,
         selectedFilter === type && styles.filterButtonSelected,
         isDarkMode && styles.darkFilterButton,
+        selectedFilter === type && isDarkMode && styles.darkFilterButtonSelected,
       ]}
       onPress={() => setSelectedFilter(type)}
     >
       <MaterialIcons 
         name={icon} 
         size={20} 
-        color={selectedFilter === type ? '#FFF' : (isDarkMode ? '#FFF' : '#666')} 
+        color={selectedFilter === type ? COLORS.white : (isDarkMode ? COLORS.textDark : COLORS.textMuted)}
       />
       <Text style={[
         styles.filterButtonText,
-        selectedFilter === type && styles.filterButtonTextSelected,
-        isDarkMode && styles.darkText
+        isDarkMode && styles.darkText,
+        selectedFilter === type && styles.filterButtonTextSelected
       ]}>
         {label}
       </Text>
@@ -152,8 +167,8 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
     const items = filteredItems.map(item => {
       const treatmentInfo = getTreatmentTypeInfo(item.treatmentType);
       return `
-        <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
-          <h3 style="margin: 0; color: #333;">${item.descricao}</h3>
+        <div style="margin-bottom: 20px; padding: 10px; border: 1px solid ${COLORS.pdfBorder}; border-radius: 5px;">
+          <h3 style="margin: 0; color: ${COLORS.pdfText};">${item.descricao}</h3>
           <p style="margin: 5px 0; color: ${treatmentInfo.color};">Status: ${treatmentInfo.label}</p>
           <p>Código: ${item.codprod}</p>
           <p>Lote: ${item.lote}</p>
@@ -166,7 +181,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
     return `
       <html>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
-          <h1 style="color: #0077ed; text-align: center;">Relatório de Produtos Tratados</h1>
+          <h1 style="color: ${COLORS.pdfHeading}; text-align: center;">Relatório de Produtos Tratados</h1>
           <p style="text-align: center;">Data do relatório: ${new Date().toLocaleDateString('pt-BR')}</p>
           ${items}
         </body>
@@ -235,7 +250,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={isDarkMode ? '#6366F1' : '#3F51B5'} />
+        <ActivityIndicator size="large" color={isDarkMode ? COLORS.secondary : COLORS.primary} />
       </View>
     );
   }
@@ -268,10 +283,10 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   darkContainer: {
-    backgroundColor: '#121212',
+    backgroundColor: COLORS.backgroundDark,
   },
   centerContent: {
     justifyContent: 'center',
@@ -288,38 +303,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: COLORS.filterLight,
   },
   darkFilterButton: {
-    backgroundColor: '#333',
+    backgroundColor: COLORS.cardDark,
+  },
+  darkFilterButtonSelected: {
+    backgroundColor: COLORS.secondary,
   },
   filterButtonSelected: {
-    backgroundColor: '#FFA500',
+    backgroundColor: COLORS.primary,
   },
   filterButtonText: {
     marginLeft: 4,
-    color: '#666',
+    color: COLORS.textMuted,
     fontSize: 14,
   },
   filterButtonTextSelected: {
-    color: '#FFF',
+    color: COLORS.white,
   },
   listContent: {
     padding: 12,
   },
   itemCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   darkItemCard: {
-    backgroundColor: '#2e2e2e',
+    backgroundColor: COLORS.cardDark,
+    borderWidth: 1,
+    borderColor: COLORS.borderDark,
   },
   itemHeader: {
     flexDirection: 'row',
@@ -330,7 +350,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.text,
     flex: 1,
   },
   badge: {
@@ -342,7 +362,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   badgeText: {
-    color: '#FFF',
+    color: COLORS.white,
     fontSize: 12,
     marginLeft: 4,
     fontWeight: '500',
@@ -352,15 +372,15 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textMuted,
   },
   darkText: {
-    color: '#E0E0E0',
+    color: COLORS.textDark,
   },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textMuted,
     marginTop: 20,
   },
   quantityContainer: {

@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Modal, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Image, Modal, TouchableOpacity } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ImageViewer from 'react-native-image-zoom-viewer';
+import { CORESPRODUCTITEM } from '../../../assets/cores/coresAuth';
+
+const COLORS = CORESPRODUCTITEM;
 
 // Componente para exibir detalhes sobre um produto
 const ProductItem = ({ product, isDarkMode }) => {
@@ -13,8 +16,8 @@ const ProductItem = ({ product, isDarkMode }) => {
       return { 
         number: 'VENCIDO',
         label: `${Math.abs(days)} dia(s)`,
-        color: '#fff',
-        backgroundColor: '#6b7280',
+        color: COLORS.white,
+        backgroundColor: COLORS.badgeExpired,
         icon: 'warning',
         status: 'Produto Vencido'
       }; 
@@ -22,8 +25,8 @@ const ProductItem = ({ product, isDarkMode }) => {
       return { 
         number: 'VENCE',
         label: 'HOJE',
-        color: '#fff',
-        backgroundColor: '#dc2626',
+        color: COLORS.white,
+        backgroundColor: COLORS.badgeToday,
         icon: 'error',
         status: 'Vencendo Hoje'
       }; 
@@ -31,8 +34,8 @@ const ProductItem = ({ product, isDarkMode }) => {
       return { 
         number: days.toString(),
         label: 'DIAS',
-        color: '#fff',
-        backgroundColor: '#ea580c',
+        color: COLORS.white,
+        backgroundColor: COLORS.badgeWeek,
         icon: 'schedule',
         status: `Vence em ${days} dias`
       }; 
@@ -40,8 +43,8 @@ const ProductItem = ({ product, isDarkMode }) => {
       return { 
         number: days.toString(),
         label: 'DIAS',
-        color: '#fff',
-        backgroundColor: '#f59e0b',
+        color: COLORS.white,
+        backgroundColor: COLORS.badgeFifteen,
         icon: 'event',
         status: `Vence em ${days} dias`
       }; 
@@ -49,8 +52,8 @@ const ProductItem = ({ product, isDarkMode }) => {
       return { 
         number: days.toString(),
         label: 'DIAS',
-        color: '#fff',
-        backgroundColor: '#10b981',
+        color: COLORS.white,
+        backgroundColor: COLORS.badgeMonth,
         icon: 'check-circle',
         status: `Vence em ${days} dias`
       }; 
@@ -58,8 +61,8 @@ const ProductItem = ({ product, isDarkMode }) => {
       return { 
         number: days.toString(),
         label: 'DIAS',
-        color: '#fff',
-        backgroundColor: '#3b82f6',
+        color: COLORS.white,
+        backgroundColor: COLORS.badgeFuture,
         icon: 'check-circle',
         status: `Vence em ${days} dias`
       }; 
@@ -120,7 +123,7 @@ const ProductItem = ({ product, isDarkMode }) => {
         <View style={styles.modalBackground}>
           {/* Botão de fechar */}
           <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-            <MaterialIcons name="close" size={32} color="#fff" />
+            <MaterialIcons name="close" size={32} color={COLORS.white} />
           </TouchableOpacity>
           {imageUrl ? (
             isHttpImage ? (
@@ -128,21 +131,21 @@ const ProductItem = ({ product, isDarkMode }) => {
                 imageUrls={images}
                 enableSwipeDown={true}
                 onSwipeDown={() => setModalVisible(false)}
-                backgroundColor="rgba(0,0,0,0.95)"
+                backgroundColor={COLORS.modalBackground}
                 renderIndicator={() => null}
                 saveToLocalByLongPress={false}
               />
             ) : (
-              <View style={{flex:1, justifyContent:'center', alignItems:'center', width:'100%'}}>
+              <View style={styles.previewContainer}>
                 <Image
                   source={{ uri: imageUrl }}
-                  style={{ width: '90%', height: '80%', borderRadius: 10, resizeMode: 'contain' }}
+                  style={styles.previewImage}
                 />
               </View>
             )
           ) : (
-            <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
-              <Text style={{color:'#fff', fontSize:18}}>Imagem não disponível</Text>
+            <View style={styles.noImageContainer}>
+              <Text style={styles.noImageText}>Imagem não disponível</Text>
             </View>
           )}
         </View>
@@ -174,31 +177,31 @@ const ProductItem = ({ product, isDarkMode }) => {
           {/* Detalhes do Produto em Grid */}
           <View style={styles.infoGrid}>
             <View style={styles.infoRow}>
-              <MaterialIcons name="code" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="code" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Código:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codprod}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="format-list-numbered" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="format-list-numbered" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Qtd:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.quantidade}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="qr-code" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="qr-code" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>EAN:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codauxiliar}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="label" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="label" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Lote:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.lote}</Text>
             </View>
 
             <View style={styles.infoRow}>
-              <MaterialIcons name="event" size={17} color={isDarkMode ? '#fefeeb' : '#757575'} style={styles.icon} />
+              <MaterialIcons name="event" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
               <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Validade:</Text>
               <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.validade}</Text>
             </View>
@@ -216,7 +219,7 @@ const ProductItem = ({ product, isDarkMode }) => {
             </TouchableOpacity>
           ) : (
             <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
-              <MaterialIcons name="no-photography" size={38} color={isDarkMode ? '#888' : '#bbb'} />
+              <MaterialIcons name="no-photography" size={38} color={isDarkMode ? COLORS.labelDark : COLORS.label} />
             </View>
           )}
         </View>
@@ -235,17 +238,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: COLORS.card,
     borderRadius: 10,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     position: 'relative',
   },
   darkContainer: {
-    backgroundColor: '#2e2e2e', 
+    backgroundColor: COLORS.cardDark,
   },
   
   productDetails: {
@@ -258,11 +261,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
     marginBottom: 4,
-    color: '#37474F',
+    color: COLORS.title,
     lineHeight: 20,
   },
   darkProductName: {
-    color: '#e3e3e3', 
+    color: COLORS.titleDark,
   },
   
   infoGrid: {
@@ -284,20 +287,20 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
     fontSize: 14,
-    color: '#757575',
+    color: COLORS.label,
     marginRight: 4,
   },
   darkLabel: {
-    color: '#b0b0b0', 
+    color: COLORS.labelDark,
   },
   
   value: {
     fontSize: 14,
-    color: '#424242',
+    color: COLORS.value,
     fontWeight: '500',
   },
   darkValue: {
-    color: '#e0e0e0', 
+    color: COLORS.valueDark,
   },
   
   statusBadge: {
@@ -310,7 +313,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 12,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
@@ -332,26 +335,26 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: COLORS.imageBackground,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
+    borderColor: COLORS.imageBorder,
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.10,
     shadowRadius: 2,
   },
   placeholderImage: {
-    backgroundColor: '#f3f3f3',
+    backgroundColor: COLORS.imageBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderImageDark: {
-    backgroundColor: '#444',
-    borderColor: '#222',
+    backgroundColor: COLORS.placeholderDark,
+    borderColor: COLORS.placeholderBorderDark,
   },
   modalBackground: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
+    backgroundColor: COLORS.modalBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -360,9 +363,30 @@ const styles = StyleSheet.create({
     top: 40,
     right: 20,
     zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: COLORS.modalCloseBackground,
     borderRadius: 20,
     padding: 2,
+  },
+  previewContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  previewImage: {
+    width: '90%',
+    height: '80%',
+    borderRadius: 10,
+    resizeMode: 'contain',
+  },
+  noImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noImageText: {
+    color: COLORS.white,
+    fontSize: 18,
   },
 });
 

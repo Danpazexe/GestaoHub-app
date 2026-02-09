@@ -6,6 +6,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+} from '../../../shared/components/ScreenLayout';
 
 const PdfScreen = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(false);
@@ -23,13 +27,18 @@ const PdfScreen = ({ isDarkMode }) => {
 
   useEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: '#d7263d', // vermelho do cartão principal
-      },
-      headerTintColor: '#FFFFFF',
-      headerTitle: 'Exportar e Compartilhar PDF',
-      headerTitleAlign: 'center',
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: '#d7263d',
+        darkHeaderColor: '#d7263d',
+        tintColor: '#FFFFFF',
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Exportar e Compartilhar PDF',
+          iconName: 'picture-as-pdf',
+          tintColor: '#FFFFFF',
+        }),
     });
   }, [navigation, isDarkMode]);
 

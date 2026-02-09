@@ -3,11 +3,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
 import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, TouchableOpacity, View } from 'react-native';
-import { SafeAreaProvider, useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from './src/shared/components/toastConfig';
-import { Provider as PaperProvider, Portal } from 'react-native-paper';
+import { Provider as PaperProvider } from 'react-native-paper';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { enableScreens } from 'react-native-screens';
@@ -16,6 +16,8 @@ import { enableScreens } from 'react-native-screens';
 import EntryScreen from './src/features/auth/screens/EntryScreen';
 import ListScreen from './src/features/list/screens/ListScreen';
 import HomeScreen from './src/features/home/screens/HomeScreen';
+import ModuleFunctionsScreen from './src/features/home/screens/ModuleFunctionsScreen';
+import ModuleBaseScreen from './src/features/modules/screens/ModuleBaseScreen';
 import AddProductScreen from './src/features/additem/screens/AddProductScreen';
 import BarcodeScannerScreen from './src/features/additem/screens/BarcodeScannerScreen';
 import SettingsScreen from './src/features/settings/screens/SettingsScreen';
@@ -40,6 +42,8 @@ const getStatusBarBackground = (routeName, isDarkMode) => {
     LoginScreen: '#ffffff',
     RegisterScreen: '#ffffff',
     HomeScreen: '#f7f7f8',
+    ModuleFunctionsScreen: '#f7f7f8',
+    ModuleBaseScreen: '#f7f7f8',
     ListScreen: '#40444c',
     AddProductScreen: '#40444c',
     DashboardScreen: '#C42D2F',
@@ -51,6 +55,7 @@ const getStatusBarBackground = (routeName, isDarkMode) => {
     ExcelScreen: '#012677',
     PdfScreen: '#d7263d',
     PdfViewerScreen: '#f7f7f8',
+    BarcodeScannerScreen: '#000000',
   };
 
   const dark = {
@@ -58,6 +63,8 @@ const getStatusBarBackground = (routeName, isDarkMode) => {
     LoginScreen: '#2f333a',
     RegisterScreen: '#2f333a',
     HomeScreen: '#2f333a',
+    ModuleFunctionsScreen: '#2f333a',
+    ModuleBaseScreen: '#2f333a',
     ListScreen: '#2f333a',
     AddProductScreen: '#2f333a',
     DashboardScreen: '#2f333a',
@@ -69,6 +76,7 @@ const getStatusBarBackground = (routeName, isDarkMode) => {
     ExcelScreen: '#012677',
     PdfScreen: '#d7263d',
     PdfViewerScreen: '#2f333a',
+    BarcodeScannerScreen: '#000000',
   };
 
   const palette = isDarkMode ? dark : light;
@@ -96,49 +104,23 @@ const isColorDark = (hex) => {
 };
 
 // Componente StatusBar customizado
-const CustomStatusBar = ({ isDarkMode, backgroundColor }) => (
-  <View style={{ backgroundColor }}>
-    <StatusBar
-      translucent
-      backgroundColor="transparent"
-      animated
-      barStyle={isColorDark(backgroundColor) ? 'light-content' : 'dark-content'}
-      hidden={false}
-    />
-  </View>
+const CustomStatusBar = ({ backgroundColor, hidden = false }) => (
+  <StatusBar
+    translucent={false}
+    backgroundColor={backgroundColor}
+    animated
+    barStyle={isColorDark(backgroundColor) ? 'light-content' : 'dark-content'}
+    hidden={hidden}
+  />
 );
 
 const AppBackground = ({ backgroundColor, children }) => {
-  const insets = useSafeAreaInsets();
-  const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
-  const overlayHeight = Math.max(topInset, 60);
-
   return (
     <View style={{ flex: 1, backgroundColor, position: 'relative', overflow: 'visible' }}>
       <View style={{ flex: 1 }}>
         {children}
       </View>
     </View>
-  );
-};
-
-const StatusBarOverlay = ({ color }) => {
-  const insets = useSafeAreaInsets();
-  const topInset = insets.top || initialWindowMetrics?.insets.top || 0;
-  const overlayHeight = Math.max(topInset, 60);
-  return (
-    <View
-      pointerEvents="none"
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: overlayHeight,
-        backgroundColor: color,
-        zIndex: 9999,
-      }}
-    />
   );
 };
 
@@ -187,6 +169,7 @@ export default function App() {
   const navigationRef = useNavigationContainerRef();
   const routeNameRef = useRef();
   const theme = isDarkMode ? DarkTheme : DefaultTheme;
+  const isScannerRoute = routeNameRef.current === 'BarcodeScannerScreen';
   const themed = {
     ...theme,
     colors: {
@@ -314,9 +297,6 @@ export default function App() {
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <AppBackground backgroundColor={statusBarBackground}>
         <PaperProvider>
-          <Portal>
-            <StatusBarOverlay color={statusBarBackground} />
-          </Portal>
           <NavigationContainer 
             ref={navigationRef}
             theme={themed}
@@ -330,7 +310,7 @@ export default function App() {
               setStatusBarBackground(getStatusBarBackground(currentRouteName, isDarkMode));
             }}
           >
-            <CustomStatusBar isDarkMode={isDarkMode} backgroundColor={statusBarBackground} />
+            <CustomStatusBar backgroundColor={statusBarBackground} hidden={isScannerRoute} />
 
           <Stack.Navigator
             initialRouteName="EntryScreen"
@@ -366,6 +346,24 @@ export default function App() {
               {props => <HomeScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
+            <Stack.Screen
+              name="ModuleFunctionsScreen"
+              options={({ route }) => ({
+                title: route.params?.module?.title || 'Funcionalidades',
+              })}
+            >
+              {props => <ModuleFunctionsScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
+            <Stack.Screen
+              name="ModuleBaseScreen"
+              options={({ route }) => ({
+                title: route.params?.title || 'Funcionalidade',
+              })}
+            >
+              {props => <ModuleBaseScreen {...props} isDarkMode={isDarkMode} />}
+            </Stack.Screen>
+
             <Stack.Screen name="ListScreen">
               {props => <ListScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
@@ -394,7 +392,7 @@ export default function App() {
               {props => <RegisterScreen {...props} isDarkMode={isDarkMode} />}
             </Stack.Screen>
 
-            <Stack.Screen name="BarcodeScannerScreen">
+            <Stack.Screen name="BarcodeScannerScreen" options={{ headerShown: false }}>
               {props => <BarcodeScannerScreen {...props} />}
             </Stack.Screen>
 

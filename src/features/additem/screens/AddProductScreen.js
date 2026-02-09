@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image } from 'react-native';
+import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image, Linking } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Camera } from 'react-native-vision-camera';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -9,19 +9,30 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Toast from 'react-native-toast-message';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLayout, {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+  createHeaderActionsTemplate,
+} from '../../../shared/components/ScreenLayout';
+import { CORESADDPRODUCT } from '../../../../assets/cores/coresAuth';
 
 const COLORS = {
-  primary: '#40444c',
-  secondary: '#f4cc84',
-  accent: '#3c446c',
-  background: '#f7f7f8',
-  darkBackground: '#2f333a',
-  card: '#ffffff',
-  border: 'rgba(64, 68, 76, 0.22)',
-  text: '#40444c',
-  textMuted: 'rgba(64, 68, 76, 0.7)',
-  white: '#ffffff',
+  ...CORESADDPRODUCT,
+  dangerLight: '#B00020',
+  dangerDark: '#FF6B6B',
+  successLight: '#4CAF50',
+  successDark: '#6EE7B7',
+  borderDark: '#3a4265',
+  overlaySoft: 'rgba(10, 14, 30, 0.35)',
+  overlayStrong: 'rgba(10, 14, 30, 0.55)',
+  neutralDark: '#26304a',
+  neutralMid: '#6f789b',
+  neutralLight: '#c2c8dd',
+  placeholderLight: '#7b839e',
+  placeholderDark: '#9fa7c7',
+  closeDanger: '#E53935',
+  fieldIconLight: '#3f476e',
+  fieldIconDark: '#d6dbf1',
 };
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
@@ -132,63 +143,46 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       console.log("Código EAN recebido da rota:", route.params.barcodeData);  // Log para verificar o EAN recebido
     }
 
-    const headerButtonStyle = {
-      padding: 8,
-      borderRadius: 8,
-      marginLeft: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.2)',
-    };
-
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.primary,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-      },
-      headerTintColor: COLORS.white,
-      headerTitleStyle: {
-        fontSize: 20,
-        fontWeight: '600',
-        letterSpacing: 0.5,
-      },
-      headerTitle: () => (
-        <View style={styles.headerTitleContainer}>
-          <MaterialCommunityIcons 
-            name={isEditing ? "pencil-circle" : "plus-circle"} 
-            size={24} 
-            color={COLORS.white} 
-          />
-          <Text style={styles.headerTitleText}>
-            {isEditing ? 'Editar Produto' : 'Cadastrar Produto'}
-          </Text>
-        </View>
-      ),
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', marginRight: 8 }}>
-          <TouchableOpacity 
-            style={[
-              headerButtonStyle,
-              showHistory && { backgroundColor: isDarkMode ? COLORS.primary : COLORS.accent }
-            ]}
-            onPress={() => {
-              loadRecentProducts();
-              setShowHistory(!showHistory);
-            }}
-          >
-            <MaterialCommunityIcons 
-              name="history" 
-              size={24} 
-              color={COLORS.white} 
-            />
-          </TouchableOpacity>
-        </View>
-      ),
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: '#3c446c',
+        darkHeaderColor: '#3c446c',
+        tintColor: COLORS.white,
+        titleSize: 20,
+        titleWeight: '600',
+        titleLetterSpacing: 0.5,
+        headerStyleOverride: {
+          elevation: 4,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 3,
+        },
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: isEditing ? 'Editar Produto' : 'Cadastrar Produto',
+          iconName: isEditing ? 'edit' : 'add-circle-outline',
+          tintColor: COLORS.white,
+        }),
+      headerRight: () =>
+        createHeaderActionsTemplate({
+          isDarkMode,
+          actions: [
+            {
+              key: 'toggle-history',
+              iconName: 'history',
+              IconComponent: MaterialCommunityIcons,
+              onPress: () => {
+                loadRecentProducts();
+                setShowHistory(!showHistory);
+              },
+              isActive: showHistory,
+              activeBackgroundColor: isDarkMode ? COLORS.primary : COLORS.accent,
+              iconColor: COLORS.white,
+            },
+          ],
+        }),
     });
 
     loadProductData();
@@ -284,22 +278,47 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const handleScanBarcode = async () => {
-    const status = await Camera.requestCameraPermission();
-    console.log("Status da permissão para a câmera:", status);
+    try {
+      const currentStatus = Camera.getCameraPermissionStatus();
+      const isGranted = currentStatus === 'granted' || currentStatus === true;
 
-    if (status === 'authorized') {
-      Toast.show({
-        type: 'info',
-        text1: 'Scanner Ativo',
-        text2: 'Posicione o código de barras no centro da tela',
-        visibilityTime: 3000,
-      });
-      navigation.navigate('BarcodeScannerScreen');
-    } else {
+      if (isGranted) {
+        navigation.navigate('BarcodeScannerScreen');
+        return;
+      }
+
+      if (currentStatus === 'not-determined') {
+        const requestStatus = await Camera.requestCameraPermission();
+        const authorized = requestStatus === true || requestStatus === 'authorized' || requestStatus === 'granted';
+
+        if (authorized) {
+          Toast.show({
+            type: 'info',
+            text1: 'Scanner Ativo',
+            text2: 'Posicione o código de barras no centro da tela',
+            visibilityTime: 2000,
+          });
+          navigation.navigate('BarcodeScannerScreen');
+          return;
+        }
+      }
+
+      Alert.alert(
+        'Permissão de Câmera',
+        'Para escanear código de barras, habilite o acesso à câmera nas configurações do app.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Abrir Ajustes',
+            onPress: () => Linking.openSettings(),
+          },
+        ],
+      );
+    } catch (error) {
       Toast.show({
         type: 'error',
-        text1: 'Permissão necessária',
-        text2: 'A permissão para acessar a câmera é necessária para escanear o código de barras.',
+        text1: 'Erro',
+        text2: 'Não foi possível iniciar o scanner.',
         visibilityTime: 3000,
       });
     }
@@ -342,7 +361,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         <MaterialIcons 
           name="error-outline" 
           size={24} 
-          color={isDarkMode ? '#FF6B6B' : '#B00020'}
+          color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight}
           style={styles.fieldIcon}
         />
       );
@@ -351,7 +370,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       <MaterialIcons 
         name="check-circle" 
         size={24} 
-        color={isDarkMode ? '#4ADE80' : '#4CAF50'}
+        color={isDarkMode ? COLORS.successDark : COLORS.successLight}
         style={styles.fieldIcon}
       />
     );
@@ -359,9 +378,6 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
   // Mova a definição dos styles para dentro do componente
   const getStyles = (isDarkMode) => StyleSheet.create({
-    safeArea: {
-      flex: 1,
-    },
     container: {
       flex: 1,
       padding: 12,
@@ -370,7 +386,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       flex: 1,
       padding: 16,
       borderRadius: 12,
-      backgroundColor: isDarkMode ? '#1E1E1E' : COLORS.card,
+      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
       elevation: 4,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -418,8 +434,8 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       alignItems: 'center',
       borderWidth: 1,
       borderRadius: 8,
-      borderColor: isDarkMode ? '#404040' : COLORS.border,
-      backgroundColor: isDarkMode ? '#1E1E1E' : COLORS.card,
+      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
+      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card,
       padding: 4,
       shadowColor: "#000",
       shadowOffset: {
@@ -446,9 +462,9 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       color: '#000000',
     },
     darkInput: {
-      backgroundColor: '#333333',
+      backgroundColor: COLORS.inputDark,
       color: '#E0E0E0',
-      borderColor: '#404040',
+      borderColor: COLORS.borderDark,
     },
     eanContainer: {
       flexDirection: 'row',
@@ -462,7 +478,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       paddingHorizontal: 16,
       fontSize: 16,
       borderWidth: 1,
-      borderColor: isDarkMode ? '#404040' : COLORS.border,
+      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
     },
     scanButton: {
       width: 40,
@@ -510,17 +526,11 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       fontWeight: 'bold',
       marginLeft: 8,
     },
-    lightBackground: {
-      backgroundColor: COLORS.background,
-    },
-    darkBackground: {
-      backgroundColor: COLORS.darkBackground,
-    },
     lightText: {
       color: COLORS.text,
     },
     darkText: {
-      color: 'rgba(255, 255, 255, 0.88)',
+      color: COLORS.fieldIconDark,
     },
     fieldIcon: {
       marginRight: 12,
@@ -529,30 +539,16 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     requiredText: {
       fontSize: 12,
       marginTop: 4,
-      color: isDarkMode ? '#FF6B6B' : '#B00020',
+      color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
     },
     emptyField: {
-      borderColor: isDarkMode ? '#FF6B6B' : '#B00020',
+      borderColor: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
       borderWidth: 2,
-      backgroundColor: isDarkMode ? '#2D1F1F' : '#FFF5F5',
+      backgroundColor: isDarkMode ? '#3a2733' : '#FFF5F7',
     },
     requiredAsterisk: {
-      color: isDarkMode ? '#FF6B6B' : '#B00020',
+      color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
       marginLeft: 4,
-    },
-    headerTitleContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    headerTitleText: {
-      color: COLORS.white,
-      fontSize: 20,
-      fontWeight: 'bold',
-    },
-    headerButton: {
-      marginRight: 16,
-      padding: 8,
     },
     historyOverlay: {
       position: 'absolute',
@@ -560,7 +556,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.3)',
+      backgroundColor: COLORS.overlaySoft,
       justifyContent: 'flex-start',
     },
     historyContainer: {
@@ -568,7 +564,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       top: 80,
       right: 16,
       width: '80%',
-      backgroundColor: isDarkMode ? '#1E1E1E' : COLORS.card,
+      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
       borderRadius: 12,
       elevation: 5,
       shadowColor: '#000',
@@ -601,7 +597,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       alignItems: 'center',
       padding: 12,
       borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? '#333333' : '#E0E0E0',
+      borderBottomColor: isDarkMode ? COLORS.borderDark : 'rgba(60, 68, 108, 0.15)',
     },
     historyText: {
       marginLeft: 12,
@@ -615,9 +611,9 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       width: 120,
       height: 120,
       borderRadius: 60,
-      backgroundColor: isDarkMode ? '#333' : '#f5f5f5',
+      backgroundColor: isDarkMode ? COLORS.neutralDark : '#edf0fa',
       borderWidth: 2,
-      borderColor: isDarkMode ? '#555' : '#ddd',
+      borderColor: isDarkMode ? COLORS.neutralMid : COLORS.neutralLight,
       borderStyle: 'dashed',
       justifyContent: 'center',
       alignItems: 'center',
@@ -637,13 +633,13 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       height: 120,
       borderRadius: 60,
       borderWidth: 3,
-      borderColor: isDarkMode ? '#555' : '#ddd',
+      borderColor: isDarkMode ? COLORS.neutralMid : COLORS.neutralLight,
     },
     removePhotoButton: {
       position: 'absolute',
       top: -8,
       right: -8,
-      backgroundColor: '#e53935',
+      backgroundColor: COLORS.closeDanger,
       borderRadius: 15,
       width: 30,
       height: 30,
@@ -658,7 +654,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     retakePhotoButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: isDarkMode ? '#2d5a57' : '#1a4645',
+      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 20,
@@ -669,7 +665,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       shadowRadius: 2,
     },
     retakePhotoText: {
-      color: '#FFF',
+      color: COLORS.white,
       fontSize: 14,
       fontWeight: '600',
       marginLeft: 4,
@@ -680,13 +676,13 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: COLORS.overlayStrong,
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 2000,
     },
     imageOptionsContainer: {
-      backgroundColor: isDarkMode ? '#1E1E1E' : '#FFFFFF',
+      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
       borderRadius: 16,
       padding: 20,
       margin: 20,
@@ -702,7 +698,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       fontWeight: 'bold',
       textAlign: 'center',
       marginBottom: 20,
-      color: isDarkMode ? '#FFFFFF' : '#333333',
+      color: isDarkMode ? COLORS.white : COLORS.text,
     },
     imageOptionButton: {
       flexDirection: 'row',
@@ -711,10 +707,10 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       paddingHorizontal: 20,
       borderRadius: 12,
       marginBottom: 12,
-      backgroundColor: isDarkMode ? '#2d5a57' : '#1a4645',
+      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
     },
     imageOptionText: {
-      color: '#FFFFFF',
+      color: COLORS.white,
       fontSize: 16,
       fontWeight: '600',
       marginLeft: 12,
@@ -726,11 +722,11 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderRadius: 12,
-      backgroundColor: isDarkMode ? '#444' : '#f0f0f0',
+      backgroundColor: isDarkMode ? COLORS.neutralDark : '#e9edf8',
       marginTop: 8,
     },
     cancelButtonText: {
-      color: isDarkMode ? '#FFFFFF' : '#333333',
+      color: isDarkMode ? COLORS.white : COLORS.text,
       fontSize: 16,
       fontWeight: '600',
     },
@@ -859,22 +855,17 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        { backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.background },
-      ]}
-      edges={['top', 'left', 'right']}
+    <ScreenLayout
+      isDarkMode={isDarkMode}
+      lightBackground={COLORS.background}
+      darkBackground={COLORS.darkBackground}
+      contentStyle={styles.container}
     >
-      <View style={[
-        styles.container, 
-        isDarkMode ? styles.darkBackground : styles.lightBackground
-      ]}>
       <View style={styles.formCard}>
         {/* Campo Foto do Produto */}
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+            <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
             {' '}Foto do Produto
           </Text>
           <View style={styles.photoContainer}>
@@ -896,7 +887,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                 <MaterialCommunityIcons 
                   name="camera-plus" 
                   size={48} 
-                  color={isDarkMode ? '#888' : '#bbb'} 
+                  color={isDarkMode ? COLORS.neutralMid : COLORS.neutralLight} 
                 />
                 <Text style={[styles.photoPlaceholderText, isDarkMode ? styles.darkText : styles.lightText]}>
                   Adicionar Foto
@@ -918,7 +909,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         {/* Campo Nome do Produto */}
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+            <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
             {' '}Nome do Produto
           </Text>
           <View style={[
@@ -930,7 +921,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               value={productName}
               onChangeText={setProductName}
               style={styles.input}
-              placeholderTextColor={isDarkMode ? '#A8B8A7' : '#A9A9A9'}
+              placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
             />
             {renderFieldStatus('productName')}
           </View>
@@ -950,7 +941,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         <View style={styles.rowContainer}>
           <View style={[styles.fieldContainer, { flex: 1, marginRight: 10 }]}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="barcode-scan" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+              <MaterialCommunityIcons name="barcode-scan" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
               {' '}Lote
             </Text>
             <View style={[
@@ -962,7 +953,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                 value={lote}
                 onChangeText={setBatch}
                 style={styles.input}
-                placeholderTextColor={isDarkMode ? '#A8B8A7' : '#A9A9A9'}
+                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
               />
               {renderFieldStatus('lote')}
             </View>
@@ -980,7 +971,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
           <View style={[styles.fieldContainer, { flex: 1 }]}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="numeric" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+              <MaterialCommunityIcons name="numeric" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
               {' '}Quantidade
             </Text>
             <View style={[
@@ -993,7 +984,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                 onChangeText={(text) => setQuantity(text.replace(/[^0-9]/g, ''))}
                 keyboardType="numeric"
                 style={styles.input}
-                placeholderTextColor={isDarkMode ? '#A8B8A7' : '#A9A9A9'}
+                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
               />
               {renderFieldStatus('quantidade')}
             </View>
@@ -1013,7 +1004,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         {/* Campo Código Interno */}
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+            <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
             {' '}Código Interno
           </Text>
           <View style={[
@@ -1026,7 +1017,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               onChangeText={(text) => setcodprod(text.replace(/[^0-9]/g, ''))}
               keyboardType="numeric"
               style={styles.input}
-              placeholderTextColor={isDarkMode ? '#A8B8A7' : '#A9A9A9'}
+              placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
             />
             {renderFieldStatus('codprod')}
           </View>
@@ -1045,7 +1036,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         {/* Campo EAN */}
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+            <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
             {' '}EAN
           </Text>
           <View style={styles.eanContainer}>
@@ -1060,7 +1051,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                 onChangeText={(text) => setEan(text.replace(/[^0-9]/g, ''))}
                 keyboardType="numeric"
                 style={styles.input}
-                placeholderTextColor={isDarkMode ? '#A8B8A7' : '#A9A9A9'}
+                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
               />
               {renderFieldStatus('codauxiliar')}
             </View>
@@ -1086,7 +1077,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         {/* Campo Data de Validade */}
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="calendar-clock" size={18} color={isDarkMode ? '#FFFFFF' : '#333333'} />
+            <MaterialCommunityIcons name="calendar-clock" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
             {' '}Data de Validade
           </Text>
           <View style={[
@@ -1100,7 +1091,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               <MaterialCommunityIcons 
                 name="calendar" 
                 size={24} 
-                color={isDarkMode ? '#A8B8A7' : '#5d7e62'} 
+                color={isDarkMode ? COLORS.placeholderDark : COLORS.accent} 
               />
               <Text style={[styles.dateText, isDarkMode ? styles.darkText : styles.lightText]}>
                 {validade.toLocaleDateString('pt-BR')}
@@ -1222,7 +1213,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   <MaterialCommunityIcons 
                     name="history" 
                     size={24} 
-                    color={isDarkMode ? '#FFFFFF' : '#333333'} 
+                    color={isDarkMode ? COLORS.white : COLORS.text} 
                   />
                   <Text style={[styles.historyTitle, isDarkMode ? styles.darkText : styles.lightText]}>
                     Produtos Recentes
@@ -1235,7 +1226,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   <MaterialCommunityIcons 
                     name="close-circle" 
                     size={28} 
-                    color={isDarkMode ? '#FF6B6B' : '#B00020'} 
+                    color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight} 
                   />
                 </TouchableOpacity>
               </View>
@@ -1249,7 +1240,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   <MaterialCommunityIcons 
                     name="package-variant" 
                     size={24} 
-                    color={isDarkMode ? '#B39DDB' : '#673AB7'} 
+                    color={isDarkMode ? '#A8B0D8' : COLORS.accent} 
                   />
                   <Text style={[styles.historyText, isDarkMode ? styles.darkText : styles.lightText]}>
                     {product.descricao}
@@ -1260,8 +1251,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           </Animated.View>
         </TouchableOpacity>
       )}
-      </View>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 };
 

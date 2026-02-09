@@ -5,6 +5,10 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import Toast from 'react-native-toast-message';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+} from '../../../shared/components/ScreenLayout';
 
 
 
@@ -17,19 +21,23 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
   useEffect(() => {
     loadSettings();
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: isDarkMode ? '#1F2937' : '#374151',
-        elevation: 0,
-        shadowOpacity: 0,
-      },
-      headerTintColor: '#FFFFFF',
-      headerTitle: 'Configurações',
-      headerTitleStyle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-      },
-      headerTitleAlign: 'center',
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: '#374151',
+        darkHeaderColor: '#1F2937',
+        tintColor: '#FFFFFF',
+        titleSize: 20,
+        titleWeight: '700',
+        headerStyleOverride: {
+          shadowOpacity: 0,
+        },
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Configurações',
+          iconName: 'settings',
+          tintColor: '#FFFFFF',
+        }),
     });
   }, [navigation, isDarkMode]);
 

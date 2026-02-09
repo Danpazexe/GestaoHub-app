@@ -9,21 +9,14 @@ import { Animated, LayoutAnimation } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Toast from 'react-native-toast-message';
 import SwipeableListItem from '../../../shared/components/SwipeableListItem';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenLayout, {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+  createHeaderActionsTemplate,
+} from '../../../shared/components/ScreenLayout';
+import { CORESLIST } from '../../../../assets/cores/coresAuth';
 
-const COLORS = {
-  primary: '#40444c',
-  secondary: '#f4cc84',
-  accent: '#3c446c',
-  background: '#f7f7f8',
-  darkBackground: '#2f333a',
-  card: '#ffffff',
-  border: 'rgba(64, 68, 76, 0.22)',
-  text: '#40444c',
-  textMuted: 'rgba(64, 68, 76, 0.75)',
-  white: '#ffffff',
-  error: '#ef4444',
-};
+const COLORS = CORESLIST;
 
 const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -116,65 +109,46 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   }, [route?.params?.newProduct]);
 
   useEffect(() => {
-    const headerButtonStyle = {
-      padding: 8,
-      borderRadius: 8,
-      marginLeft: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.22)',
-    };
-
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.primary,
-        elevation: 0,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 6,
-      },
-      headerTintColor: COLORS.white,
-      headerTitleStyle: {
-        fontSize: 18,
-        fontWeight: '700',
-        letterSpacing: 0.4,
-      },
-      headerTitle: () => (
-        <View style={styles.headerTitleContainer}>
-          <View style={styles.headerTitleIcon}>
-            <MaterialIcons name="list-alt" size={18} color={COLORS.white} />
-          </View>
-          <View>
-            <Text style={styles.headerTitleText}>Lista de Produtos</Text>
-            <Text style={styles.headerSubtitleText}>Gerencie seu estoque</Text>
-          </View>
-        </View>
-      ),
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', marginRight: 8 }}>
-          <TouchableOpacity 
-            style={[
-              headerButtonStyle,
-              showExpiring && { backgroundColor: COLORS.secondary }
-            ]}
-            onPress={() => setShowExpiring(!showExpiring)}
-          >
-            <MaterialIcons 
-              name="warning" 
-              size={24} 
-              color={COLORS.white} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={headerButtonStyle}
-            onPress={() => navigation.navigate('AddProductScreen')}
-          >
-            <MaterialIcons name="add" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-        </View>
-      ),
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: COLORS.primary,
+        darkHeaderColor: COLORS.primary,
+        tintColor: COLORS.white,
+        titleSize: 18,
+        titleWeight: '700',
+        titleLetterSpacing: 0.4,
+        headerStyleOverride: {
+          shadowOpacity: 0.06,
+        },
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Lista de Produtos',
+          subtitle: 'Gerencie seu estoque',
+          iconName: 'list-alt',
+          tintColor: COLORS.white,
+        }),
+      headerRight: () =>
+        createHeaderActionsTemplate({
+          isDarkMode,
+          actions: [
+            {
+              key: 'toggle-expiring',
+              iconName: 'warning',
+              onPress: () => setShowExpiring(!showExpiring),
+              isActive: showExpiring,
+              activeBackgroundColor: COLORS.warningActiveBackground,
+              iconColor: COLORS.white,
+            },
+            {
+              key: 'add-product',
+              iconName: 'add',
+              onPress: () => navigation.navigate('AddProductScreen'),
+              iconColor: COLORS.white,
+            },
+          ],
+        }),
     });
   }, [navigation, isDarkMode, showExpiring]);
 
@@ -298,7 +272,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const renderSortOptions = () => {
     const dividerStyle = {
       width: 1,
-      backgroundColor: isDarkMode ? '#444' : '#e0e0e0',
+      backgroundColor: isDarkMode ? COLORS.borderDark : COLORS.border,
       marginHorizontal: 2,
     };
 
@@ -322,7 +296,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           <MaterialIcons 
             name="event" 
             size={16} 
-            color={sortOrder.field === 'validade' ? '#FFF' : isDarkMode ? '#FFF' : '#666'} 
+            color={sortOrder.field === 'validade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted} 
           />
           <Text style={[
             styles.sortButtonText,
@@ -334,7 +308,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
               <MaterialIcons 
                 name={getSortIcon('validade')}
                 size={12}
-                color="#FFF"
+                color={COLORS.white}
                 style={{ marginLeft: 2 }}
               />
             )}
@@ -353,7 +327,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           <MaterialIcons 
             name="sort" 
             size={16} 
-            color={sortOrder.field === 'quantidade' ? '#FFF' : isDarkMode ? '#FFF' : '#666'} 
+            color={sortOrder.field === 'quantidade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted} 
           />
           <Text style={[
             styles.sortButtonText,
@@ -365,7 +339,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
               <MaterialIcons 
                 name={getSortIcon('quantidade')}
                 size={12}
-                color="#FFF"
+                color={COLORS.white}
                 style={{ marginLeft: 2 }}
               />
             )}
@@ -384,7 +358,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           <MaterialIcons 
             name="sort-by-alpha" 
             size={16} 
-            color={sortOrder.field === 'nome' ? '#FFF' : isDarkMode ? '#FFF' : '#666'} 
+            color={sortOrder.field === 'nome' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted} 
           />
           <Text style={[
             styles.sortButtonText,
@@ -396,7 +370,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
               <MaterialIcons 
                 name={getSortIcon('nome')}
                 size={12}
-                color="#FFF"
+                color={COLORS.white}
                 style={{ marginLeft: 2 }}
               />
             )}
@@ -483,7 +457,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       <MaterialIcons 
         name={icon} 
         size={20} 
-        color={isSelected ? '#fff' : (isDarkMode ? '#fff' : '#666')} 
+        color={isSelected ? COLORS.white : (isDarkMode ? COLORS.textDark : COLORS.textMuted)} 
       />
       <Text style={[
         styles.filterOptionText,
@@ -506,7 +480,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
             name={filterType === 'descricao' ? 'text-fields' : 
                   filterType === 'codprod' ? 'code' : 'qr-code'} 
             size={24} 
-            color="#FFF" 
+            color={COLORS.white}
           />
         </TouchableOpacity>
         
@@ -517,7 +491,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
             filterType === 'codprod' ? 'Buscar por código interno...' :
             'Buscar por código EAN...'
           }
-          placeholderTextColor={isDarkMode ? '#666' : '#888'}
+          placeholderTextColor={isDarkMode ? COLORS.textMutedDark : COLORS.placeholderLight}
           onChangeText={debouncedSearch}
           keyboardType={filterType !== 'descricao' ? 'numeric' : 'default'}
         />
@@ -638,8 +612,12 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <View style={[styles.container, isDarkMode && styles.darkBackground]}>
+    <ScreenLayout
+      isDarkMode={isDarkMode}
+      lightBackground={COLORS.background}
+      darkBackground={COLORS.darkBackground}
+      contentStyle={[styles.container, isDarkMode && styles.darkBackground]}
+    >
       {renderSearchBar()}
       {renderSortOptions()}
       <View style={styles.statsContainer}>
@@ -687,17 +665,12 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         product={productToDelete}
         isDarkMode={isDarkMode}
       />
-      </View>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 };
 
 const styles = StyleSheet.create({
   // ==================== Estilos do Container Principal ====================
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
   container: {
     flex: 1,
     padding: 8,
@@ -722,14 +695,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   darkSearchContainer: {
-    backgroundColor: '#2e2e2e',
-    borderColor: '#444',
+    backgroundColor: COLORS.cardDark,
+    borderColor: COLORS.borderDark,
   },
   filterButton: {
     backgroundColor: COLORS.accent,
@@ -738,7 +711,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   darkFilterButton: {
-    backgroundColor: '#1e88e5',
+    backgroundColor: COLORS.secondary,
   },
   searchInput: {
     flex: 1,
@@ -748,7 +721,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   darkSearchInput: {
-    color: '#fff',
+    color: COLORS.textDark,
   },
   
   // ==================== Estilos das Opções de Filtro ====================
@@ -762,15 +735,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: 8,
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
     zIndex: 1000,
   },
   darkFilterOptions: {
-    backgroundColor: '#2e2e2e',
-    borderColor: '#444',
+    backgroundColor: COLORS.cardDark,
+    borderColor: COLORS.borderDark,
+    borderWidth: 1,
   },
   filterOption: {
     flexDirection: 'row',
@@ -783,7 +757,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   darkFilterOption: {
-    borderColor: '#444',
+    borderColor: COLORS.borderDark,
+  },
+  darkFilterOptionSelected: {
+    backgroundColor: COLORS.secondary,
+  },
+  darkFilterOptionText: {
+    color: COLORS.textDark,
   },
   filterOptionText: {
     marginLeft: 12,
@@ -794,18 +774,18 @@ const styles = StyleSheet.create({
   
   // ==================== Estilos da Lista de Produtos ====================
   productItem: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.card,
     borderRadius: 10,
     marginVertical: 4,
     marginHorizontal: 2,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
   },
   darkProductItem: {
-    backgroundColor: '#333',
+    backgroundColor: COLORS.cardDark,
   },
   emptyList: {
     flex: 1,
@@ -820,7 +800,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   darkEmptyText: {
-    color: '#999',
+    color: COLORS.textMutedDark,
   },
   
   // ==================== Estilos das Estatísticas ====================
@@ -837,7 +817,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   darkStatsText: {
-    color: '#aaa',
+    color: COLORS.textMutedDark,
   },
 
   // ==================== Estilos de Ordenação ====================
@@ -849,36 +829,13 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     padding: 4,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitleIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitleText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  headerSubtitleText: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 12,
-    fontWeight: '500',
-  },
   darkSortContainer: {
-    backgroundColor: '#2e2e2e',
+    backgroundColor: COLORS.cardDark,
   },
   sortButton: {
     flexDirection: 'row',
@@ -893,15 +850,15 @@ const styles = StyleSheet.create({
   },
   sortButtonText: {
     marginLeft: 4,
-    color: '#666',
+    color: COLORS.textMuted,
     fontSize: 12,
     fontWeight: '500',
   },
   darkSortButtonText: {
-    color: '#fff',
+    color: COLORS.textDark,
   },
   activeSortButtonText: {
-    color: '#fff',
+    color: COLORS.white,
   },
 
   // ==================== Estilos das Ações da Esquerda ====================

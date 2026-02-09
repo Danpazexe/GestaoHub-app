@@ -21,6 +21,10 @@ import DocumentPicker from 'react-native-document-picker';
 import ShareFile from 'react-native-share';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+} from '../../../shared/components/ScreenLayout';
 
 const { width } = Dimensions.get('window');
 
@@ -971,24 +975,28 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: 'Banco de Dados',
-      headerTitleStyle: {
-        color: isDarkMode ? '#FFFFFF' : '#000000',
-        fontSize: 20,
-        fontWeight: '600',
-      },
-      headerStyle: {
-        backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
-        elevation: 5,
-        shadowColor: '#2563EB',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-      },
-      headerTintColor: '#FFFFFF',
-      headerShadowVisible: true,
-      // Removendo headerRight para eliminar os botões
-      headerRight: null
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: '#2563EB',
+        darkHeaderColor: '#1E40AF',
+        tintColor: '#FFFFFF',
+        titleSize: 20,
+        titleWeight: '600',
+        headerStyleOverride: {
+          elevation: 5,
+          shadowColor: '#2563EB',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 3,
+        },
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Banco de Dados',
+          iconName: 'storage',
+          tintColor: '#FFFFFF',
+        }),
+      headerRight: null,
     });
   }, [navigation, isDarkMode]);
 

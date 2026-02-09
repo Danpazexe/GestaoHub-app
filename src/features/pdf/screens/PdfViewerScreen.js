@@ -16,6 +16,10 @@ import {
 import Pdf from 'react-native-pdf';
 import Share from 'react-native-share';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+} from '../../../shared/components/ScreenLayout';
 
 const PdfViewerScreen = ({ route, navigation }) => {
   const { pdfUri } = route.params;
@@ -84,13 +88,18 @@ const PdfViewerScreen = ({ route, navigation }) => {
 
   React.useEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: '#294380',
-      },
-      headerTintColor: '#FFFFFF',
-      headerTitle: 'Visualizar PDF',
-      headerTitleAlign: 'center',
+      ...createScreenHeaderTemplate({
+        isDarkMode: false,
+        lightHeaderColor: '#294380',
+        darkHeaderColor: '#294380',
+        tintColor: '#FFFFFF',
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Visualizar PDF',
+          iconName: 'picture-as-pdf',
+          tintColor: '#FFFFFF',
+        }),
 
     });
   }, [navigation]);
