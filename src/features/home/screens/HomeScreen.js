@@ -4,9 +4,10 @@ import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CORESHOME } from '../../../../assets/cores/coresAuth';
+import { CORESFUNCIONALIDADES, CORESHOME } from '../../../../assets/cores/coresAuth';
 
 const COLORS = CORESHOME;
+const FUNC_COLORS = CORESFUNCIONALIDADES;
 const DEV_EASTER_EGG_TAP_TARGET = 7;
 const DEV_EASTER_EGG_TAP_WINDOW_MS = 1800;
 
@@ -25,12 +26,12 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "VALIDADE",
       subtitle: "Controle de validade e tratativas",
       icon: "event-note",
-      color: COLORS.destaqueAzul,
+      color: FUNC_COLORS.modules.validade,
       actions: [
-        { id: 'validade-lista', title: 'Ver lista', icon: 'fact-check', screen: 'ListScreen' },
-        { id: 'validade-add', title: 'Adicionar', icon: 'add-circle-outline', screen: 'AddProductScreen' },
-        { id: 'validade-dashboard', title: 'Dashboard', icon: 'analytics', screen: 'DashboardScreen' },
-        { id: 'validade-tratativas', title: 'Tratativas', icon: 'assignment-turned-in', screen: 'TratarScreen' },
+        { id: 'validade-lista', title: 'Ver lista', icon: 'fact-check', screen: 'ListScreen', color: FUNC_COLORS.actions['validade-lista'] },
+        { id: 'validade-add', title: 'Adicionar', icon: 'add-circle-outline', screen: 'AddProductScreen', color: FUNC_COLORS.actions['validade-add'] },
+        { id: 'validade-dashboard', title: 'Dashboard', icon: 'analytics', screen: 'DashboardScreen', color: FUNC_COLORS.actions['validade-dashboard'] },
+        { id: 'validade-tratativas', title: 'Tratativas', icon: 'assignment-turned-in', screen: 'TratarScreen', color: FUNC_COLORS.actions['validade-tratativas'] },
       ],
     },
     {
@@ -38,18 +39,19 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "AVARIA",
       subtitle: "Lançamento e gestão de avarias",
       icon: "report-problem",
-      color: COLORS.destaqueDourado,
+      color: FUNC_COLORS.modules.avaria,
       actions: [
         {
           id: 'avaria-lancar',
           title: 'Lançar avaria',
           icon: 'playlist-add-check-circle',
+          color: FUNC_COLORS.actions['avaria-lancar'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Lançamento de Avaria',
             subtitle: 'Registre avarias com motivo, quantidade e evidência',
             icon: 'playlist-add-check-circle',
-            color: COLORS.destaqueDourado,
+            color: FUNC_COLORS.actions['avaria-lancar'],
             bullets: ['Captura por código de barras', 'Tipo e motivo da avaria', 'Fluxo de tratativa e aprovação'],
           },
         },
@@ -57,12 +59,13 @@ const HomeScreen = ({ isDarkMode }) => {
           id: 'avaria-consultar',
           title: 'Consultar avarias',
           icon: 'search',
+          color: FUNC_COLORS.actions['avaria-consultar'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Consulta de Avarias',
             subtitle: 'Acompanhe pendências e status das ocorrências',
             icon: 'search',
-            color: COLORS.destaqueDourado,
+            color: FUNC_COLORS.actions['avaria-consultar'],
             bullets: ['Filtros por período e situação', 'Histórico por produto e loja', 'Exportação de ocorrências'],
           },
         },
@@ -73,18 +76,19 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "CONFERÊNCIA",
       subtitle: "Conferência de entrada e saída",
       icon: "inventory-2",
-      color: COLORS.destaqueVerde,
+      color: FUNC_COLORS.modules.conferencia,
       actions: [
         {
           id: 'conferencia-recebimento',
           title: 'Conferência de recebimento',
           icon: 'local-shipping',
+          color: FUNC_COLORS.actions['conferencia-recebimento'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Conferência de Recebimento',
             subtitle: 'Valide entradas por nota, volume e item',
             icon: 'local-shipping',
-            color: COLORS.destaqueVerde,
+            color: FUNC_COLORS.actions['conferencia-recebimento'],
             bullets: ['Conferência por NF e código de barras', 'Registro de divergências', 'Finalização por conferente'],
           },
         },
@@ -92,12 +96,13 @@ const HomeScreen = ({ isDarkMode }) => {
           id: 'conferencia-saida',
           title: 'Conferência de saída',
           icon: 'assignment',
+          color: FUNC_COLORS.actions['conferencia-saida'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Conferência de Saída',
             subtitle: 'Garanta acurácia na expedição de pedidos',
             icon: 'assignment',
-            color: COLORS.destaqueVerde,
+            color: FUNC_COLORS.actions['conferencia-saida'],
             bullets: ['Conferência por carga e pedido', 'Validação por etapa', 'Checklist de despacho'],
           },
         },
@@ -108,18 +113,19 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "INVENTÁRIO",
       subtitle: "Contagem cíclica e geral",
       icon: "checklist",
-      color: COLORS.destaqueRoxo,
+      color: FUNC_COLORS.modules.inventario,
       actions: [
         {
           id: 'inventario-contagem',
           title: 'Contagem cíclica',
           icon: 'playlist-add-check-circle',
+          color: FUNC_COLORS.actions['inventario-contagem'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Inventário Cíclico',
             subtitle: 'Planeje e execute contagens periódicas',
             icon: 'playlist-add-check-circle',
-            color: COLORS.destaqueRoxo,
+            color: FUNC_COLORS.actions['inventario-contagem'],
             bullets: ['Plano de contagem por setor', 'Execução por coletor', 'Consolidação de divergências'],
           },
         },
@@ -127,12 +133,13 @@ const HomeScreen = ({ isDarkMode }) => {
           id: 'inventario-recontagem',
           title: 'Recontagem',
           icon: 'published-with-changes',
+          color: FUNC_COLORS.actions['inventario-recontagem'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Recontagem',
             subtitle: 'Validação dos itens com divergência',
             icon: 'published-with-changes',
-            color: COLORS.destaqueRoxo,
+            color: FUNC_COLORS.actions['inventario-recontagem'],
             bullets: ['Lista de divergências', 'Conferência dupla', 'Ajuste com trilha de auditoria'],
           },
         },
@@ -143,18 +150,19 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "PEDIDOS E CARGA",
       subtitle: "Separação e conferência de expedição",
       icon: "local-shipping",
-      color: COLORS.destaqueCinza,
+      color: FUNC_COLORS.modules.pedidos,
       actions: [
         {
           id: 'pedidos-separacao',
           title: 'Separação de pedidos',
           icon: 'shopping-cart-checkout',
+          color: FUNC_COLORS.actions['pedidos-separacao'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Separação de Pedidos',
             subtitle: 'Organize e acompanhe a separação por onda',
             icon: 'shopping-cart-checkout',
-            color: COLORS.destaqueCinza,
+            color: FUNC_COLORS.actions['pedidos-separacao'],
             bullets: ['Fila de pedidos por prioridade', 'Conferência por item separado', 'Status por operador'],
           },
         },
@@ -162,12 +170,13 @@ const HomeScreen = ({ isDarkMode }) => {
           id: 'pedidos-carga',
           title: 'Conferência de carga',
           icon: 'fact-check',
+          color: FUNC_COLORS.actions['pedidos-carga'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Conferência de Carga',
             subtitle: 'Valide a montagem final antes da expedição',
             icon: 'fact-check',
-            color: COLORS.destaqueCinza,
+            color: FUNC_COLORS.actions['pedidos-carga'],
             bullets: ['Checklist de embarque', 'Conferência por volume', 'Fechamento por rota'],
           },
         },
@@ -178,18 +187,19 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "AUDITORIA DE PREÇO",
       subtitle: "Emissão e conferência de etiquetas",
       icon: "sell",
-      color: COLORS.destaqueAzul,
+      color: FUNC_COLORS.modules.auditoria,
       actions: [
         {
           id: 'auditoria-etiquetas',
           title: 'Emitir etiquetas',
           icon: 'print',
+          color: FUNC_COLORS.actions['auditoria-etiquetas'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Emissão de Etiquetas',
             subtitle: 'Prepare etiquetas de preço e gôndola',
             icon: 'print',
-            color: COLORS.destaqueAzul,
+            color: FUNC_COLORS.actions['auditoria-etiquetas'],
             bullets: ['Geração por produto/setor', 'Reimpressão rápida', 'Controle de lotes emitidos'],
           },
         },
@@ -197,12 +207,13 @@ const HomeScreen = ({ isDarkMode }) => {
           id: 'auditoria-divergencias',
           title: 'Divergências de preço',
           icon: 'rule',
+          color: FUNC_COLORS.actions['auditoria-divergencias'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Divergências de Preço',
             subtitle: 'Identifique e trate inconsistências de preço',
             icon: 'rule',
-            color: COLORS.destaqueAzul,
+            color: FUNC_COLORS.actions['auditoria-divergencias'],
             bullets: ['Registro da divergência', 'Acompanhamento por status', 'Relatório por loja e seção'],
           },
         },
@@ -213,18 +224,19 @@ const HomeScreen = ({ isDarkMode }) => {
       title: "REQUISIÇÕES",
       subtitle: "Consumo interno e pedidos entre lojas",
       icon: "storefront",
-      color: COLORS.destaqueVerde,
+      color: FUNC_COLORS.modules.requisicoes,
       actions: [
         {
           id: 'requisicoes-consumo',
           title: 'Requisição de consumo',
           icon: 'assignment-add',
+          color: FUNC_COLORS.actions['requisicoes-consumo'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Requisição de Consumo',
             subtitle: 'Solicite itens para uso interno da operação',
             icon: 'assignment-add',
-            color: COLORS.destaqueVerde,
+            color: FUNC_COLORS.actions['requisicoes-consumo'],
             bullets: ['Abertura de requisição', 'Aprovação por responsável', 'Baixa de estoque vinculada'],
           },
         },
@@ -232,12 +244,13 @@ const HomeScreen = ({ isDarkMode }) => {
           id: 'requisicoes-lojas',
           title: 'Pedido entre lojas',
           icon: 'swap-horiz',
+          color: FUNC_COLORS.actions['requisicoes-lojas'],
           screen: 'ModuleBaseScreen',
           routeParams: {
             title: 'Pedido Entre Lojas',
             subtitle: 'Gerencie transferências internas de mercadorias',
             icon: 'swap-horiz',
-            color: COLORS.destaqueVerde,
+            color: FUNC_COLORS.actions['requisicoes-lojas'],
             bullets: ['Origem e destino da transferência', 'Conferência de envio/recebimento', 'Rastreio por status'],
           },
         },

@@ -3,14 +3,14 @@ const LIGHT_ROUTE_HEADER_COLORS = {
   LoginScreen: '#ffffff',
   RegisterScreen: '#ffffff',
   HomeScreen: '#f7f7f8',
-  ListScreen: '#3c446c',
-  AddProductScreen: '#3c446c',
-  DashboardScreen: '#3c446c',
+  ListScreen: '#2563eb',
+  AddProductScreen: '#059669',
+  DashboardScreen: '#7c3aed',
   SettingsScreen: '#374151',
   ProfileScreen: '#f7f7f8',
   NotificationSettings: '#6cb6a5',
   SqlScreen: '#2563EB',
-  TratarScreen: '#3c446c',
+  TratarScreen: '#c2410c',
   ExcelScreen: '#012677',
   PdfScreen: '#d7263d',
   PdfViewerScreen: '#294380',
@@ -22,14 +22,14 @@ const DARK_ROUTE_HEADER_COLORS = {
   LoginScreen: '#2f333a',
   RegisterScreen: '#2f333a',
   HomeScreen: '#2f333a',
-  ListScreen: '#3c446c',
-  AddProductScreen: '#3c446c',
-  DashboardScreen: '#3c446c',
+  ListScreen: '#2563eb',
+  AddProductScreen: '#059669',
+  DashboardScreen: '#7c3aed',
   SettingsScreen: '#1F2937',
   ProfileScreen: '#2f333a',
   NotificationSettings: '#1a4645',
   SqlScreen: '#1E40AF',
-  TratarScreen: '#3c446c',
+  TratarScreen: '#c2410c',
   ExcelScreen: '#012677',
   PdfScreen: '#d7263d',
   PdfViewerScreen: '#294380',
@@ -72,11 +72,11 @@ export const getRouteHeaderBackground = (route, isDarkMode) => {
   const { routeName, routeParams } = resolveRoute(route);
 
   if (routeName === 'ModuleFunctionsScreen') {
-    return routeParams?.module?.color || '#3c446c';
+    return routeParams?.module?.color || '#334155';
   }
 
   if (routeName === 'ModuleBaseScreen') {
-    return isDarkMode ? '#40444c' : (routeParams?.color || '#3c446c');
+    return isDarkMode ? '#334155' : (routeParams?.color || '#334155');
   }
 
   const palette = isDarkMode ? DARK_ROUTE_HEADER_COLORS : LIGHT_ROUTE_HEADER_COLORS;

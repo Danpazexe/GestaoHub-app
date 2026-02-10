@@ -484,7 +484,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
             <meta charset="utf-8" />
             <style>
               body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
-              h1 { color: #3c446c; margin-bottom: 4px; }
+	              h1 { color: ${COLORS.primary}; margin-bottom: 4px; }
               .meta { margin-bottom: 16px; color: #4b5563; font-size: 12px; }
               table { border-collapse: collapse; width: 100%; font-size: 11px; }
               th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; }

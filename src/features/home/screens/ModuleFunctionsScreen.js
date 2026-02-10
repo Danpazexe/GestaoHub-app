@@ -44,14 +44,8 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
   const onModuleColor = isDarkColor(moduleColor) ? '#ffffff' : '#1f2937';
   const palette = {
     background: isDarkMode ? MODULE_COLORS.backgroundDark : MODULE_COLORS.background,
-    card: moduleColor,
-    border: isDarkMode ? withAlpha(moduleColor, 0.78) : withAlpha(moduleColor, 0.34),
     text: isDarkMode ? MODULE_COLORS.textDark : MODULE_COLORS.text,
     textMuted: isDarkMode ? MODULE_COLORS.textMutedDark : MODULE_COLORS.textMuted,
-    iconBackground: withAlpha(onModuleColor, isDarkMode ? 0.24 : 0.2),
-    iconColor: onModuleColor,
-    actionText: onModuleColor,
-    actionChevron: withAlpha(onModuleColor, 0.82),
     emptySubtitle: isDarkMode ? MODULE_COLORS.emptySubtitleDark : MODULE_COLORS.textMuted,
     headerDark: MODULE_COLORS.primary,
   };
@@ -123,19 +117,31 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
           >
-            {actions.map((action) => (
-              <Pressable
-                key={action.id}
-                onPress={() => handleActionPress(action)}
-                style={({ pressed }) => [styles.actionCard, pressed && styles.pressedCard]}
-              >
-                <View style={styles.actionIconCircle}>
-                  <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={palette.iconColor} />
-                </View>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-                <MaterialIcons name="chevron-right" size={24} color={palette.actionChevron} />
-              </Pressable>
-            ))}
+            {actions.map((action) => {
+              const actionColor = action.color || moduleColor;
+              const onActionColor = isDarkColor(actionColor) ? '#ffffff' : '#1f2937';
+              const borderColor = isDarkMode ? withAlpha(actionColor, 0.78) : withAlpha(actionColor, 0.34);
+              const iconBackground = withAlpha(onActionColor, isDarkMode ? 0.24 : 0.2);
+              const chevronColor = withAlpha(onActionColor, 0.82);
+
+              return (
+                <Pressable
+                  key={action.id}
+                  onPress={() => handleActionPress(action)}
+                  style={({ pressed }) => [
+                    styles.actionCard,
+                    { backgroundColor: actionColor, borderColor },
+                    pressed && styles.pressedCard,
+                  ]}
+                >
+                  <View style={[styles.actionIconCircle, { backgroundColor: iconBackground }]}>
+                    <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={onActionColor} />
+                  </View>
+                  <Text style={[styles.actionTitle, { color: onActionColor }]}>{action.title}</Text>
+                  <MaterialIcons name="chevron-right" size={24} color={chevronColor} />
+                </Pressable>
+              );
+            })}
           </ScrollView>
         </View>
     </ScreenLayout>
@@ -158,10 +164,8 @@ const getStyles = (palette) =>
       paddingBottom: 24,
     },
     actionCard: {
-      backgroundColor: palette.card,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: palette.border,
       paddingHorizontal: 12,
       paddingVertical: 12,
       flexDirection: 'row',
@@ -172,7 +176,6 @@ const getStyles = (palette) =>
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: palette.iconBackground,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 10,
@@ -181,7 +184,6 @@ const getStyles = (palette) =>
       flex: 1,
       fontSize: 15,
       fontWeight: '700',
-      color: palette.actionText,
     },
     pressedCard: {
       transform: [{ scale: 0.99 }],

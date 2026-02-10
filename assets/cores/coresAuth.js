@@ -1,46 +1,48 @@
 export const CORESLOGIN = {
   // Base da marca
-  fundo: '#ffffff',
-  textoPrincipal: '#40444c',
-  textoSecundario: '#3c444c',
+  fundo: '#f4f6fb',
+  textoPrincipal: '#2e3554',
+  textoSecundario: '#586185',
 
   // Destaques da paleta
-  destaqueDourado: '#f4cc84',
+  // Tom mais escuro para funcionar bem como cor de texto (ex.: links)
+  destaqueDourado: '#b45309',
   destaqueAzul: '#3c446c',
-  destaqueLima: '#c8d068',
-  destaqueVerde: '#688c68',
-  destaqueRoxo: '#6c4468',
+  destaqueLima: '#b9c86b',
+  destaqueVerde: '#5d7e62',
+  destaqueRoxo: '#6c5a8a',
 
   // Componentes
   cartao: 'rgba(255, 255, 255, 0.96)',
-  borda: 'rgba(64, 68, 76, 0.22)',
-  placeholder: 'rgba(64, 68, 76, 0.55)',
+  borda: 'rgba(46, 53, 84, 0.22)',
+  placeholder: 'rgba(88, 97, 133, 0.55)',
 
   // Estados
-  erro: '#ef4444',
+  erro: '#dc2626',
   branco: '#ffffff',
 };
 
 export const CORESREGISTER = {
   // Base da marca
-  fundo: '#ffffff',
-  textoPrincipal: '#40444c',
-  textoSecundario: '#3c444c',
+  fundo: '#f4f6fb',
+  textoPrincipal: '#2e3554',
+  textoSecundario: '#586185',
 
   // Destaques da paleta
-  destaqueDourado: '#f4cc84',
+  // Tom mais escuro para funcionar bem como cor de texto (ex.: links)
+  destaqueDourado: '#b45309',
   destaqueAzul: '#3c446c',
-  destaqueLima: '#c8d068',
-  destaqueVerde: '#688c68',
-  destaqueRoxo: '#6c4468',
+  destaqueLima: '#b9c86b',
+  destaqueVerde: '#5d7e62',
+  destaqueRoxo: '#6c5a8a',
 
   // Componentes
   cartao: 'rgba(255, 255, 255, 0.96)',
-  borda: 'rgba(64, 68, 76, 0.22)',
-  placeholder: 'rgba(64, 68, 76, 0.55)',
+  borda: 'rgba(46, 53, 84, 0.22)',
+  placeholder: 'rgba(88, 97, 133, 0.55)',
 
   // Estados
-  erro: '#ef4444',
+  erro: '#dc2626',
   branco: '#ffffff',
 };
 
@@ -51,7 +53,7 @@ export const CORESHOME = {
   textoSecundario: 'rgba(64, 68, 76, 0.92)',
 
   // Destaques da paleta
-  destaqueDourado: '#f4cc84',
+  destaqueDourado: '#fc964e',
   destaqueAzul: '#3c446c',
   destaqueVerde: '#688c68',
   destaqueRoxo: '#6c4468',
@@ -68,7 +70,7 @@ export const CORESHOME = {
 };
 
 export const CORESMODULEFUNCTIONS = {
-  primary: '#3c446c',
+  primary: '#334155',
   background: '#f7f7f8',
   backgroundDark: '#1f2438',
   card: '#ffffff',
@@ -81,16 +83,16 @@ export const CORESMODULEFUNCTIONS = {
   textMutedDark: '#aab1cf',
   iconBackground: 'rgba(60, 68, 108, 0.08)',
   iconBackgroundDark: 'rgba(159, 167, 199, 0.24)',
-  iconColor: '#3c446c',
+  iconColor: '#334155',
   iconColorDark: '#d6dbf1',
   emptySubtitleDark: '#c2c8dd',
   white: '#ffffff',
 };
 
 export const CORESADDPRODUCT = {
-  primary: '#3c446c',
-  secondary: '#59649a',
-  accent: '#2f3658',
+  primary: '#059669',
+  secondary: '#10b981',
+  accent: '#047857',
 
   background: '#f4f6fb',
   darkBackground: '#1f2438',
@@ -98,16 +100,16 @@ export const CORESADDPRODUCT = {
   cardDark: '#262d47',
   inputDark: '#2b3350',
 
-  border: 'rgba(60, 68, 108, 0.24)',
+  border: 'rgba(5, 150, 105, 0.24)',
   text: '#2e3554',
   textMuted: 'rgba(46, 53, 84, 0.68)',
   white: '#ffffff',
 };
 
 export const CORESLIST = {
-  primary: '#3c446c',
-  secondary: '#616d90',
-  accent: '#3c446c',
+  primary: '#2563eb',
+  secondary: '#1d4ed8',
+  accent: '#0284c7',
   background: '#f7f7f8',
   darkBackground: '#1f2438',
   card: '#ffffff',
@@ -127,9 +129,9 @@ export const CORESLIST = {
 };
 
 export const CORESDASHBOARD = {
-  primary: '#3c446c',
-  secondary: '#616d90',
-  accent: '#3c446c',
+  primary: '#7c3aed',
+  secondary: '#4f46e5',
+  accent: '#6d28d9',
   background: '#f9f9f9',
   backgroundDark: '#1f2438',
   card: '#ffffff',
@@ -142,19 +144,24 @@ export const CORESDASHBOARD = {
   textMuted: '#666666',
   textMutedDark: '#aab1cf',
   overlayDark: 'rgba(10, 14, 30, 0.58)',
-  chartColorRgb: '89, 100, 154',
-  success: '#28a745',
-  danger: '#dc3545',
-  warning: '#ffc107',
-  info: '#17a2b8',
+  chartColorRgb: '124, 58, 237',
+  success: '#10b981',
+  danger: '#ef4444',
+  warning: '#f59e0b',
+  info: '#0ea5e9',
+  sold: '#10b981',
+  exchanged: '#3b82f6',
+  returned: '#f59e0b',
+  expired: '#ef4444',
+  unknown: '#94a3b8',
   white: '#ffffff',
   shadow: '#000000',
 };
 
 export const CORESTRATAR = {
-  primary: '#3c446c',
-  secondary: '#616d90',
-  accent: '#3c446c',
+  primary: '#c2410c',
+  secondary: '#ea580c',
+  accent: '#9a3412',
   background: '#f5f5f5',
   backgroundDark: '#1f2438',
   card: '#ffffff',
@@ -205,7 +212,7 @@ export const CORESPRODUCTITEM = {
 };
 
 export const CORESBARCODESCANNER = {
-  primary: '#3c446c',
+  primary: '#0ea5e9',
   success: '#5d7e62',
   warning: '#ea580c',
   danger: '#dc2626',
@@ -230,4 +237,40 @@ export const CORESBARCODESCANNER = {
   permissionBackground: '#f5f5f5',
   permissionTitle: '#1f2937',
   permissionText: '#4b5563',
+};
+
+export const CORESFUNCIONALIDADES = {
+  modules: {
+    validade: '#1d4ed8',
+    avaria: '#b91c1c',
+    conferencia: '#0f766e',
+    inventario: '#6d28d9',
+    pedidos: '#0e7490',
+    auditoria: '#b45309',
+    requisicoes: '#15803d',
+  },
+  actions: {
+    'validade-lista': CORESLIST.primary,
+    'validade-add': CORESADDPRODUCT.primary,
+    'validade-dashboard': CORESDASHBOARD.primary,
+    'validade-tratativas': CORESTRATAR.primary,
+
+    'avaria-lancar': '#b91c1c',
+    'avaria-consultar': '#be123c',
+
+    'conferencia-recebimento': '#0f766e',
+    'conferencia-saida': '#4338ca',
+
+    'inventario-contagem': '#6d28d9',
+    'inventario-recontagem': '#a21caf',
+
+    'pedidos-separacao': '#0e7490',
+    'pedidos-carga': '#334155',
+
+    'auditoria-etiquetas': '#b45309',
+    'auditoria-divergencias': '#4d7c0f',
+
+    'requisicoes-consumo': '#15803d',
+    'requisicoes-lojas': '#0369a1',
+  },
 };

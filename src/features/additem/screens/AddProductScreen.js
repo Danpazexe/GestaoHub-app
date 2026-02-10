@@ -146,8 +146,8 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
         isDarkMode,
-        lightHeaderColor: '#3c446c',
-        darkHeaderColor: '#3c446c',
+        lightHeaderColor: COLORS.primary,
+        darkHeaderColor: COLORS.primary,
         tintColor: COLORS.white,
         titleSize: 20,
         titleWeight: '600',
