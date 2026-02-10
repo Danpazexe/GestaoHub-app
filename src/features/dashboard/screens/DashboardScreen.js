@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   StyleSheet,
+  Image,
   Dimensions,
   ActivityIndicator,
   RefreshControl,
@@ -46,11 +47,18 @@ const SCOPE_OPTIONS = [
 ];
 
 const EXPORT_OPTIONS = [
-  { key: 'pdf', label: 'PDF', icon: 'picture-as-pdf' },
+  { key: 'pdf', label: 'PDF (A4)', icon: 'picture-as-pdf' },
   { key: 'xlsx', label: 'Excel (XLSX)', icon: 'grid-on' },
   { key: 'csv', label: 'CSV', icon: 'table-chart' },
   { key: 'json', label: 'JSON', icon: 'code' },
 ];
+
+const PDF_A4_LANDSCAPE = {
+  label: 'A4 (paisagem)',
+  cssSize: 'A4 landscape',
+  width: 842,
+  height: 595,
+};
 
 const startOfDay = (date) => {
   const safe = new Date(date);
@@ -461,69 +469,149 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   }, []);
 
   const buildPdfHtml = useCallback(
-    (rows) => {
+    async (rows, pageSize) => {
+      const effectivePageSize = pageSize || PDF_A4_LANDSCAPE;
+      let userName = '---';
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          userName = parsed?.name || '---';
+        }
+      } catch (error) {
+        userName = '---';
+      }
+
+      if (!userName || userName === '---') {
+        try {
+          const storedName = await AsyncStorage.getItem('name');
+          if (storedName) {
+            userName = storedName;
+          }
+        } catch (error) {
+          // no-op
+        }
+      }
+
+      let logoSrc = '';
+      try {
+        const assetSource = Image.resolveAssetSource(require('../../../../assets/Image/LOGOCOMFRASE.png'));
+        const assetUri = assetSource?.uri;
+        if (assetUri) {
+          try {
+            const path = assetUri.startsWith('file://') ? assetUri.replace('file://', '') : assetUri;
+            const base64 = await ReactNativeBlobUtil.fs.readFile(path, 'base64');
+            logoSrc = `data:image/png;base64,${base64}`;
+          } catch (error) {
+            // Fallback: try to render from the resolved asset URI directly.
+            logoSrc = assetUri;
+          }
+        }
+      } catch (error) {
+        logoSrc = '';
+      }
+
+      const treatmentBreakdown = treatmentSummary
+        .filter((item) => item.count > 0)
+        .map((item) => `${item.label}: ${item.count}`)
+        .join(' | ');
+
       const tableRows = rows
         .map(
           (row) => `
-          <tr>
-            <td>${escapeHtml(row.descricao)}</td>
-            <td>${escapeHtml(row.codprod)}</td>
-            <td>${escapeHtml(row.lote)}</td>
-            <td>${escapeHtml(row.quantidade)}</td>
-            <td>${escapeHtml(row.validade)}</td>
-            <td>${escapeHtml(row.dias_restantes)}</td>
-            <td>${escapeHtml(row.status)}</td>
-            <td>${escapeHtml(row.tipo_tratativa)}</td>
-          </tr>`,
+	          <tr>
+	            <td>${escapeHtml(row.descricao)}</td>
+	            <td>${escapeHtml(row.codprod)}</td>
+              <td>${escapeHtml(row.codauxiliar)}</td>
+	            <td>${escapeHtml(row.lote)}</td>
+	            <td>${escapeHtml(row.quantidade)}</td>
+	            <td>${escapeHtml(row.validade)}</td>
+	            <td>${escapeHtml(row.dias_restantes)}</td>
+	            <td>${escapeHtml(row.status)}</td>
+	            <td>${escapeHtml(row.tipo_tratativa)}</td>
+              <td>${escapeHtml(row.data_tratativa)}</td>
+	          </tr>`,
         )
         .join('');
 
       return `
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <style>
-              body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
-	              h1 { color: ${COLORS.primary}; margin-bottom: 4px; }
-              .meta { margin-bottom: 16px; color: #4b5563; font-size: 12px; }
-              table { border-collapse: collapse; width: 100%; font-size: 11px; }
-              th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; }
-              th { background: #eef2ff; }
-              .summary { margin-bottom: 12px; }
-              .summary div { margin-bottom: 2px; }
-            </style>
-          </head>
-          <body>
-            <h1>Dashboard de Validade</h1>
-            <div class="meta">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
-            <div class="summary">
-              <div><strong>Filtro período:</strong> ${escapeHtml(selectedRangeLabel)}</div>
-              <div><strong>Filtro escopo:</strong> ${escapeHtml(selectedScopeLabel)}</div>
-              <div><strong>Total de registros:</strong> ${rows.length}</div>
-              <div><strong>Em lista:</strong> ${listedProducts.length} | <strong>Tratativas:</strong> ${treatedProducts.length}</div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Código</th>
-                  <th>Lote</th>
-                  <th>Qtd</th>
-                  <th>Validade</th>
-                  <th>Dias</th>
-                  <th>Status</th>
-                  <th>Tratativa</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-              </tbody>
-            </table>
-          </body>
-        </html>
-      `;
+	        <html>
+	          <head>
+	            <meta charset="utf-8" />
+	            <style>
+	              @page { size: ${effectivePageSize.cssSize}; margin: 12mm; }
+	              body { font-family: Arial, sans-serif; padding: 0; color: #111827; }
+                h1 { margin: 0; font-size: 18px; font-weight: 800; color: #000000; }
+	              .header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+                .logo { height: 36px; width: auto; }
+                .meta { color: #4b5563; font-size: 12px; line-height: 1.4; }
+                .metaRow { margin-top: 2px; }
+	              table { border-collapse: collapse; width: 100%; font-size: 10px; }
+	              th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
+	              th { background: #eef2ff; }
+                .summary { margin: 10px 0 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+                .pill { display: inline-block; border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 999px; padding: 4px 8px; font-size: 11px; color: #111827; }
+                .muted { color: #6b7280; }
+	            </style>
+	          </head>
+	          <body>
+              <div class="header">
+                ${logoSrc ? `<img class="logo" src="${logoSrc}" />` : ''}
+                <div>
+                  <h1>Dashboard de Validade</h1>
+                  <div class="meta">Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+                </div>
+              </div>
+
+              <div class="meta">
+                <div class="metaRow"><strong>Usuário:</strong> ${escapeHtml(userName)}</div>
+                <div class="metaRow"><strong>Formato:</strong> ${escapeHtml(effectivePageSize.label)}</div>
+                <div class="metaRow"><strong>Filtro período:</strong> ${escapeHtml(selectedRangeLabel)} | <strong>Filtro escopo:</strong> ${escapeHtml(selectedScopeLabel)}</div>
+                ${treatmentBreakdown ? `<div class="metaRow"><strong>Tratativas (quantidade):</strong> ${escapeHtml(treatmentBreakdown)}</div>` : ''}
+              </div>
+
+              <div class="summary">
+                <span class="pill"><strong>Total:</strong> ${rows.length}</span>
+                <span class="pill"><strong>Dentro da validade:</strong> ${safeProducts.length}</span>
+                <span class="pill"><strong>Vencendo (<=30d):</strong> ${expiring30Products.length}</span>
+                <span class="pill"><strong>Vencidos:</strong> ${expiredProducts.length}</span>
+                <span class="pill"><strong>Tratativas:</strong> ${treatedProducts.length}</span>
+                <span class="pill"><strong>Cobertura:</strong> ${escapeHtml(coverage)}</span>
+              </div>
+
+	            <table>
+	              <thead>
+	                <tr>
+	                  <th>Descrição</th>
+	                  <th>Código</th>
+                    <th>EAN</th>
+	                  <th>Lote</th>
+	                  <th>Qtd</th>
+	                  <th>Validade</th>
+	                  <th>Dias</th>
+	                  <th>Status</th>
+	                  <th>Tratativa</th>
+                    <th>Data Tratativa</th>
+	                </tr>
+	              </thead>
+	              <tbody>
+	                ${tableRows}
+	              </tbody>
+	            </table>
+	          </body>
+	        </html>
+	      `;
     },
-    [selectedRangeLabel, selectedScopeLabel, listedProducts.length, treatedProducts.length],
+    [
+      selectedRangeLabel,
+      selectedScopeLabel,
+      safeProducts.length,
+      expiring30Products.length,
+      expiredProducts.length,
+      treatedProducts.length,
+      coverage,
+      treatmentSummary,
+    ],
   );
 
   const handleExport = useCallback(
@@ -571,20 +659,23 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
         }
 
         if (format === 'pdf') {
-          const html = buildPdfHtml(exportRows);
+          const html = await buildPdfHtml(exportRows, PDF_A4_LANDSCAPE);
           const { filePath } = await RNHTMLtoPDF.convert({
             html,
-            fileName: `dashboard_validade_${stamp}`,
+            fileName: `dashboard_validade_${stamp}_a4`,
             directory: 'Documents',
+            width: PDF_A4_LANDSCAPE.width,
+            height: PDF_A4_LANDSCAPE.height,
           });
 
-          await shareGeneratedFile(filePath, 'application/pdf', 'Exportar PDF');
+          await shareGeneratedFile(filePath, 'application/pdf', `Exportar ${PDF_A4_LANDSCAPE.label}`);
         }
 
+        const exportLabel = EXPORT_OPTIONS.find((option) => option.key === format)?.label || format.toUpperCase();
         Toast.show({
           type: 'success',
           text1: 'Exportação concluída',
-          text2: `Arquivo ${format.toUpperCase()} gerado com sucesso.`,
+          text2: `Arquivo ${exportLabel} gerado com sucesso.`,
         });
       } catch (error) {
         console.error('Erro ao exportar dashboard:', error);

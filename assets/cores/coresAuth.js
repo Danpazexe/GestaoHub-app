@@ -260,17 +260,22 @@ export const CORESFUNCIONALIDADES = {
 
     'conferencia-recebimento': '#0f766e',
     'conferencia-saida': '#4338ca',
+    'conferencia-divergencias': '#06b6d4',
 
     'inventario-contagem': '#6d28d9',
     'inventario-recontagem': '#a21caf',
+    'inventario-ajustes': '#8b5cf6',
 
     'pedidos-separacao': '#0e7490',
     'pedidos-carga': '#334155',
+    'pedidos-rota': '#14b8a6',
 
     'auditoria-etiquetas': '#b45309',
     'auditoria-divergencias': '#4d7c0f',
+    'auditoria-historico': '#7c2d12',
 
     'requisicoes-consumo': '#15803d',
     'requisicoes-lojas': '#0369a1',
+    'requisicoes-aprovacao': '#65a30d',
   },
 };
