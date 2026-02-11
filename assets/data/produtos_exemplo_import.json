@@ -1,0 +1,272 @@
+[
+  {
+    "CODPROD": 1001,
+    "DESCRICAO": "Arroz tipo 1 5kg",
+    "MARCA": "Tio Joao",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Graos",
+    "CODAUXILIAR": "7891000000001",
+    "CODAUXILIAR2": "17891000000008"
+  },
+  {
+    "CODPROD": 1002,
+    "DESCRICAO": "Feijao carioca 1kg",
+    "MARCA": "Kicaldo",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Graos",
+    "CODAUXILIAR": "7891000000002",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1003,
+    "DESCRICAO": "Acucar cristal 1kg",
+    "MARCA": "Uniao",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Acucar e ado",
+    "CODAUXILIAR": "7891000000003",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1004,
+    "DESCRICAO": "Cafe torrado e moido 500g",
+    "MARCA": "Pilao",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Cafe e cha",
+    "CODAUXILIAR": "7891000000004",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1005,
+    "DESCRICAO": "Leite UHT integral 1L",
+    "MARCA": "Italac",
+    "DEPARTAMENTO": "Laticinios",
+    "SECAO": "Leites",
+    "CODAUXILIAR": "7891000000005",
+    "CODAUXILIAR2": "17891000000053"
+  },
+  {
+    "CODPROD": 1006,
+    "DESCRICAO": "Agua mineral sem gas 500ml",
+    "MARCA": "Crystal",
+    "DEPARTAMENTO": "Bebidas",
+    "SECAO": "Agua",
+    "CODAUXILIAR": "7891000000006",
+    "CODAUXILIAR2": "17891000000060"
+  },
+  {
+    "CODPROD": 1007,
+    "DESCRICAO": "Refrigerante cola 2L",
+    "MARCA": "Coca-Cola",
+    "DEPARTAMENTO": "Bebidas",
+    "SECAO": "Refrigerantes",
+    "CODAUXILIAR": "7891000000007",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1008,
+    "DESCRICAO": "Suco de laranja 1L",
+    "MARCA": "Del Valle",
+    "DEPARTAMENTO": "Bebidas",
+    "SECAO": "Sucos",
+    "CODAUXILIAR": "7891000000008",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1009,
+    "DESCRICAO": "Cerveja lager 350ml",
+    "MARCA": "Skol",
+    "DEPARTAMENTO": "Bebidas",
+    "SECAO": "Cervejas",
+    "CODAUXILIAR": "7891000000009",
+    "CODAUXILIAR2": "17891000000091"
+  },
+  {
+    "CODPROD": 1010,
+    "DESCRICAO": "Cha mate gelado 1L",
+    "MARCA": "Leao",
+    "DEPARTAMENTO": "Bebidas",
+    "SECAO": "Chas",
+    "CODAUXILIAR": "7891000000010",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1011,
+    "DESCRICAO": "Macarrao espaguete 500g",
+    "MARCA": "Barilla",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Massas",
+    "CODAUXILIAR": "7891000000011",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1012,
+    "DESCRICAO": "Molho de tomate 340g",
+    "MARCA": "Pomarola",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Molhos",
+    "CODAUXILIAR": "7891000000012",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1013,
+    "DESCRICAO": "Atum em lata 170g",
+    "MARCA": "Gomes da Costa",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Enlatados",
+    "CODAUXILIAR": "7891000000013",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1014,
+    "DESCRICAO": "Sardinha em lata 125g",
+    "MARCA": "Coqueiro",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Enlatados",
+    "CODAUXILIAR": "7891000000014",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1015,
+    "DESCRICAO": "Oleo de soja 900ml",
+    "MARCA": "Soya",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Oleos",
+    "CODAUXILIAR": "7891000000015",
+    "CODAUXILIAR2": "17891000000152"
+  },
+  {
+    "CODPROD": 1016,
+    "DESCRICAO": "Farinha de trigo 1kg",
+    "MARCA": "Dona Benta",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Farinhas",
+    "CODAUXILIAR": "7891000000016",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1017,
+    "DESCRICAO": "Biscoito recheado 140g",
+    "MARCA": "Oreo",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Biscoitos",
+    "CODAUXILIAR": "7891000000017",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1018,
+    "DESCRICAO": "Chocolate ao leite 90g",
+    "MARCA": "Lacta",
+    "DEPARTAMENTO": "Mercearia",
+    "SECAO": "Chocolates",
+    "CODAUXILIAR": "7891000000018",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1019,
+    "DESCRICAO": "Iogurte natural 170g",
+    "MARCA": "Nestle",
+    "DEPARTAMENTO": "Laticinios",
+    "SECAO": "Iogurtes",
+    "CODAUXILIAR": "7891000000019",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1020,
+    "DESCRICAO": "Queijo mussarela fatiado 150g",
+    "MARCA": "Sadia",
+    "DEPARTAMENTO": "Frios",
+    "SECAO": "Queijos",
+    "CODAUXILIAR": "7891000000020",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1021,
+    "DESCRICAO": "Presunto fatiado 150g",
+    "MARCA": "Seara",
+    "DEPARTAMENTO": "Frios",
+    "SECAO": "Embutidos",
+    "CODAUXILIAR": "7891000000021",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1022,
+    "DESCRICAO": "Manteiga com sal 200g",
+    "MARCA": "Aviação",
+    "DEPARTAMENTO": "Laticinios",
+    "SECAO": "Manteigas",
+    "CODAUXILIAR": "7891000000022",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1023,
+    "DESCRICAO": "Detergente neutro 500ml",
+    "MARCA": "Ype",
+    "DEPARTAMENTO": "Limpeza",
+    "SECAO": "Cozinha",
+    "CODAUXILIAR": "7891000000023",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1024,
+    "DESCRICAO": "Agua sanitaria 1L",
+    "MARCA": "Qboa",
+    "DEPARTAMENTO": "Limpeza",
+    "SECAO": "Alvejantes",
+    "CODAUXILIAR": "7891000000024",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1025,
+    "DESCRICAO": "Papel higienico folha dupla 12 rolos",
+    "MARCA": "Neve",
+    "DEPARTAMENTO": "Higiene",
+    "SECAO": "Papel",
+    "CODAUXILIAR": "7891000000025",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1026,
+    "DESCRICAO": "Sabonete 90g",
+    "MARCA": "Dove",
+    "DEPARTAMENTO": "Higiene",
+    "SECAO": "Banho",
+    "CODAUXILIAR": "7891000000026",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1027,
+    "DESCRICAO": "Shampoo 350ml",
+    "MARCA": "Seda",
+    "DEPARTAMENTO": "Higiene",
+    "SECAO": "Cabelos",
+    "CODAUXILIAR": "7891000000027",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1028,
+    "DESCRICAO": "Fralda descartavel tam M 32un",
+    "MARCA": "Pampers",
+    "DEPARTAMENTO": "Infantil",
+    "SECAO": "Fraldas",
+    "CODAUXILIAR": "7891000000028",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1029,
+    "DESCRICAO": "Racao para cachorro 10kg",
+    "MARCA": "Pedigree",
+    "DEPARTAMENTO": "Pet",
+    "SECAO": "Racoes",
+    "CODAUXILIAR": "7891000000029",
+    "CODAUXILIAR2": ""
+  },
+  {
+    "CODPROD": 1030,
+    "DESCRICAO": "Pilha alcalina AA 4un",
+    "MARCA": "Duracell",
+    "DEPARTAMENTO": "Utilidades",
+    "SECAO": "Eletricos",
+    "CODAUXILIAR": "7891000000030",
+    "CODAUXILIAR2": ""
+  }
+]

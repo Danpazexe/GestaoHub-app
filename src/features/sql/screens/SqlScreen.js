@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import DocumentPicker from 'react-native-document-picker';
 import ShareFile from 'react-native-share';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
@@ -687,7 +688,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, filterType, selectedDepartamento, selectedSecao]);
+  }, [dados, searchQuery, filterType, selectedDepartamento, selectedSecao]);
 
   const applyFilters = () => {
     let filtered = [...dados];
@@ -887,15 +888,48 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
               CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
             }));
 
-            await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
-            setDados(normalizedData);
-            setFilteredDados(normalizedData);
-            Toast.show({
-              type: 'success',
-              text1: 'Sucesso',
-              text2: `${normalizedData.length} produtos importados com sucesso`,
-              visibilityTime: 3000,
-            });
+            try {
+              await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
+
+              // Verifica se o dado realmente ficou persistido (evita "sumir" ao sair da tela)
+              const persisted = await AsyncStorage.getItem('cached_products');
+              let persistedCount = 0;
+              if (persisted) {
+                const parsedPersisted = JSON.parse(persisted);
+                if (Array.isArray(parsedPersisted)) {
+                  persistedCount = parsedPersisted.length;
+                }
+              }
+
+              setDados(normalizedData);
+              setFilteredDados(normalizedData);
+
+              if (persistedCount !== normalizedData.length) {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Aviso',
+                  text2: 'Os dados foram importados, mas houve falha ao persistir totalmente no armazenamento.',
+                  visibilityTime: 4500,
+                });
+              } else {
+                Toast.show({
+                  type: 'success',
+                  text1: 'Sucesso',
+                  text2: `${normalizedData.length} produtos importados com sucesso`,
+                  visibilityTime: 3000,
+                });
+              }
+            } catch (storageError) {
+              console.error('Erro ao salvar no cache:', storageError);
+              setDados(normalizedData);
+              setFilteredDados(normalizedData);
+              Toast.show({
+                type: 'error',
+                text1: 'Erro',
+                text2: 'Não foi possível salvar o banco no armazenamento do app.',
+                visibilityTime: 4500,
+              });
+            }
           } else {
             Toast.show({
               type: 'error',
@@ -929,11 +963,11 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-        text2: 'Não foi possível importar os dados: ' + error.message,
-        visibilityTime: 4000,
-      });
-    }
-  };
+      text2: 'Não foi possível importar os dados: ' + error.message,
+      visibilityTime: 4000,
+    });
+  }
+};
 
   const handleItemPress = (item) => {
     setSelectedItem(item);
@@ -1020,42 +1054,39 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     }
   };
 
-  const loadCachedData = async () => {
+  const loadCachedData = useCallback(async () => {
     try {
       const cached = await AsyncStorage.getItem('cached_products');
-      if (cached) {
-        const parsedData = JSON.parse(cached);
-        setDados(parsedData);
-        setFilteredDados(parsedData);
+      if (!cached) {
+        setDados([]);
+        setFilteredDados([]);
+        return;
       }
+
+      const parsedData = JSON.parse(cached);
+      if (!Array.isArray(parsedData)) {
+        setDados([]);
+        setFilteredDados([]);
+        return;
+      }
+
+      setDados(parsedData);
+      setFilteredDados(parsedData);
     } catch (error) {
       console.error('Erro ao carregar cache:', error);
     }
-  };
+  }, []);
 
   const addToHistory = (query) => {
     setSearchHistory(prev => [query, ...prev.slice(0, 4)]);
   };
 
-  // Carregamento inicial dos dados
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const cached = await AsyncStorage.getItem('cached_products');
-        if (cached) {
-          const parsedData = JSON.parse(cached);
-          setDados(parsedData);
-          setFilteredDados(parsedData);
-        }
-        // Se não há cache, mantém arrays vazios (inicia sem dados)
-      } catch (error) {
-        console.error('Erro ao carregar dados iniciais:', error);
-        // Em caso de erro, mantém arrays vazios
-      }
-    };
-
-    loadInitialData();
-  }, []);
+  // Recarrega sempre que a tela voltar ao foco (garante que o banco "permaneça" no app)
+  useFocusEffect(
+    useCallback(() => {
+      loadCachedData();
+    }, [loadCachedData])
+  );
 
   const clearDatabase = async () => {
     try {
@@ -1159,7 +1190,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
                 </Text>
                 <TouchableOpacity 
                   style={[styles.emptyButton, { backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB' }]}
-                  onPress={() => {/* Adicionar ação de importar */}}
+                  onPress={importData}
                 >
                   <MaterialIcons name="cloud-upload" size={20} color="#FFFFFF" />
                   <Text style={styles.emptyButtonText}>Importar Produtos</Text>

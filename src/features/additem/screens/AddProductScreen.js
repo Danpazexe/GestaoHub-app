@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image, Linking } from 'react-native';
+import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image, Linking, Switch, Platform, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Camera } from 'react-native-vision-camera';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -36,6 +36,7 @@ const COLORS = {
 };
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
+  const LOOKUP_SQL_PREF_KEY = 'addProduct_lookupFromSql';
   const [productName, setProductName] = useState('');
   const [lote, setBatch] = useState('');
   const [quantidade, setQuantity] = useState('');
@@ -49,26 +50,73 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [isSavePressed, setIsSavePressed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef(null);
   const [showHistory, setShowHistory] = useState(false);
   const [recentProducts, setRecentProducts] = useState([]);
   const [historyAnimation] = useState(new Animated.Value(0));
   const [productImage, setProductImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showLookupOptions, setShowLookupOptions] = useState(false);
+  const [isSqlLookupEnabled, setIsSqlLookupEnabled] = useState(true);
+  const [isSqlLookupLoaded, setIsSqlLookupLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadSqlLookupPreference = async () => {
+      try {
+        const savedValue = await AsyncStorage.getItem(LOOKUP_SQL_PREF_KEY);
+        if (savedValue !== null) {
+          setIsSqlLookupEnabled(savedValue === 'true');
+        }
+      } catch (error) {
+        console.error('Erro ao carregar preferência de busca:', error);
+      } finally {
+        setIsSqlLookupLoaded(true);
+      }
+    };
+
+    loadSqlLookupPreference();
+  }, []);
+
+  const persistSqlLookupPreference = async (nextValue) => {
+    setIsSqlLookupEnabled(nextValue);
+    try {
+      await AsyncStorage.setItem(LOOKUP_SQL_PREF_KEY, String(nextValue));
+      Toast.show({
+        type: 'success',
+        text1: 'Opções atualizadas',
+        text2: nextValue ? 'Busca no banco ativada.' : 'Busca no banco desativada.',
+        visibilityTime: 2000,
+      });
+    } catch (error) {
+      console.error('Erro ao salvar preferência de busca:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível salvar sua preferência.',
+        visibilityTime: 2500,
+      });
+    }
+  };
 
   // Função para buscar produtos no AsyncStorage
   const handleBarcodeScan = async (scannedEan) => {
     try {
+      if (!isSqlLookupEnabled) return;
+
       const formattedScannedEan = String(scannedEan).trim();
       const cachedProducts = await AsyncStorage.getItem('cached_products');
       
       if (cachedProducts) {
         const produtos = JSON.parse(cachedProducts);
-        const product = produtos.find(p => String(p.CODAUXILIAR).trim() === formattedScannedEan);
+        const normalize = (value) => String(value ?? '').trim();
+        const product = produtos.find((p) => {
+          return normalize(p.CODAUXILIAR) === formattedScannedEan || normalize(p.CODAUXILIAR2) === formattedScannedEan;
+        });
       
         if (product) {
           setProductName(product.DESCRICAO);
           setcodprod(String(product.CODPROD));
-          setEan(String(product.CODAUXILIAR));
+          setEan(formattedScannedEan);
           
           Toast.show({
             type: 'success',
@@ -88,7 +136,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         Toast.show({
           type: 'error',
           text1: 'Nenhum produto cadastrado',
-          text2: 'Importe produtos primeiro na tela SQL.',
+          text2: 'Importe uma lista de produtos primeiro.',
           visibilityTime: 3000,
         });
       }
@@ -119,30 +167,34 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   useEffect(() => {
-    // Função que carrega os dados do produto para edição
-    const loadProductData = () => {
-      if (route.params?.product) {
-        const { id, descricao, lote, quantidade, codprod, codauxiliar, validade, imageUrl, foto } = route.params.product;
-        setProductId(id);
-        setProductName(descricao);
-        setBatch(lote);
-        setQuantity(quantidade.toString());
-        setcodprod(codprod);
-        setEan(codauxiliar);
-        setExpirationDate(new Date(validade));
-        setProductImage(imageUrl || foto || null);
-        setIsEditing(true);
-        console.log("Dados carregados para edição:", route.params.product);  // Log para verificar os dados recebidos
-      }
-    };
+    if (!route.params?.product) return;
 
-    // Atualiza o código EAN se for passado pela rota
-    if (route.params?.barcodeData) {
-      setEan(route.params.barcodeData);
-      handleBarcodeScan(route.params.barcodeData); // Chama a função de busca ao escanear
-      console.log("Código EAN recebido da rota:", route.params.barcodeData);  // Log para verificar o EAN recebido
-    }
+    const { id, descricao, lote, quantidade, codprod, codauxiliar, validade, imageUrl, foto } = route.params.product;
+    setProductId(id);
+    setProductName(descricao);
+    setBatch(lote);
+    setQuantity(quantidade.toString());
+    setcodprod(codprod);
+    setEan(codauxiliar);
+    setExpirationDate(new Date(validade));
+    setProductImage(imageUrl || foto || null);
+    setIsEditing(true);
+    console.log("Dados carregados para edição:", route.params.product);  // Log para verificar os dados recebidos
+  }, [route.params?.product]);
 
+  useEffect(() => {
+    if (!route.params?.barcodeData) return;
+
+    // Sempre preenche o EAN, mas só busca no banco se a opção estiver ligada.
+    setEan(route.params.barcodeData);
+    if (!isSqlLookupLoaded) return;
+    if (!isSqlLookupEnabled) return;
+
+    handleBarcodeScan(route.params.barcodeData);
+    console.log("Código EAN recebido da rota:", route.params.barcodeData);  // Log para verificar o EAN recebido
+  }, [route.params?.barcodeData, isSqlLookupLoaded, isSqlLookupEnabled]);
+
+  useEffect(() => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
         isDarkMode,
@@ -165,28 +217,39 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           iconName: isEditing ? 'edit' : 'add-circle-outline',
           tintColor: COLORS.white,
         }),
-      headerRight: () =>
-        createHeaderActionsTemplate({
-          isDarkMode,
-          actions: [
-            {
-              key: 'toggle-history',
-              iconName: 'history',
-              IconComponent: MaterialCommunityIcons,
-              onPress: () => {
-                loadRecentProducts();
-                setShowHistory(!showHistory);
-              },
-              isActive: showHistory,
-              activeBackgroundColor: isDarkMode ? COLORS.primary : COLORS.accent,
-              iconColor: COLORS.white,
-            },
-          ],
-        }),
-    });
-
-    loadProductData();
-  }, [navigation, route.params?.product, route.params?.barcodeData, isDarkMode, isEditing, showHistory]);
+	      headerRight: () =>
+	        createHeaderActionsTemplate({
+	          isDarkMode,
+	          actions: [
+	            {
+	              key: 'toggle-history',
+	              iconName: 'history',
+	              IconComponent: MaterialCommunityIcons,
+	              onPress: () => {
+	                loadRecentProducts();
+	                setShowLookupOptions(false);
+	                setShowHistory(!showHistory);
+	              },
+	              isActive: showHistory,
+	              activeBackgroundColor: isDarkMode ? COLORS.primary : COLORS.accent,
+	              iconColor: COLORS.white,
+	            },
+		            {
+		              key: 'toggle-lookup-options',
+		              iconName: 'cog',
+		              IconComponent: MaterialCommunityIcons,
+		              onPress: () => {
+		                setShowHistory(false);
+		                setShowLookupOptions(!showLookupOptions);
+		              },
+	              isActive: showLookupOptions,
+	              activeBackgroundColor: isDarkMode ? COLORS.primary : COLORS.accent,
+	              iconColor: COLORS.white,
+	            },
+	          ],
+	        }),
+	    });
+  }, [navigation, isDarkMode, isEditing, showHistory, showLookupOptions, isSqlLookupEnabled]);
 
   useEffect(() => {
     if (showErrors) {
@@ -201,6 +264,15 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   useEffect(() => {
     animateHistory(showHistory);
   }, [showHistory]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    if (!showDatePicker) return;
+
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, [showDatePicker]);
 
   const handleSaveProduct = async () => {
     setIsSaving(true);
@@ -324,11 +396,27 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     }
   };
 
+  const toggleDatePicker = () => {
+    // Fecha outros overlays antes de abrir o seletor de data
+    setShowHistory(false);
+    setShowLookupOptions(false);
+    setShowImageOptions(false);
+    setShowDatePicker((prev) => !prev);
+  };
+
   const onChangeDate = (event, selectedDate) => {
-    setShowDatePicker(false);
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event?.type === 'dismissed') return;
+      if (selectedDate) {
+        setExpirationDate(selectedDate);
+        console.log("Data de validade selecionada:", selectedDate);  // Log para verificar a data de validade
+      }
+      return;
+    }
+
     if (selectedDate) {
       setExpirationDate(selectedDate);
-      console.log("Data de validade selecionada:", selectedDate);  // Log para verificar a data de validade
     }
   };
 
@@ -421,7 +509,6 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     rowContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 12,
     },
     label: {
       fontSize: 14,
@@ -599,14 +686,96 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       borderBottomWidth: 1,
       borderBottomColor: isDarkMode ? COLORS.borderDark : 'rgba(60, 68, 108, 0.15)',
     },
-    historyText: {
-      marginLeft: 12,
-      fontSize: 16,
-    },
-    photoContainer: {
-      alignItems: 'center',
-      marginTop: 8,
-    },
+	    historyText: {
+	      marginLeft: 12,
+	      fontSize: 16,
+	    },
+	    lookupOverlay: {
+	      position: 'absolute',
+	      top: 0,
+	      left: 0,
+	      right: 0,
+	      bottom: 0,
+	      backgroundColor: COLORS.overlaySoft,
+	      justifyContent: 'flex-start',
+	    },
+	    lookupContainer: {
+	      position: 'absolute',
+	      top: 80,
+	      right: 16,
+	      width: '85%',
+	      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
+	      borderRadius: 12,
+	      elevation: 5,
+	      shadowColor: '#000',
+	      shadowOffset: { width: 0, height: 2 },
+	      shadowOpacity: 0.25,
+	      shadowRadius: 3.84,
+	      padding: 16,
+	      zIndex: 1000,
+	    },
+	    lookupHeader: {
+	      flexDirection: 'row',
+	      justifyContent: 'space-between',
+	      alignItems: 'center',
+	      marginBottom: 14,
+	    },
+	    lookupTitleContainer: {
+	      flexDirection: 'row',
+	      alignItems: 'center',
+	      gap: 8,
+	    },
+	    lookupTitle: {
+	      fontSize: 18,
+	      fontWeight: 'bold',
+	    },
+	    lookupRow: {
+	      flexDirection: 'row',
+	      alignItems: 'center',
+	      justifyContent: 'space-between',
+	      gap: 12,
+	      paddingVertical: 10,
+	    },
+	    lookupTextBlock: {
+	      flex: 1,
+	    },
+	    lookupLabel: {
+	      fontSize: 15,
+	      fontWeight: '700',
+	      marginBottom: 4,
+	    },
+			    lookupDescription: {
+			      fontSize: 13,
+			      lineHeight: 18,
+			      color: isDarkMode ? 'rgba(230,235,255,0.72)' : 'rgba(17,24,39,0.68)',
+			    },
+			    datePickerContainer: {
+			      marginTop: 10,
+			      borderRadius: 14,
+			      overflow: 'hidden',
+			      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card,
+			      borderWidth: 1,
+			      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
+			    },
+			    datePickerDoneButton: {
+			      alignSelf: 'flex-end',
+			      marginTop: 6,
+			      marginRight: 10,
+			      marginBottom: 10,
+			      paddingVertical: 8,
+			      paddingHorizontal: 14,
+			      borderRadius: 10,
+			      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
+			    },
+			    datePickerDoneText: {
+			      color: COLORS.white,
+			      fontSize: 14,
+			      fontWeight: '700',
+			    },
+			    photoContainer: {
+			      alignItems: 'center',
+			      marginTop: 8,
+			    },
     photoPlaceholder: {
       width: 120,
       height: 120,
@@ -860,13 +1029,20 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       lightBackground={COLORS.background}
       darkBackground={COLORS.darkBackground}
       contentStyle={styles.container}
-    >
-      <View style={styles.formCard}>
-        {/* Campo Foto do Produto */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-            {' '}Foto do Produto
+	    >
+		      <View style={styles.formCard}>
+		        <ScrollView
+		          ref={scrollRef}
+		          style={styles.scrollView}
+		          contentContainerStyle={styles.scrollViewContent}
+		          showsVerticalScrollIndicator={false}
+		          keyboardShouldPersistTaps="handled"
+		        >
+	        {/* Campo Foto do Produto */}
+	        <View style={styles.fieldContainer}>
+	          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+	            <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+	            {' '}Foto do Produto
           </Text>
           <View style={styles.photoContainer}>
             {productImage ? (
@@ -1086,7 +1262,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           ]}>
             <TouchableOpacity 
               style={[styles.dateButton, { flex: 1, borderWidth: 0 }]} 
-              onPress={() => setShowDatePicker(true)}
+              onPress={toggleDatePicker}
             >
               <MaterialCommunityIcons 
                 name="calendar" 
@@ -1111,7 +1287,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           )}
         </View>
 
-        {showDatePicker && (
+        {showDatePicker && Platform.OS === 'android' && (
           <DateTimePicker
             value={validade}
             mode="date"
@@ -1119,26 +1295,47 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
             onChange={onChangeDate}
             minimumDate={new Date()}
             locale="pt-BR"
+            is24Hour={true}
           />
+        )}
+
+        {showDatePicker && Platform.OS === 'ios' && (
+          <View style={styles.datePickerContainer}>
+            <DateTimePicker
+              value={validade}
+              mode="date"
+              display="spinner"
+              onChange={onChangeDate}
+              minimumDate={new Date()}
+              locale="pt-BR"
+            />
+            <TouchableOpacity
+              style={styles.datePickerDoneButton}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={styles.datePickerDoneText}>Concluir</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         <TouchableOpacity 
           style={styles.saveButton} 
           onPress={handleSaveProduct}
           disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="content-save" size={24} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>
-                {isEditing ? 'Atualizar' : 'Salvar'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+	        >
+	          {isSaving ? (
+	            <ActivityIndicator color="#FFFFFF" size="small" />
+	          ) : (
+	            <>
+	              <MaterialCommunityIcons name="content-save" size={24} color="#FFFFFF" />
+	              <Text style={styles.saveButtonText}>
+	                {isEditing ? 'Atualizar' : 'Salvar'}
+	              </Text>
+	            </>
+	          )}
+	        </TouchableOpacity>
+	        </ScrollView>
+	      </View>
 
       {showImageOptions && (
         <TouchableOpacity 
@@ -1249,6 +1446,62 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               ))}
             </TouchableOpacity>
           </Animated.View>
+        </TouchableOpacity>
+      )}
+
+      {/* Opções (Busca no Banco de Dados / SqlScreen) */}
+      {showLookupOptions && (
+        <TouchableOpacity
+          style={styles.lookupOverlay}
+          activeOpacity={1}
+          onPress={() => setShowLookupOptions(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={styles.lookupContainer}
+          >
+            <View style={styles.lookupHeader}>
+              <View style={styles.lookupTitleContainer}>
+                <MaterialCommunityIcons
+                  name={isSqlLookupEnabled ? 'database-search' : 'database-search-outline'}
+                  size={24}
+                  color={isDarkMode ? COLORS.white : COLORS.text}
+                />
+                <Text style={[styles.lookupTitle, isDarkMode ? styles.darkText : styles.lightText]}>
+                  Opções
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setShowLookupOptions(false)}>
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={28}
+                  color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.lookupRow}>
+              <View style={styles.lookupTextBlock}>
+                <Text style={[styles.lookupLabel, isDarkMode ? styles.darkText : styles.lightText]}>
+                  Buscar produto no banco
+                </Text>
+                <Text style={styles.lookupDescription}>
+                  Ao bipar o EAN, preenche automaticamente usando a lista de produtos importada.
+                </Text>
+              </View>
+              <Switch
+                value={isSqlLookupEnabled}
+                onValueChange={persistSqlLookupPreference}
+                trackColor={{
+                  false: isDarkMode ? COLORS.borderDark : COLORS.neutralLight,
+                  true: COLORS.secondary,
+                }}
+                ios_backgroundColor={isDarkMode ? COLORS.borderDark : COLORS.neutralLight}
+                thumbColor={COLORS.white}
+              />
+            </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       )}
     </ScreenLayout>
