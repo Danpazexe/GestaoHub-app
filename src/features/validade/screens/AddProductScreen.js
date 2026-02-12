@@ -4,11 +4,10 @@ import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, A
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Camera } from 'react-native-vision-camera';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-// Removida importação do Dados.json - agora usa dados do AsyncStorage
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { Menu, Portal, Dialog, Button } from 'react-native-paper';
+import { Menu, Portal, Dialog, Button, Modal } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 import ScreenLayout, {
   createScreenHeaderTemplate,
@@ -51,16 +50,19 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [showErrors, setShowErrors] = useState(false);
   const [isSavePressed, setIsSavePressed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   const scrollRef = useRef(null);
   const [recentProducts, setRecentProducts] = useState([]);
-  const [historyAnimation] = useState(new Animated.Value(0));
+
   const [productImage, setProductImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isSqlLookupEnabled, setIsSqlLookupEnabled] = useState(true);
   const [isSqlLookupLoaded, setIsSqlLookupLoaded] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [historyDialogVisible, setHistoryDialogVisible] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [activeSearchField, setActiveSearchField] = useState(null); // 'productName', 'codprod', 'codauxiliar'
+  const searchTimeout = useRef(null);
 
   useEffect(() => {
     const loadSqlLookupPreference = async () => {
@@ -100,7 +102,76 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     }
   };
 
-  // Função para buscar produtos no AsyncStorage
+  const performSearch = async (query, field) => {
+    // Atualiza o estado do campo primeiro
+    if (field === 'productName') setProductName(query);
+    else if (field === 'codprod') setcodprod(query.replace(/[^0-9]/g, ''));
+    else if (field === 'codauxiliar') setEan(query.replace(/[^0-9]/g, ''));
+
+    setActiveSearchField(field);
+
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    const cleanQuery = query.toLowerCase().trim();
+
+    if (!cleanQuery || !isSqlLookupEnabled) {
+      setSearchResults([]);
+      return;
+    }
+
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const cachedProducts = await AsyncStorage.getItem('cached_products');
+        if (cachedProducts) {
+          const produtos = JSON.parse(cachedProducts);
+
+          const filtered = produtos.filter(p => {
+            const val = (key) => {
+              const value = p[key.toUpperCase()] ?? p[key.toLowerCase()] ?? '';
+              return String(value).toLowerCase();
+            };
+
+            const desc = val('DESCRICAO');
+            const brand = val('MARCA');
+            const cod = val('CODPROD');
+            const ean1 = val('CODAUXILIAR');
+            const ean2 = val('CODAUXILIAR2');
+
+            // Busca em múltiplos campos independente de qual campo está digitando
+            return desc.includes(cleanQuery) ||
+              brand.includes(cleanQuery) ||
+              cod.includes(cleanQuery) ||
+              ean1.includes(cleanQuery) ||
+              ean2.includes(cleanQuery);
+          }).slice(0, 15); // Aumentado para 15 resultados
+
+          setSearchResults(filtered);
+        }
+      } catch (error) {
+        console.error('Erro ao pesquisar:', error);
+      }
+    }, 350);
+  };
+
+  const handleSelectProduct = (product) => {
+    const val = (key) => product[key.toUpperCase()] ?? product[key.toLowerCase()] ?? '';
+
+    setProductName(String(val('DESCRICAO')));
+    setcodprod(String(val('CODPROD')));
+    setEan(String(val('CODAUXILIAR') || val('CODAUXILIAR2')));
+    setSearchResults([]);
+    setActiveSearchField(null);
+
+    Toast.show({
+      type: 'success',
+      text1: 'Produto Selecionado',
+      text2: 'Dados preenchidos automaticamente',
+      visibilityTime: 1500,
+    });
+  };
+
   const handleBarcodeScan = async (scannedEan) => {
     try {
       if (!isSqlLookupEnabled) return;
@@ -112,20 +183,14 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         const produtos = JSON.parse(cachedProducts);
         const normalize = (value) => String(value ?? '').trim();
         const product = produtos.find((p) => {
-          return normalize(p.CODAUXILIAR) === formattedScannedEan || normalize(p.CODAUXILIAR2) === formattedScannedEan;
+          const ean1 = normalize(p.CODAUXILIAR || p.codauxiliar);
+          const ean2 = normalize(p.CODAUXILIAR2 || p.codauxiliar2);
+          return ean1 === formattedScannedEan || ean2 === formattedScannedEan;
         });
 
         if (product) {
-          setProductName(product.DESCRICAO);
-          setcodprod(String(product.CODPROD));
-          setEan(formattedScannedEan);
-
-          Toast.show({
-            type: 'success',
-            text1: 'Produto Encontrado',
-            text2: 'Dados preenchidos automaticamente',
-            visibilityTime: 2000,
-          });
+          handleSelectProduct(product);
+          // Toast já disparado no handleSelectProduct
         } else {
           Toast.show({
             type: 'error',
@@ -134,22 +199,9 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
             visibilityTime: 3000,
           });
         }
-      } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Nenhum produto cadastrado',
-          text2: 'Importe uma lista de produtos primeiro.',
-          visibilityTime: 3000,
-        });
       }
     } catch (error) {
       console.error('Erro ao buscar produto:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: 'Erro ao buscar produto no banco de dados.',
-        visibilityTime: 3000,
-      });
     }
   };
 
@@ -159,14 +211,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setRecentProducts(products.slice(-5));
   };
 
-  const animateHistory = (show) => {
-    Animated.spring(historyAnimation, {
-      toValue: show ? 1 : 0,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11
-    }).start();
-  };
+
 
   useEffect(() => {
     if (!route.params?.product) return;
@@ -176,24 +221,21 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setProductName(descricao);
     setBatch(lote);
     setQuantity(quantidade.toString());
-    setcodprod(codprod);
-    setEan(codauxiliar);
+    setcodprod(String(codprod));
+    setEan(String(codauxiliar));
     setExpirationDate(new Date(validade));
     setProductImage(imageUrl || foto || null);
     setIsEditing(true);
-    console.log("Dados carregados para edição:", route.params.product);  // Log para verificar os dados recebidos
   }, [route.params?.product]);
 
   useEffect(() => {
     if (!route.params?.barcodeData) return;
 
-    // Sempre preenche o EAN, mas só busca no banco se a opção estiver ligada.
     setEan(route.params.barcodeData);
     if (!isSqlLookupLoaded) return;
     if (!isSqlLookupEnabled) return;
 
     handleBarcodeScan(route.params.barcodeData);
-    console.log("Código EAN recebido da rota:", route.params.barcodeData);  // Log para verificar o EAN recebido
   }, [route.params?.barcodeData, isSqlLookupLoaded, isSqlLookupEnabled]);
 
   useEffect(() => {
@@ -206,12 +248,6 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         titleSize: 20,
         titleWeight: '600',
         titleLetterSpacing: 0.5,
-        headerStyleOverride: {
-          elevation: 4,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 3,
-        },
       }),
       headerTitle: () =>
         createHeaderTitleTemplate({
@@ -248,19 +284,9 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     });
   }, [navigation, isDarkMode, isEditing, historyDialogVisible, isSqlLookupEnabled, menuVisible]);
 
-  useEffect(() => {
-    if (showErrors) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [showErrors]);
 
-  useEffect(() => {
-    animateHistory(historyDialogVisible);
-  }, [historyDialogVisible]);
+
+
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -307,21 +333,16 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         validade: validade.toISOString(),
         quantidade: parseInt(quantidade, 10),
         diasrestantes,
-        imageUrl: productImage, // Salva a URI da imagem
+        imageUrl: productImage,
       };
-
-      console.log("Produto a ser salvo:", product);  // Log para verificar os dados do produto a ser salvo
 
       const existingProducts = await AsyncStorage.getItem('products');
       let products = existingProducts ? JSON.parse(existingProducts) : [];
-      console.log("Produtos existentes:", products);  // Log para verificar os produtos existentes
 
       if (isEditing) {
         products = products.map((p) => (p.id === productId ? product : p));
-        console.log("Produto atualizado:", product);  // Log para verificar se o produto foi atualizado
       } else {
         products.push(product);
-        console.log("Novo produto adicionado:", product);  // Log para verificar se o produto foi adicionado
       }
 
       await AsyncStorage.setItem('products', JSON.stringify(products));
@@ -346,55 +367,56 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     }
   };
 
+  const handleTakePhoto = async () => {
+    try {
+      const result = await launchCamera({
+        mediaType: 'photo',
+        quality: 0.8,
+        saveToPhotos: true,
+      });
+      if (!result.didCancel && result.assets?.[0]) {
+        setProductImage(result.assets[0].uri);
+        setShowImageOptions(false);
+      }
+    } catch (error) {
+      console.error('Erro ao tirar foto:', error);
+    }
+  };
+
+  const handleChooseFromGallery = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+      });
+      if (!result.didCancel && result.assets?.[0]) {
+        setProductImage(result.assets[0].uri);
+        setShowImageOptions(false);
+      }
+    } catch (error) {
+      console.error('Erro ao escolher da galeria:', error);
+    }
+  };
+
   const handleScanBarcode = async () => {
     try {
       const currentStatus = Camera.getCameraPermissionStatus();
-      const isGranted = currentStatus === 'granted' || currentStatus === true;
-
-      if (isGranted) {
+      if (currentStatus === 'granted' || currentStatus === true) {
         navigation.navigate('BarcodeScannerScreen');
         return;
       }
-
-      if (currentStatus === 'not-determined') {
-        const requestStatus = await Camera.requestCameraPermission();
-        const authorized = requestStatus === true || requestStatus === 'authorized' || requestStatus === 'granted';
-
-        if (authorized) {
-          Toast.show({
-            type: 'info',
-            text1: 'Scanner Ativo',
-            text2: 'Posicione o código de barras no centro da tela',
-            visibilityTime: 2000,
-          });
-          navigation.navigate('BarcodeScannerScreen');
-          return;
-        }
+      const requestStatus = await Camera.requestCameraPermission();
+      if (requestStatus === true || requestStatus === 'authorized' || requestStatus === 'granted') {
+        navigation.navigate('BarcodeScannerScreen');
+      } else {
+        Alert.alert('Câmera', 'Habilite o acesso à câmera nas configurações.', [{ text: 'OK' }]);
       }
-
-      Alert.alert(
-        'Permissão de Câmera',
-        'Para escanear código de barras, habilite o acesso à câmera nas configurações do app.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Abrir Ajustes',
-            onPress: () => Linking.openSettings(),
-          },
-        ],
-      );
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: 'Não foi possível iniciar o scanner.',
-        visibilityTime: 3000,
-      });
+      Toast.show({ type: 'error', text1: 'Erro', text2: 'Scanner não iniciou.' });
     }
   };
 
   const toggleDatePicker = () => {
-    // Fecha outros overlays antes de abrir o seletor de data
     setHistoryDialogVisible(false);
     setMenuVisible(false);
     setShowImageOptions(false);
@@ -402,1032 +424,288 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const onChangeDate = (event, selectedDate) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
-      if (event?.type === 'dismissed') return;
-      if (selectedDate) {
-        setExpirationDate(selectedDate);
-        console.log("Data de validade selecionada:", selectedDate);  // Log para verificar a data de validade
-      }
-      return;
-    }
-
-    if (selectedDate) {
-      setExpirationDate(selectedDate);
-    }
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (selectedDate) setExpirationDate(selectedDate);
   };
 
-  // Função para verificar campos vazios
   const checkEmptyFields = (field) => {
     switch (field) {
-      case 'productName':
-        return !productName.trim();
-      case 'lote':
-        return !lote.trim();
-      case 'quantidade':
-        return !quantidade.trim();
-      case 'codprod':
-        return !codprod.trim();
-      case 'codauxiliar':
-        return !codauxiliar.trim();
-      case 'validade':
-        return !validade || validade.toString() === 'Invalid Date';
-      default:
-        return false;
+      case 'productName': return !productName.trim();
+      case 'lote': return !lote.trim();
+      case 'quantidade': return !quantidade.trim();
+      case 'codprod': return !codprod.trim();
+      case 'codauxiliar': return !codauxiliar.trim();
+      case 'validade': return !validade || validade.toString() === 'Invalid Date';
+      default: return false;
     }
   };
 
-  // Função para renderizar o ícone de status do campo
   const renderFieldStatus = (field) => {
     if (!showErrors) return null;
+    const color = isDarkMode ? COLORS.dangerDark : COLORS.dangerLight;
+    const successColor = isDarkMode ? COLORS.successDark : COLORS.successLight;
+    if (checkEmptyFields(field)) return <MaterialIcons name="error-outline" size={24} color={color} style={styles.fieldIcon} />;
+    return <MaterialIcons name="check-circle" size={24} color={successColor} style={styles.fieldIcon} />;
+  };
 
-    if (checkEmptyFields(field)) {
-      return (
-        <MaterialIcons
-          name="error-outline"
-          size={24}
-          color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight}
-          style={styles.fieldIcon}
-        />
-      );
-    }
+  // Renderizador da Lista de Sugestões
+  const renderSuggestions = (field) => {
+    if (searchResults.length === 0 || activeSearchField !== field) return null;
+
     return (
-      <MaterialIcons
-        name="check-circle"
-        size={24}
-        color={isDarkMode ? COLORS.successDark : COLORS.successLight}
-        style={styles.fieldIcon}
-      />
+      <View style={styles.suggestionsContainer}>
+        <ScrollView
+          style={{ maxHeight: 250 }}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        >
+          {searchResults.map((item, index) => {
+            const d = item.DESCRICAO || item.descricao || '';
+            const m = item.MARCA || item.marca || '';
+            const c = item.CODPROD || item.codprod || '';
+            const e = item.CODAUXILIAR || item.codauxiliar || '';
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.suggestionItem}
+                onPress={() => handleSelectProduct(item)}
+              >
+                <View style={styles.suggestionIcon}>
+                  <MaterialCommunityIcons name="package-variant-closed" size={20} color={isDarkMode ? COLORS.neutralLight : COLORS.accent} />
+                </View>
+                <View style={styles.suggestionTextContainer}>
+                  <Text style={styles.suggestionTitle} numberOfLines={1}>{d}</Text>
+                  <Text style={styles.suggestionSubtitle}>
+                    {m ? `${m} | ` : ''}Cód: {c} | EAN: {e}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
     );
   };
 
-  // Mova a definição dos styles para dentro do componente
-  const getStyles = (isDarkMode) => StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 12,
-    },
-    headerButton: {
-      padding: 6,
-      borderRadius: 8,
-      backgroundColor: 'rgba(255, 255, 255, 0.22)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginLeft: 8,
-    },
+  const styles = StyleSheet.create({
+    container: { flex: 1, padding: 12 },
     formCard: {
-      flex: 1,
-      padding: 16,
-      borderRadius: 12,
-      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
-      elevation: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      flex: 1, padding: 16, borderRadius: 12, backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
+      elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
     },
-    scrollView: {
-      flex: 1,
-    },
-    scrollViewContent: {
-      flexGrow: 1,
-      paddingBottom: 20,
-    },
-    headerGradient: {
-      padding: 16,
-    },
-    headerContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-    },
-    headerTitle: {
-      color: '#FFFFFF',
-      fontSize: 22,
-      fontWeight: 'bold',
-      marginLeft: 8,
-    },
-    fieldContainer: {
-      marginBottom: 12,
-    },
-    rowContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
-    label: {
-      fontSize: 14,
-      fontWeight: '600',
-      marginBottom: 4,
-      color: isDarkMode ? COLORS.white : COLORS.text,
-    },
+    scrollView: { flex: 1 },
+    scrollViewContent: { flexGrow: 1, paddingBottom: 20 },
+    fieldContainer: { marginBottom: 12, position: 'relative' },
+    rowContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+    label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: isDarkMode ? COLORS.white : COLORS.text },
     inputContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderRadius: 8,
-      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
-      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card,
-      padding: 4,
-      shadowColor: "#000",
-      shadowOffset: {
-        width: 0,
-        height: 1,
-      },
-      shadowOpacity: 0.18,
-      shadowRadius: 1.00,
-      elevation: 1,
+      flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 8, borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
+      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card, padding: 4, elevation: 1,
     },
-    focusedInput: {
-      borderColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-      borderWidth: 2,
+    input: { flex: 1, height: 40, paddingHorizontal: 12, fontSize: 14, color: isDarkMode ? COLORS.white : COLORS.text },
+    eanContainer: { flexDirection: 'row', alignItems: 'center' },
+    scanButton: { width: 40, height: 40, backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    dateButton: { height: 40, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, borderRadius: 8 },
+    dateText: { marginLeft: 8, fontSize: 14 },
+    saveButton: { flexDirection: 'row', backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent, height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 12, elevation: 5 },
+    saveButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+    fieldIcon: { marginRight: 12, marginLeft: 4 },
+    requiredText: { fontSize: 12, marginTop: 4, color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight },
+    emptyField: { borderColor: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight, borderWidth: 2, backgroundColor: isDarkMode ? '#3a2733' : '#FFF5F7' },
+    suggestionsContainer: {
+      backgroundColor: isDarkMode ? '#1e2540' : '#ffffff', borderRadius: 8, borderWidth: 1,
+      borderColor: isDarkMode ? COLORS.borderDark : 'rgba(60, 68, 108, 0.2)', marginTop: 2,
+      elevation: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5, shadowOffset: { width: 0, height: 4 },
+      zIndex: 9999, overflow: 'hidden'
     },
-    input: {
-      flex: 1,
-      height: 40,
-      paddingHorizontal: 12,
-      fontSize: 14,
-      color: isDarkMode ? COLORS.white : COLORS.text,
+    suggestionItem: {
+      flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1,
+      borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
     },
-    lightInput: {
-      backgroundColor: '#FFFFFF',
-      color: '#000000',
-    },
-    darkInput: {
-      backgroundColor: COLORS.inputDark,
-      color: '#E0E0E0',
-      borderColor: COLORS.borderDark,
-    },
-    eanContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    eanInput: {
-      flex: 1,
-      height: 48,
-      marginRight: 8,
-      borderRadius: 8,
-      paddingHorizontal: 16,
-      fontSize: 16,
-      borderWidth: 1,
-      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
-    },
-    scanButton: {
-      width: 40,
-      height: 40,
-      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-      borderRadius: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    dateButton: {
-      height: 40,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 12,
-      borderRadius: 8,
-    },
-    dateText: {
-      marginLeft: 8,
-      fontSize: 14,
-    },
-    saveButton: {
-      flexDirection: 'row',
-      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-      height: 48,
-      borderRadius: 8,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: 12,
-      shadowColor: "#000",
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
-    },
-    saveButtonPressed: {
-      opacity: 0.8,
-      transform: [{ scale: 0.98 }]
-    },
-    saveButtonText: {
-      color: COLORS.white,
-      fontSize: 16,
-      fontWeight: 'bold',
-      marginLeft: 8,
-    },
-    lightText: {
-      color: COLORS.text,
-    },
-    darkText: {
-      color: COLORS.fieldIconDark,
-    },
-    fieldIcon: {
-      marginRight: 12,
-      marginLeft: 4,
-    },
-    requiredText: {
-      fontSize: 12,
-      marginTop: 4,
-      color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
-    },
-    emptyField: {
-      borderColor: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
-      borderWidth: 2,
-      backgroundColor: isDarkMode ? '#3a2733' : '#FFF5F7',
-    },
-    requiredAsterisk: {
-      color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
-      marginLeft: 4,
-    },
-    historyOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: COLORS.overlaySoft,
-      justifyContent: 'flex-start',
-    },
-    historyContainer: {
-      position: 'absolute',
-      top: 80,
-      right: 16,
-      width: '80%',
+    suggestionIcon: { marginRight: 10 },
+    suggestionTextContainer: { flex: 1 },
+    suggestionTitle: { fontSize: 14, fontWeight: '600', color: isDarkMode ? COLORS.white : COLORS.text },
+    suggestionSubtitle: { fontSize: 12, color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)', marginTop: 2 },
+    photoContainer: { alignItems: 'center', marginTop: 8 },
+    photoPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: isDarkMode ? COLORS.neutralDark : '#edf0fa', borderWidth: 2, borderColor: isDarkMode ? COLORS.neutralMid : COLORS.neutralLight, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+    photoPlaceholderText: { fontSize: 11, marginTop: 4, textAlign: 'center' },
+    photoPreview: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: isDarkMode ? COLORS.neutralMid : COLORS.neutralLight },
+    removePhotoButton: { position: 'absolute', top: -5, right: -5, backgroundColor: COLORS.closeDanger, borderRadius: 15, width: 26, height: 26, justifyContent: 'center', alignItems: 'center' },
+    retakePhotoButton: { flexDirection: 'row', backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15 },
+    retakePhotoText: { color: COLORS.white, fontSize: 12, fontWeight: '600', marginLeft: 4 },
+
+    historyItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? COLORS.borderDark : 'rgba(60, 68, 108, 0.15)' },
+    historyText: { marginLeft: 12, fontSize: 16 },
+    darkText: { color: COLORS.fieldIconDark },
+    lightText: { color: COLORS.text },
+    bottomSheet: {
       backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
-      borderRadius: 12,
-      elevation: 5,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      padding: 16,
-      zIndex: 1000,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     },
-    historyHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16,
+    sheetTitle: { fontSize: 20, fontWeight: 'bold', color: isDarkMode ? COLORS.white : COLORS.text, marginBottom: 8, textAlign: 'center' },
+    sheetSubtitle: { fontSize: 14, color: isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight, marginBottom: 24, textAlign: 'center' },
+    sheetButton: {
+      flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? COLORS.neutralDark : '#f0f3ff',
+      padding: 16, borderRadius: 12, marginBottom: 12,
     },
-    historyTitleContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    historyTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    closeButton: {
-      padding: 4,
-    },
-    historyItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: isDarkMode ? COLORS.borderDark : 'rgba(60, 68, 108, 0.15)',
-    },
-    historyText: {
-      marginLeft: 12,
-      fontSize: 16,
-    },
-    lookupOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: COLORS.overlaySoft,
-      justifyContent: 'flex-start',
-    },
-    lookupContainer: {
-      position: 'absolute',
-      top: 80,
-      right: 16,
-      width: '85%',
-      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
-      borderRadius: 12,
-      elevation: 5,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      padding: 16,
-      zIndex: 1000,
-    },
-    lookupHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 14,
-    },
-    lookupTitleContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    lookupTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    lookupRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 12,
-      paddingVertical: 10,
-    },
-    lookupTextBlock: {
-      flex: 1,
-    },
-    lookupLabel: {
-      fontSize: 15,
-      fontWeight: '700',
-      marginBottom: 4,
-    },
-    lookupDescription: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: isDarkMode ? 'rgba(230,235,255,0.72)' : 'rgba(17,24,39,0.68)',
-    },
-    datePickerContainer: {
-      marginTop: 10,
-      borderRadius: 14,
-      overflow: 'hidden',
-      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card,
-      borderWidth: 1,
-      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
-    },
-    datePickerDoneButton: {
-      alignSelf: 'flex-end',
-      marginTop: 6,
-      marginRight: 10,
-      marginBottom: 10,
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-      borderRadius: 10,
-      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-    },
-    datePickerDoneText: {
-      color: COLORS.white,
-      fontSize: 14,
-      fontWeight: '700',
-    },
-    photoContainer: {
-      alignItems: 'center',
-      marginTop: 8,
-    },
-    photoPlaceholder: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: isDarkMode ? COLORS.neutralDark : '#edf0fa',
-      borderWidth: 2,
-      borderColor: isDarkMode ? COLORS.neutralMid : COLORS.neutralLight,
-      borderStyle: 'dashed',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    photoPlaceholderText: {
-      fontSize: 12,
-      marginTop: 4,
-      textAlign: 'center',
-    },
-    photoPreviewContainer: {
-      position: 'relative',
-      marginBottom: 12,
-    },
-    photoPreview: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      borderWidth: 3,
-      borderColor: isDarkMode ? COLORS.neutralMid : COLORS.neutralLight,
-    },
-    removePhotoButton: {
-      position: 'absolute',
-      top: -8,
-      right: -8,
-      backgroundColor: COLORS.closeDanger,
-      borderRadius: 15,
-      width: 30,
-      height: 30,
-      justifyContent: 'center',
-      alignItems: 'center',
-      elevation: 3,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-    },
-    retakePhotoButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-    },
-    retakePhotoText: {
-      color: COLORS.white,
-      fontSize: 14,
-      fontWeight: '600',
-      marginLeft: 4,
-    },
-    imageOptionsOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: COLORS.overlayStrong,
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 2000,
-    },
-    imageOptionsContainer: {
-      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
-      borderRadius: 16,
-      padding: 20,
-      margin: 20,
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      minWidth: 280,
-    },
-    imageOptionsTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      marginBottom: 20,
-      color: isDarkMode ? COLORS.white : COLORS.text,
-    },
-    imageOptionButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderRadius: 12,
-      marginBottom: 12,
-      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-    },
-    imageOptionText: {
-      color: COLORS.white,
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 12,
-    },
-    cancelButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderRadius: 12,
-      backgroundColor: isDarkMode ? COLORS.neutralDark : '#e9edf8',
-      marginTop: 8,
-    },
-    cancelButtonText: {
-      color: isDarkMode ? COLORS.white : COLORS.text,
-      fontSize: 16,
-      fontWeight: '600',
+    sheetButtonText: { fontSize: 16, fontWeight: '600', color: isDarkMode ? COLORS.white : COLORS.text, marginLeft: 16 },
+    sheetIconContainer: {
+      width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
+      justifyContent: 'center', alignItems: 'center',
     },
   });
 
-  // Use os estilos dentro do componente
-  const styles = getStyles(isDarkMode);
-
-  const handleCopyFromHistory = (product) => {
-    setProductName(product.descricao);
-    setcodprod(product.codprod);
-    setEan(product.codauxiliar);
-    setProductImage(product.imageUrl || product.foto || null);
-
-    Toast.show({
-      type: 'success',
-      text1: 'Produto Copiado',
-      text2: 'Dados do produto copiados com sucesso',
-    });
-  };
-
-  const handleOutsidePress = () => {
-    setHistoryDialogVisible(false);
-  };
-
-  // Função para capturar foto
-  const handleTakePhoto = async () => {
-    try {
-      const result = await launchCamera({
-        mediaType: 'photo',
-        includeBase64: false,
-        quality: 0.8,
-        saveToPhotos: true,
-        cameraType: 'back',
-      });
-
-      if (result.didCancel) {
-        return;
-      }
-
-      if (result.errorCode) {
-        Toast.show({
-          type: 'error',
-          text1: 'Permissão necessária',
-          text2: 'A permissão para acessar a câmera é necessária para tirar a foto.',
-          visibilityTime: 3000,
-        });
-        return;
-      }
-
-      if (result.assets && result.assets[0]) {
-        setProductImage(result.assets[0].uri);
-        setShowImageOptions(false);
-        Toast.show({
-          type: 'success',
-          text1: 'Foto capturada',
-          text2: 'Foto do produto salva com sucesso!',
-          visibilityTime: 2000,
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao capturar foto:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: 'Não foi possível capturar a foto.',
-        visibilityTime: 3000,
-      });
-    }
-  };
-
-  // Função para escolher foto da galeria
-  const handleChooseFromGallery = async () => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'photo',
-        includeBase64: false,
-        quality: 0.8,
-        selectionLimit: 1,
-      });
-
-      if (result.didCancel) {
-        return;
-      }
-
-      if (result.errorCode) {
-        Toast.show({
-          type: 'error',
-          text1: 'Permissão necessária',
-          text2: 'A permissão para acessar a galeria é necessária para escolher uma foto.',
-          visibilityTime: 3000,
-        });
-        return;
-      }
-
-      if (result.assets && result.assets[0]) {
-        setProductImage(result.assets[0].uri);
-        setShowImageOptions(false);
-        Toast.show({
-          type: 'success',
-          text1: 'Foto selecionada',
-          text2: 'Foto do produto selecionada com sucesso!',
-          visibilityTime: 2000,
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao escolher foto:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Erro',
-        text2: 'Não foi possível escolher a foto.',
-        visibilityTime: 3000,
-      });
-    }
-  };
-
-  // Função para remover foto
-  const handleRemovePhoto = () => {
-    setProductImage(null);
-    Toast.show({
-      type: 'info',
-      text1: 'Foto removida',
-      text2: 'A foto do produto foi removida.',
-      visibilityTime: 2000,
-    });
-  };
-
   return (
-    <ScreenLayout
-      isDarkMode={isDarkMode}
-      lightBackground={COLORS.background}
-      darkBackground={COLORS.darkBackground}
-      contentStyle={styles.container}
-    >
+    <ScreenLayout isDarkMode={isDarkMode} lightBackground={COLORS.background} darkBackground={COLORS.darkBackground} contentStyle={styles.container}>
       <View style={styles.formCard}>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Campo Foto do Produto */}
+        <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+          {/* Foto */}
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}Foto do Produto
+              <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> Foto
             </Text>
             <View style={styles.photoContainer}>
               {productImage ? (
-                <View style={styles.photoPreviewContainer}>
+                <View style={{ position: 'relative', marginBottom: 10 }}>
                   <Image source={{ uri: productImage }} style={styles.photoPreview} />
-                  <TouchableOpacity
-                    style={styles.removePhotoButton}
-                    onPress={handleRemovePhoto}
-                  >
-                    <MaterialIcons name="close" size={20} color="#FFF" />
+                  <TouchableOpacity style={styles.removePhotoButton} onPress={() => setProductImage(null)}>
+                    <MaterialIcons name="close" size={18} color="#FFF" />
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.photoPlaceholder}
-                  onPress={() => setShowImageOptions(true)}
-                >
-                  <MaterialCommunityIcons
-                    name="camera-plus"
-                    size={48}
-                    color={isDarkMode ? COLORS.neutralMid : COLORS.neutralLight}
-                  />
-                  <Text style={[styles.photoPlaceholderText, isDarkMode ? styles.darkText : styles.lightText]}>
-                    Adicionar Foto
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {productImage && (
-                <TouchableOpacity
-                  style={styles.retakePhotoButton}
-                  onPress={() => setShowImageOptions(true)}
-                >
-                  <MaterialCommunityIcons name="camera" size={20} color="#FFF" />
-                  <Text style={styles.retakePhotoText}>Nova Foto</Text>
+                <TouchableOpacity style={styles.photoPlaceholder} onPress={() => setShowImageOptions(true)}>
+                  <MaterialCommunityIcons name="camera-plus" size={40} color={isDarkMode ? COLORS.neutralMid : COLORS.neutralLight} />
+                  <Text style={[styles.photoPlaceholderText, isDarkMode ? styles.darkText : styles.lightText]}>Foto</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {/* Campo Nome do Produto */}
+          {/* Nome do Produto */}
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}Nome do Produto
+              <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> Nome do Produto
             </Text>
-            <View style={[
-              styles.inputContainer,
-              showErrors && checkEmptyFields('productName') && styles.emptyField
-            ]}>
-              <TextInput
-                placeholder="Ex: Sabão em Pó"
-                value={productName}
-                onChangeText={setProductName}
-                style={styles.input}
-                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-              />
+            <View style={[styles.inputContainer, showErrors && checkEmptyFields('productName') && styles.emptyField]}>
+              <TextInput placeholder="Ex: Sabão em Pó" value={productName} onChangeText={(t) => performSearch(t, 'productName')} style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
               {renderFieldStatus('productName')}
             </View>
-            {showErrors && checkEmptyFields('productName') && (
-              <Animated.Text
-                style={[
-                  styles.requiredText,
-                  { opacity: fadeAnim }
-                ]}
-              >
-                Campo obrigatório
-              </Animated.Text>
-            )}
+            {renderSuggestions('productName')}
           </View>
 
-          {/* Campos Lote e Quantidade em linha */}
+          {/* Lote e Qtd */}
           <View style={styles.rowContainer}>
             <View style={[styles.fieldContainer, { flex: 1, marginRight: 10 }]}>
-              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-                <MaterialCommunityIcons name="barcode-scan" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-                {' '}Lote
-              </Text>
-              <View style={[
-                styles.inputContainer,
-                showErrors && checkEmptyFields('lote') && styles.emptyField
-              ]}>
-                <TextInput
-                  placeholder="Ex: 123456"
-                  value={lote}
-                  onChangeText={setBatch}
-                  style={styles.input}
-                  placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-                />
-                {renderFieldStatus('lote')}
+              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Lote</Text>
+              <View style={[styles.inputContainer, showErrors && checkEmptyFields('lote') && styles.emptyField]}>
+                <TextInput placeholder="Ex: 123" value={lote} onChangeText={setBatch} style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
               </View>
-              {showErrors && checkEmptyFields('lote') && (
-                <Animated.Text
-                  style={[
-                    styles.requiredText,
-                    { opacity: fadeAnim }
-                  ]}
-                >
-                  Campo obrigatório
-                </Animated.Text>
-              )}
             </View>
-
             <View style={[styles.fieldContainer, { flex: 1 }]}>
-              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-                <MaterialCommunityIcons name="numeric" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-                {' '}Quantidade
-              </Text>
-              <View style={[
-                styles.inputContainer,
-                showErrors && checkEmptyFields('quantidade') && styles.emptyField
-              ]}>
-                <TextInput
-                  placeholder="Ex: 10"
-                  value={quantidade}
-                  onChangeText={(text) => setQuantity(text.replace(/[^0-9]/g, ''))}
-                  keyboardType="numeric"
-                  style={styles.input}
-                  placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-                />
-                {renderFieldStatus('quantidade')}
+              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Qtd</Text>
+              <View style={[styles.inputContainer, showErrors && checkEmptyFields('quantidade') && styles.emptyField]}>
+                <TextInput placeholder="Ex: 10" value={quantidade} onChangeText={t => setQuantity(t.replace(/[^0-9]/g, ''))} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
               </View>
-              {showErrors && checkEmptyFields('quantidade') && (
-                <Animated.Text
-                  style={[
-                    styles.requiredText,
-                    { opacity: fadeAnim }
-                  ]}
-                >
-                  Campo obrigatório
-                </Animated.Text>
-              )}
             </View>
           </View>
 
-          {/* Campo Código Interno */}
+          {/* Código Interno */}
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}Código Interno
+              <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> Código Interno
             </Text>
-            <View style={[
-              styles.inputContainer,
-              showErrors && checkEmptyFields('codprod') && styles.emptyField
-            ]}>
-              <TextInput
-                placeholder="Ex: 001"
-                value={codprod}
-                onChangeText={(text) => setcodprod(text.replace(/[^0-9]/g, ''))}
-                keyboardType="numeric"
-                style={styles.input}
-                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-              />
+            <View style={[styles.inputContainer, showErrors && checkEmptyFields('codprod') && styles.emptyField]}>
+              <TextInput placeholder="Ex: 1001" value={codprod} onChangeText={(t) => performSearch(t, 'codprod')} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
               {renderFieldStatus('codprod')}
             </View>
-            {showErrors && checkEmptyFields('codprod') && (
-              <Animated.Text
-                style={[
-                  styles.requiredText,
-                  { opacity: fadeAnim }
-                ]}
-              >
-                Campo obrigatório
-              </Animated.Text>
-            )}
+            {renderSuggestions('codprod')}
           </View>
 
-          {/* Campo EAN */}
+          {/* EAN */}
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}EAN
+              <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> EAN
             </Text>
             <View style={styles.eanContainer}>
-              <View style={[
-                styles.inputContainer,
-                { flex: 1, marginRight: 8 },
-                showErrors && checkEmptyFields('codauxiliar') && styles.emptyField
-              ]}>
-                <TextInput
-                  placeholder="Ex: 7891234567890"
-                  value={codauxiliar}
-                  onChangeText={(text) => setEan(text.replace(/[^0-9]/g, ''))}
-                  keyboardType="numeric"
-                  style={styles.input}
-                  placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-                />
+              <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }, showErrors && checkEmptyFields('codauxiliar') && styles.emptyField]}>
+                <TextInput placeholder="Ex: 789..." value={codauxiliar} onChangeText={(t) => performSearch(t, 'codauxiliar')} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
                 {renderFieldStatus('codauxiliar')}
               </View>
-              <TouchableOpacity
-                style={styles.scanButton}
-                onPress={handleScanBarcode}
-              >
+              <TouchableOpacity style={styles.scanButton} onPress={handleScanBarcode}>
                 <MaterialCommunityIcons name="barcode-scan" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            {showErrors && checkEmptyFields('codauxiliar') && (
-              <Animated.Text
-                style={[
-                  styles.requiredText,
-                  { opacity: fadeAnim }
-                ]}
-              >
-                Campo obrigatório
-              </Animated.Text>
-            )}
+            {renderSuggestions('codauxiliar')}
           </View>
 
-          {/* Campo Data de Validade */}
+          {/* Data */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="calendar-clock" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}Data de Validade
-            </Text>
-            <View style={[
-              styles.inputContainer,
-              showErrors && checkEmptyFields('validade') && styles.emptyField
-            ]}>
-              <TouchableOpacity
-                style={[styles.dateButton, { flex: 1, borderWidth: 0 }]}
-                onPress={toggleDatePicker}
-              >
-                <MaterialCommunityIcons
-                  name="calendar"
-                  size={24}
-                  color={isDarkMode ? COLORS.placeholderDark : COLORS.accent}
-                />
-                <Text style={[styles.dateText, isDarkMode ? styles.darkText : styles.lightText]}>
-                  {validade.toLocaleDateString('pt-BR')}
-                </Text>
-              </TouchableOpacity>
-              {renderFieldStatus('validade')}
-            </View>
-            {showErrors && checkEmptyFields('validade') && (
-              <Animated.Text
-                style={[
-                  styles.requiredText,
-                  { opacity: fadeAnim }
-                ]}
-              >
-                Campo obrigatório
-              </Animated.Text>
-            )}
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Validade</Text>
+            <TouchableOpacity style={styles.inputContainer} onPress={toggleDatePicker}>
+              <Text style={[styles.input, { paddingVertical: 10 }]}>{validade.toLocaleDateString('pt-BR')}</Text>
+            </TouchableOpacity>
           </View>
-
-          {showDatePicker && Platform.OS === 'android' && (
-            <DateTimePicker
-              value={validade}
-              mode="date"
-              display="spinner"
-              onChange={onChangeDate}
-              minimumDate={new Date()}
-              locale="pt-BR"
-              is24Hour={true}
-            />
+          {showDatePicker && (
+            <DateTimePicker value={validade} mode="date" display="spinner" onChange={onChangeDate} minimumDate={new Date()} locale="pt-BR" />
           )}
 
-          {showDatePicker && Platform.OS === 'ios' && (
-            <View style={styles.datePickerContainer}>
-              <DateTimePicker
-                value={validade}
-                mode="date"
-                display="spinner"
-                onChange={onChangeDate}
-                minimumDate={new Date()}
-                locale="pt-BR"
-              />
-              <TouchableOpacity
-                style={styles.datePickerDoneButton}
-                onPress={() => setShowDatePicker(false)}
-              >
-                <Text style={styles.datePickerDoneText}>Concluir</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSaveProduct}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="content-save" size={24} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>
-                  {isEditing ? 'Atualizar' : 'Salvar'}
-                </Text>
-              </>
-            )}
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveButtonText}>{isEditing ? 'Atualizar' : 'Salvar'}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </View>
 
-      {showImageOptions && (
-        <TouchableOpacity
-          style={styles.imageOptionsOverlay}
-          activeOpacity={1}
-          onPress={() => setShowImageOptions(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            style={styles.imageOptionsContainer}
-          >
-            <Text style={styles.imageOptionsTitle}>
-              Escolher Foto do Produto
-            </Text>
 
-            <TouchableOpacity
-              style={styles.imageOptionButton}
-              onPress={handleTakePhoto}
-            >
-              <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
-              <Text style={styles.imageOptionText}>Capturar Nova Foto</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.imageOptionButton}
-              onPress={handleChooseFromGallery}
-            >
-              <MaterialCommunityIcons name="image-multiple" size={24} color="#FFFFFF" />
-              <Text style={styles.imageOptionText}>Escolher da Galeria</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowImageOptions(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancelar</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
-
-      {/* Modal de Histórico como DIALOG Padronizado */}
+      {/* Modal de Seleção de Imagem (Bottom Sheet Style) */}
       <Portal>
-        <Dialog
-          visible={historyDialogVisible}
-          onDismiss={() => setHistoryDialogVisible(false)}
-          style={{ backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card, borderRadius: 16 }}
+        <Modal
+          visible={showImageOptions}
+          onDismiss={() => setShowImageOptions(false)}
+          contentContainerStyle={[styles.bottomSheet, { position: 'absolute', bottom: 0, left: 0, right: 0 }]}
         >
-          <Dialog.Title style={[styles.historyTitle, isDarkMode ? styles.darkText : styles.lightText]}>
-            Produtos Recentes
-          </Dialog.Title>
-          <Dialog.Content>
-            {recentProducts.length > 0 ? (
-              recentProducts.map((product, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.historyItem}
-                  onPress={() => {
-                    handleCopyFromHistory(product);
-                    setHistoryDialogVisible(false);
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="package-variant"
-                    size={24}
-                    color={isDarkMode ? '#A8B0D8' : COLORS.accent}
-                  />
-                  <Text style={[styles.historyText, isDarkMode ? styles.darkText : styles.lightText]}>
-                    {product.descricao}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={[styles.historyText, { textAlign: 'center', opacity: 0.6 }]}>
-                Nenhum produto recente encontrado
-              </Text>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setHistoryDialogVisible(false)} color={isDarkMode ? COLORS.secondary : COLORS.accent}>
-              Fechar
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+          <Text style={styles.sheetTitle}>Foto do Produto</Text>
+          <Text style={styles.sheetSubtitle}>Como deseja adicionar a imagem?</Text>
+
+          <TouchableOpacity style={styles.sheetButton} onPress={handleTakePhoto}>
+            <View style={styles.sheetIconContainer}>
+              <MaterialCommunityIcons name="camera" size={24} color="#FFF" />
+            </View>
+            <Text style={styles.sheetButtonText}>Tirar nova foto agora</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.sheetButton} onPress={handleChooseFromGallery}>
+            <View style={styles.sheetIconContainer}>
+              <MaterialCommunityIcons name="image-multiple" size={24} color="#FFF" />
+            </View>
+            <Text style={styles.sheetButtonText}>Escolher da galeria</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.sheetButton, { backgroundColor: 'transparent', marginTop: 8, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+            onPress={() => setShowImageOptions(false)}
+          >
+            <Text style={[styles.sheetButtonText, { marginLeft: 0, width: '100%', textAlign: 'center', color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight }]}>
+              Cancelar
+            </Text>
+          </TouchableOpacity>
+        </Modal>
       </Portal>
 
+      <Portal>
+        <Dialog visible={historyDialogVisible} onDismiss={() => setHistoryDialogVisible(false)} style={{ backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card }}>
+          <Dialog.Title>Produtos Recentes</Dialog.Title>
+          <Dialog.Content>
+            {recentProducts.map((p, i) => (
+              <TouchableOpacity key={i} style={styles.historyItem} onPress={() => { handleSelectProduct(p); setHistoryDialogVisible(false); }}>
+                <Text style={[styles.historyText, isDarkMode ? styles.darkText : styles.lightText]}>{p.descricao}</Text>
+              </TouchableOpacity>
+            ))}
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
     </ScreenLayout>
   );
 };

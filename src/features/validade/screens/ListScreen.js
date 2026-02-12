@@ -506,7 +506,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       </View>
 
       {isFilterVisible && (
-        <Animated.View style={[styles.filterOptions, isDarkMode && styles.darkFilterOptions]}>
+        <View style={[styles.filterOptions, isDarkMode && styles.darkFilterOptions]}>
           <FilterOption
             label="Nome do Produto"
             icon="text-fields"
@@ -525,7 +525,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
             isSelected={filterType === 'codauxiliar'}
             onPress={() => setSelectedFilter('codauxiliar')}
           />
-        </Animated.View>
+        </View>
       )}
     </View>
   );
