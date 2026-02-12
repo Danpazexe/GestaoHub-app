@@ -9,12 +9,12 @@ O projeto segue uma estrutura baseada em funcionalidades (**Features**):
     - `/screens`: Telas principais do módulo.
     - `/components`: Componentes exclusivos daquele módulo.
 - `src/shared`: Código compartilhado por todo o app.
-    - `/components`: Componentes universais (`ScreenLayout`, `HeaderMenu`).
-    - `/utils`: Funções utilitárias e helpers.
-- `assets/cores`: Centralização total de tokens de design.
+    - `/components`: Componentes universais (`ScreenLayout`, `HeaderMenu`, `coresAuth.js`).
+    - `/utils`: Funções utilitárias e helpers (`systemBars.js`).
+- `assets`: Outros recursos estáticos (imagens, fontes).
 
 ## 2. Sistema de Cores (Design Tokens)
-**Regra de Ouro**: Nunca use cores "hardcoded". Utilize o arquivo `assets/cores/coresAuth.js`.
+**Regra de Ouro**: Nunca use cores "hardcoded". Utilize o arquivo `src/shared/components/coresAuth.js`.
 
 - **CORESFUNCIONALIDADES**: Mapeia cada módulo e ação a uma cor específica.
 - **Hierarquia**:
@@ -28,6 +28,10 @@ O projeto segue uma estrutura baseada em funcionalidades (**Features**):
 - **Layout**: Utilizar o `ScreenLayout` para garantir consistência em SafeAreas.
 - **Botões de Ação**: Devem ser **Quadrados** (`borderRadius: 8`) com fundo semi-transparente `rgba(255, 255, 255, 0.22)`.
 - **Overflow Menu**: Ações secundárias devem ser agrupadas em um menu de 3 pontos (`more-vert`) utilizando o componente compartilhado `HeaderMenu`.
+
+### Barra de Status e Navegação (System Bars)
+- **Sincronização**: A cor da `StatusBar` e da `NavigationBar` deve sempre acompanhar a cor do Header da tela.
+- **Registro Obrigatório**: Toda nova tela deve ser registrada no arquivo `src/shared/utils/systemBars.js` nos objetos `LIGHT_ROUTE_HEADER_COLORS` e `DARK_ROUTE_HEADER_COLORS`. Isso garante que o sistema identifique a cor correta automaticamente.
 
 ### Componentes Reutilizáveis
 - `ScreenLayout`: Engine de renderização de telas com suporte a Dark Mode e templates de Header.

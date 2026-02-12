@@ -15,6 +15,10 @@ const LIGHT_ROUTE_HEADER_COLORS = {
   PdfScreen: '#d7263d',
   PdfViewerScreen: '#294380',
   BarcodeScannerScreen: '#000000',
+  AvariaListScreen: '#be123c',
+  AvariaEntryScreen: '#b91c1c',
+  AvariaResolutionScreen: '#e11d48',
+  AvariaHistoryScreen: '#881337',
 };
 
 const DARK_ROUTE_HEADER_COLORS = {
@@ -34,6 +38,10 @@ const DARK_ROUTE_HEADER_COLORS = {
   PdfScreen: '#d7263d',
   PdfViewerScreen: '#294380',
   BarcodeScannerScreen: '#000000',
+  AvariaListScreen: '#be123c',
+  AvariaEntryScreen: '#b91c1c',
+  AvariaResolutionScreen: '#e11d48',
+  AvariaHistoryScreen: '#881337',
 };
 
 const resolveRoute = (route) => {
