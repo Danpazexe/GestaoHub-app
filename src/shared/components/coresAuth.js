@@ -239,6 +239,22 @@ export const CORESBARCODESCANNER = {
   permissionText: '#4b5563',
 };
 
+export const CORESEXCEL = {
+  primary: '#294380',
+  secondary: '#012677',
+  accent: '#012677',
+  background: '#f8f8f8',
+  backgroundDark: '#181818',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  border: 'rgba(1, 38, 119, 0.22)',
+  text: '#333333',
+  textDark: '#FFFFFF',
+  textMuted: '#666666',
+  white: '#FFFFFF',
+  shadow: '#012677',
+};
+
 export const CORESFUNCIONALIDADES = {
   modules: {
     validade: '#1d4ed8',
@@ -254,9 +270,12 @@ export const CORESFUNCIONALIDADES = {
     'validade-add': CORESADDPRODUCT.primary,
     'validade-dashboard': CORESDASHBOARD.primary,
     'validade-tratativas': CORESTRATAR.primary,
+    'validade-excel': '#012677',
 
     'avaria-lancar': '#b91c1c',
     'avaria-consultar': '#be123c',
+    'avaria-resolucao': '#e11d48',
+    'avaria-historico': '#881337',
 
     'conferencia-recebimento': '#0f766e',
     'conferencia-saida': '#4338ca',

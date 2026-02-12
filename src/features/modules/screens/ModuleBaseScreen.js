@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ScreenLayout, { createScreenHeaderTemplate, createHeaderTitleTemplate } from '../../../shared/components/ScreenLayout';
-import { CORESHOME } from '../../../../assets/cores/coresAuth';
+import { CORESHOME } from '../../../shared/components/coresAuth';
 
 const COLORS = CORESHOME;
 
@@ -45,7 +45,7 @@ const ModuleBaseScreen = ({ isDarkMode }) => {
       darkBackground={COLORS.destaqueCinza}
       contentStyle={styles.content}
     >
-      <View style={[styles.heroCard, { borderLeftColor: color }]}> 
+      <View style={[styles.heroCard, { borderLeftColor: color }]}>
         <Text style={styles.heroTitle}>{title}</Text>
         <Text style={styles.heroSubtitle}>{subtitle}</Text>
       </View>

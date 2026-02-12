@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, Modal, TouchableOpacity } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ImageViewer from 'react-native-image-zoom-viewer';
-import { CORESPRODUCTITEM } from '../../../assets/cores/coresAuth';
+import { CORESPRODUCTITEM } from '../../../shared/components/coresAuth';
 
 const COLORS = CORESPRODUCTITEM;
 
@@ -13,59 +13,59 @@ const ProductItem = ({ product, isDarkMode }) => {
   // Função melhorada para determinar o texto e cor da validade
   const getDaysToExpirationText = (days) => {
     if (days < 0) {
-      return { 
+      return {
         number: 'VENCIDO',
         label: `${Math.abs(days)} dia(s)`,
         color: COLORS.white,
         backgroundColor: COLORS.badgeExpired,
         icon: 'warning',
         status: 'Produto Vencido'
-      }; 
+      };
     } else if (days === 0) {
-      return { 
+      return {
         number: 'VENCE',
         label: 'HOJE',
         color: COLORS.white,
         backgroundColor: COLORS.badgeToday,
         icon: 'error',
         status: 'Vencendo Hoje'
-      }; 
+      };
     } else if (days > 0 && days <= 7) {
-      return { 
+      return {
         number: days.toString(),
         label: 'DIAS',
         color: COLORS.white,
         backgroundColor: COLORS.badgeWeek,
         icon: 'schedule',
         status: `Vence em ${days} dias`
-      }; 
+      };
     } else if (days > 7 && days <= 15) {
-      return { 
+      return {
         number: days.toString(),
         label: 'DIAS',
         color: COLORS.white,
         backgroundColor: COLORS.badgeFifteen,
         icon: 'event',
         status: `Vence em ${days} dias`
-      }; 
+      };
     } else if (days > 15 && days <= 30) {
-      return { 
+      return {
         number: days.toString(),
         label: 'DIAS',
         color: COLORS.white,
         backgroundColor: COLORS.badgeMonth,
         icon: 'check-circle',
         status: `Vence em ${days} dias`
-      }; 
+      };
     } else {
-      return { 
+      return {
         number: days.toString(),
         label: 'DIAS',
         color: COLORS.white,
         backgroundColor: COLORS.badgeFuture,
         icon: 'check-circle',
         status: `Vence em ${days} dias`
-      }; 
+      };
     }
   };
 
@@ -74,19 +74,19 @@ const ProductItem = ({ product, isDarkMode }) => {
     try {
       // Converte a string de data para partes
       const [dia, mes, ano] = product.validade.split('/').map(Number);
-      
+
       // Cria as datas
       const hoje = new Date();
       const dataValidade = new Date(ano, mes - 1, dia); // mes - 1 porque em JS os meses começam do 0
-      
+
       // Reseta as horas para comparar apenas as datas
       hoje.setHours(0, 0, 0, 0);
       dataValidade.setHours(0, 0, 0, 0);
-      
+
       // Calcula a diferença em dias
       const diffTime = dataValidade.getTime() - hoje.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
+
       return diffDays;
     } catch (error) {
       console.error('Erro ao calcular dias restantes:', error);
@@ -155,17 +155,17 @@ const ProductItem = ({ product, isDarkMode }) => {
         {/* Status de Validade - Badge dentro do card */}
         <View style={[
           styles.statusBadge,
-          { 
+          {
             backgroundColor: expirationInfo.backgroundColor,
           }
         ]}>
           <Text style={[
-            styles.badgeText, 
+            styles.badgeText,
             { color: expirationInfo.color }
           ]}>
-            {expirationInfo.status === 'Produto Vencido' ? 'VENCIDO' : 
-             expirationInfo.status === 'Vencendo Hoje' ? 'VENCE HOJE' :
-             expirationInfo.status}
+            {expirationInfo.status === 'Produto Vencido' ? 'VENCIDO' :
+              expirationInfo.status === 'Vencendo Hoje' ? 'VENCE HOJE' :
+                expirationInfo.status}
           </Text>
         </View>
         {/* Detalhes do Produto */}
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginVertical: 4,
   },
-  
+
   container: {
     flexDirection: 'row',
     padding: 12,
@@ -250,13 +250,13 @@ const styles = StyleSheet.create({
   darkContainer: {
     backgroundColor: COLORS.cardDark,
   },
-  
+
   productDetails: {
     flex: 1,
     marginRight: 10,
     paddingTop: 6, // Espaço para o badge
   },
-  
+
   productName: {
     fontSize: 17,
     fontWeight: 'bold',
@@ -267,23 +267,23 @@ const styles = StyleSheet.create({
   darkProductName: {
     color: COLORS.titleDark,
   },
-  
+
   infoGrid: {
     flexDirection: 'column',
     gap: 2,
   },
-  
+
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 1,
   },
-  
+
   icon: {
     marginRight: 6,
     width: 17,
   },
-  
+
   label: {
     fontWeight: '600',
     fontSize: 14,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   darkLabel: {
     color: COLORS.labelDark,
   },
-  
+
   value: {
     fontSize: 14,
     color: COLORS.value,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   darkValue: {
     color: COLORS.valueDark,
   },
-  
+
   statusBadge: {
     position: 'absolute',
     top: 8,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  
+
   imageWrapper: {
     marginLeft: 10,
     alignItems: 'center',

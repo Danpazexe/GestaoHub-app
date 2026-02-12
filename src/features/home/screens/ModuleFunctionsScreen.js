@@ -2,7 +2,7 @@ import React, { useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ToastAndroid, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { CORESMODULEFUNCTIONS, CORESHOME } from '../../../../assets/cores/coresAuth';
+import { CORESMODULEFUNCTIONS, CORESHOME } from '../../../shared/components/coresAuth';
 import ScreenLayout, {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
@@ -112,38 +112,38 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
       darkBackground={MODULE_COLORS.backgroundDark}
       contentStyle={styles.content}
     >
-        <View style={styles.listWrapper}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
-          >
-            {actions.map((action) => {
-              const actionColor = action.color || moduleColor;
-              const onActionColor = isDarkColor(actionColor) ? '#ffffff' : '#1f2937';
-              const borderColor = isDarkMode ? withAlpha(actionColor, 0.78) : withAlpha(actionColor, 0.34);
-              const iconBackground = withAlpha(onActionColor, isDarkMode ? 0.24 : 0.2);
-              const chevronColor = withAlpha(onActionColor, 0.82);
+      <View style={styles.listWrapper}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+        >
+          {actions.map((action) => {
+            const actionColor = action.color || moduleColor;
+            const onActionColor = isDarkColor(actionColor) ? '#ffffff' : '#1f2937';
+            const borderColor = isDarkMode ? withAlpha(actionColor, 0.78) : withAlpha(actionColor, 0.34);
+            const iconBackground = withAlpha(onActionColor, isDarkMode ? 0.24 : 0.2);
+            const chevronColor = withAlpha(onActionColor, 0.82);
 
-              return (
-                <Pressable
-                  key={action.id}
-                  onPress={() => handleActionPress(action)}
-                  style={({ pressed }) => [
-                    styles.actionCard,
-                    { backgroundColor: actionColor, borderColor },
-                    pressed && styles.pressedCard,
-                  ]}
-                >
-                  <View style={[styles.actionIconCircle, { backgroundColor: iconBackground }]}>
-                    <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={onActionColor} />
-                  </View>
-                  <Text style={[styles.actionTitle, { color: onActionColor }]}>{action.title}</Text>
-                  <MaterialIcons name="chevron-right" size={24} color={chevronColor} />
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+            return (
+              <Pressable
+                key={action.id}
+                onPress={() => handleActionPress(action)}
+                style={({ pressed }) => [
+                  styles.actionCard,
+                  { backgroundColor: actionColor, borderColor },
+                  pressed && styles.pressedCard,
+                ]}
+              >
+                <View style={[styles.actionIconCircle, { backgroundColor: iconBackground }]}>
+                  <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={onActionColor} />
+                </View>
+                <Text style={[styles.actionTitle, { color: onActionColor }]}>{action.title}</Text>
+                <MaterialIcons name="chevron-right" size={24} color={chevronColor} />
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
     </ScreenLayout>
   );
 };

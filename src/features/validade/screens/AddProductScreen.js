@@ -8,13 +8,15 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import { Menu, Portal, Dialog, Button } from 'react-native-paper';
 import Toast from 'react-native-toast-message';
 import ScreenLayout, {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
   createHeaderActionsTemplate,
 } from '../../../shared/components/ScreenLayout';
-import { CORESADDPRODUCT } from '../../../../assets/cores/coresAuth';
+import HeaderMenu from '../../../shared/components/HeaderMenu';
+import { CORESADDPRODUCT } from '../../../shared/components/coresAuth';
 
 const COLORS = {
   ...CORESADDPRODUCT,
@@ -51,14 +53,14 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [isSaving, setIsSaving] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef(null);
-  const [showHistory, setShowHistory] = useState(false);
   const [recentProducts, setRecentProducts] = useState([]);
   const [historyAnimation] = useState(new Animated.Value(0));
   const [productImage, setProductImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
-  const [showLookupOptions, setShowLookupOptions] = useState(false);
   const [isSqlLookupEnabled, setIsSqlLookupEnabled] = useState(true);
   const [isSqlLookupLoaded, setIsSqlLookupLoaded] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [historyDialogVisible, setHistoryDialogVisible] = useState(false);
 
   useEffect(() => {
     const loadSqlLookupPreference = async () => {
@@ -105,19 +107,19 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
       const formattedScannedEan = String(scannedEan).trim();
       const cachedProducts = await AsyncStorage.getItem('cached_products');
-      
+
       if (cachedProducts) {
         const produtos = JSON.parse(cachedProducts);
         const normalize = (value) => String(value ?? '').trim();
         const product = produtos.find((p) => {
           return normalize(p.CODAUXILIAR) === formattedScannedEan || normalize(p.CODAUXILIAR2) === formattedScannedEan;
         });
-      
+
         if (product) {
           setProductName(product.DESCRICAO);
           setcodprod(String(product.CODPROD));
           setEan(formattedScannedEan);
-          
+
           Toast.show({
             type: 'success',
             text1: 'Produto Encontrado',
@@ -217,39 +219,34 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           iconName: isEditing ? 'edit' : 'add-circle-outline',
           tintColor: COLORS.white,
         }),
-	      headerRight: () =>
-	        createHeaderActionsTemplate({
-	          isDarkMode,
-	          actions: [
-	            {
-	              key: 'toggle-history',
-	              iconName: 'history',
-	              IconComponent: MaterialCommunityIcons,
-	              onPress: () => {
-	                loadRecentProducts();
-	                setShowLookupOptions(false);
-	                setShowHistory(!showHistory);
-	              },
-	              isActive: showHistory,
-	              activeBackgroundColor: isDarkMode ? COLORS.primary : COLORS.accent,
-	              iconColor: COLORS.white,
-	            },
-		            {
-		              key: 'toggle-lookup-options',
-		              iconName: 'cog',
-		              IconComponent: MaterialCommunityIcons,
-		              onPress: () => {
-		                setShowHistory(false);
-		                setShowLookupOptions(!showLookupOptions);
-		              },
-	              isActive: showLookupOptions,
-	              activeBackgroundColor: isDarkMode ? COLORS.primary : COLORS.accent,
-	              iconColor: COLORS.white,
-	            },
-	          ],
-	        }),
-	    });
-  }, [navigation, isDarkMode, isEditing, showHistory, showLookupOptions, isSqlLookupEnabled]);
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', marginRight: 8 }}>
+          <HeaderMenu
+            visible={menuVisible}
+            onOpen={() => setMenuVisible(true)}
+            onDismiss={() => setMenuVisible(false)}
+            items={[
+              {
+                key: 'history',
+                title: 'Produtos Recentes',
+                icon: 'history',
+                onPress: () => {
+                  loadRecentProducts();
+                  setHistoryDialogVisible(true);
+                }
+              },
+              {
+                key: 'lookup',
+                title: isSqlLookupEnabled ? "Busca no Banco: Ativada" : "Busca no Banco: Desativada",
+                icon: isSqlLookupEnabled ? "database-search" : "database-search-outline",
+                onPress: () => persistSqlLookupPreference(!isSqlLookupEnabled)
+              }
+            ]}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, isDarkMode, isEditing, historyDialogVisible, isSqlLookupEnabled, menuVisible]);
 
   useEffect(() => {
     if (showErrors) {
@@ -262,8 +259,8 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   }, [showErrors]);
 
   useEffect(() => {
-    animateHistory(showHistory);
-  }, [showHistory]);
+    animateHistory(historyDialogVisible);
+  }, [historyDialogVisible]);
 
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -278,7 +275,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setIsSaving(true);
     setShowErrors(true);
 
-    const hasEmptyFields = ['productName', 'lote', 'quantidade', 'codprod', 'codauxiliar', 'validade'].some(field => 
+    const hasEmptyFields = ['productName', 'lote', 'quantidade', 'codprod', 'codauxiliar', 'validade'].some(field =>
       checkEmptyFields(field)
     );
 
@@ -398,8 +395,8 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
   const toggleDatePicker = () => {
     // Fecha outros overlays antes de abrir o seletor de data
-    setShowHistory(false);
-    setShowLookupOptions(false);
+    setHistoryDialogVisible(false);
+    setMenuVisible(false);
     setShowImageOptions(false);
     setShowDatePicker((prev) => !prev);
   };
@@ -446,18 +443,18 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
     if (checkEmptyFields(field)) {
       return (
-        <MaterialIcons 
-          name="error-outline" 
-          size={24} 
+        <MaterialIcons
+          name="error-outline"
+          size={24}
           color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight}
           style={styles.fieldIcon}
         />
       );
     }
     return (
-      <MaterialIcons 
-        name="check-circle" 
-        size={24} 
+      <MaterialIcons
+        name="check-circle"
+        size={24}
         color={isDarkMode ? COLORS.successDark : COLORS.successLight}
         style={styles.fieldIcon}
       />
@@ -469,6 +466,14 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     container: {
       flex: 1,
       padding: 12,
+    },
+    headerButton: {
+      padding: 6,
+      borderRadius: 8,
+      backgroundColor: 'rgba(255, 255, 255, 0.22)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 8,
     },
     formCard: {
       flex: 1,
@@ -686,96 +691,96 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       borderBottomWidth: 1,
       borderBottomColor: isDarkMode ? COLORS.borderDark : 'rgba(60, 68, 108, 0.15)',
     },
-	    historyText: {
-	      marginLeft: 12,
-	      fontSize: 16,
-	    },
-	    lookupOverlay: {
-	      position: 'absolute',
-	      top: 0,
-	      left: 0,
-	      right: 0,
-	      bottom: 0,
-	      backgroundColor: COLORS.overlaySoft,
-	      justifyContent: 'flex-start',
-	    },
-	    lookupContainer: {
-	      position: 'absolute',
-	      top: 80,
-	      right: 16,
-	      width: '85%',
-	      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
-	      borderRadius: 12,
-	      elevation: 5,
-	      shadowColor: '#000',
-	      shadowOffset: { width: 0, height: 2 },
-	      shadowOpacity: 0.25,
-	      shadowRadius: 3.84,
-	      padding: 16,
-	      zIndex: 1000,
-	    },
-	    lookupHeader: {
-	      flexDirection: 'row',
-	      justifyContent: 'space-between',
-	      alignItems: 'center',
-	      marginBottom: 14,
-	    },
-	    lookupTitleContainer: {
-	      flexDirection: 'row',
-	      alignItems: 'center',
-	      gap: 8,
-	    },
-	    lookupTitle: {
-	      fontSize: 18,
-	      fontWeight: 'bold',
-	    },
-	    lookupRow: {
-	      flexDirection: 'row',
-	      alignItems: 'center',
-	      justifyContent: 'space-between',
-	      gap: 12,
-	      paddingVertical: 10,
-	    },
-	    lookupTextBlock: {
-	      flex: 1,
-	    },
-	    lookupLabel: {
-	      fontSize: 15,
-	      fontWeight: '700',
-	      marginBottom: 4,
-	    },
-			    lookupDescription: {
-			      fontSize: 13,
-			      lineHeight: 18,
-			      color: isDarkMode ? 'rgba(230,235,255,0.72)' : 'rgba(17,24,39,0.68)',
-			    },
-			    datePickerContainer: {
-			      marginTop: 10,
-			      borderRadius: 14,
-			      overflow: 'hidden',
-			      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card,
-			      borderWidth: 1,
-			      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
-			    },
-			    datePickerDoneButton: {
-			      alignSelf: 'flex-end',
-			      marginTop: 6,
-			      marginRight: 10,
-			      marginBottom: 10,
-			      paddingVertical: 8,
-			      paddingHorizontal: 14,
-			      borderRadius: 10,
-			      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
-			    },
-			    datePickerDoneText: {
-			      color: COLORS.white,
-			      fontSize: 14,
-			      fontWeight: '700',
-			    },
-			    photoContainer: {
-			      alignItems: 'center',
-			      marginTop: 8,
-			    },
+    historyText: {
+      marginLeft: 12,
+      fontSize: 16,
+    },
+    lookupOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: COLORS.overlaySoft,
+      justifyContent: 'flex-start',
+    },
+    lookupContainer: {
+      position: 'absolute',
+      top: 80,
+      right: 16,
+      width: '85%',
+      backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card,
+      borderRadius: 12,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      padding: 16,
+      zIndex: 1000,
+    },
+    lookupHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 14,
+    },
+    lookupTitleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    lookupTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    lookupRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 10,
+    },
+    lookupTextBlock: {
+      flex: 1,
+    },
+    lookupLabel: {
+      fontSize: 15,
+      fontWeight: '700',
+      marginBottom: 4,
+    },
+    lookupDescription: {
+      fontSize: 13,
+      lineHeight: 18,
+      color: isDarkMode ? 'rgba(230,235,255,0.72)' : 'rgba(17,24,39,0.68)',
+    },
+    datePickerContainer: {
+      marginTop: 10,
+      borderRadius: 14,
+      overflow: 'hidden',
+      backgroundColor: isDarkMode ? COLORS.inputDark : COLORS.card,
+      borderWidth: 1,
+      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
+    },
+    datePickerDoneButton: {
+      alignSelf: 'flex-end',
+      marginTop: 6,
+      marginRight: 10,
+      marginBottom: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 10,
+      backgroundColor: isDarkMode ? COLORS.secondary : COLORS.accent,
+    },
+    datePickerDoneText: {
+      color: COLORS.white,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    photoContainer: {
+      alignItems: 'center',
+      marginTop: 8,
+    },
     photoPlaceholder: {
       width: 120,
       height: 120,
@@ -909,7 +914,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setcodprod(product.codprod);
     setEan(product.codauxiliar);
     setProductImage(product.imageUrl || product.foto || null);
-    
+
     Toast.show({
       type: 'success',
       text1: 'Produto Copiado',
@@ -918,7 +923,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const handleOutsidePress = () => {
-    setShowHistory(false);
+    setHistoryDialogVisible(false);
   };
 
   // Função para capturar foto
@@ -1029,112 +1034,254 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       lightBackground={COLORS.background}
       darkBackground={COLORS.darkBackground}
       contentStyle={styles.container}
-	    >
-		      <View style={styles.formCard}>
-		        <ScrollView
-		          ref={scrollRef}
-		          style={styles.scrollView}
-		          contentContainerStyle={styles.scrollViewContent}
-		          showsVerticalScrollIndicator={false}
-		          keyboardShouldPersistTaps="handled"
-		        >
-	        {/* Campo Foto do Produto */}
-	        <View style={styles.fieldContainer}>
-	          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-	            <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-	            {' '}Foto do Produto
-          </Text>
-          <View style={styles.photoContainer}>
-            {productImage ? (
-              <View style={styles.photoPreviewContainer}>
-                <Image source={{ uri: productImage }} style={styles.photoPreview} />
-                <TouchableOpacity 
-                  style={styles.removePhotoButton}
-                  onPress={handleRemovePhoto}
+    >
+      <View style={styles.formCard}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Campo Foto do Produto */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+              <MaterialCommunityIcons name="camera" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+              {' '}Foto do Produto
+            </Text>
+            <View style={styles.photoContainer}>
+              {productImage ? (
+                <View style={styles.photoPreviewContainer}>
+                  <Image source={{ uri: productImage }} style={styles.photoPreview} />
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={handleRemovePhoto}
+                  >
+                    <MaterialIcons name="close" size={20} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.photoPlaceholder}
+                  onPress={() => setShowImageOptions(true)}
                 >
-                  <MaterialIcons name="close" size={20} color="#FFF" />
+                  <MaterialCommunityIcons
+                    name="camera-plus"
+                    size={48}
+                    color={isDarkMode ? COLORS.neutralMid : COLORS.neutralLight}
+                  />
+                  <Text style={[styles.photoPlaceholderText, isDarkMode ? styles.darkText : styles.lightText]}>
+                    Adicionar Foto
+                  </Text>
                 </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity 
-                style={styles.photoPlaceholder}
-                onPress={() => setShowImageOptions(true)}
+              )}
+              {productImage && (
+                <TouchableOpacity
+                  style={styles.retakePhotoButton}
+                  onPress={() => setShowImageOptions(true)}
+                >
+                  <MaterialCommunityIcons name="camera" size={20} color="#FFF" />
+                  <Text style={styles.retakePhotoText}>Nova Foto</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Campo Nome do Produto */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+              <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+              {' '}Nome do Produto
+            </Text>
+            <View style={[
+              styles.inputContainer,
+              showErrors && checkEmptyFields('productName') && styles.emptyField
+            ]}>
+              <TextInput
+                placeholder="Ex: Sabão em Pó"
+                value={productName}
+                onChangeText={setProductName}
+                style={styles.input}
+                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
+              />
+              {renderFieldStatus('productName')}
+            </View>
+            {showErrors && checkEmptyFields('productName') && (
+              <Animated.Text
+                style={[
+                  styles.requiredText,
+                  { opacity: fadeAnim }
+                ]}
               >
-                <MaterialCommunityIcons 
-                  name="camera-plus" 
-                  size={48} 
-                  color={isDarkMode ? COLORS.neutralMid : COLORS.neutralLight} 
+                Campo obrigatório
+              </Animated.Text>
+            )}
+          </View>
+
+          {/* Campos Lote e Quantidade em linha */}
+          <View style={styles.rowContainer}>
+            <View style={[styles.fieldContainer, { flex: 1, marginRight: 10 }]}>
+              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+                <MaterialCommunityIcons name="barcode-scan" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+                {' '}Lote
+              </Text>
+              <View style={[
+                styles.inputContainer,
+                showErrors && checkEmptyFields('lote') && styles.emptyField
+              ]}>
+                <TextInput
+                  placeholder="Ex: 123456"
+                  value={lote}
+                  onChangeText={setBatch}
+                  style={styles.input}
+                  placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
                 />
-                <Text style={[styles.photoPlaceholderText, isDarkMode ? styles.darkText : styles.lightText]}>
-                  Adicionar Foto
+                {renderFieldStatus('lote')}
+              </View>
+              {showErrors && checkEmptyFields('lote') && (
+                <Animated.Text
+                  style={[
+                    styles.requiredText,
+                    { opacity: fadeAnim }
+                  ]}
+                >
+                  Campo obrigatório
+                </Animated.Text>
+              )}
+            </View>
+
+            <View style={[styles.fieldContainer, { flex: 1 }]}>
+              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+                <MaterialCommunityIcons name="numeric" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+                {' '}Quantidade
+              </Text>
+              <View style={[
+                styles.inputContainer,
+                showErrors && checkEmptyFields('quantidade') && styles.emptyField
+              ]}>
+                <TextInput
+                  placeholder="Ex: 10"
+                  value={quantidade}
+                  onChangeText={(text) => setQuantity(text.replace(/[^0-9]/g, ''))}
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
+                />
+                {renderFieldStatus('quantidade')}
+              </View>
+              {showErrors && checkEmptyFields('quantidade') && (
+                <Animated.Text
+                  style={[
+                    styles.requiredText,
+                    { opacity: fadeAnim }
+                  ]}
+                >
+                  Campo obrigatório
+                </Animated.Text>
+              )}
+            </View>
+          </View>
+
+          {/* Campo Código Interno */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+              <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+              {' '}Código Interno
+            </Text>
+            <View style={[
+              styles.inputContainer,
+              showErrors && checkEmptyFields('codprod') && styles.emptyField
+            ]}>
+              <TextInput
+                placeholder="Ex: 001"
+                value={codprod}
+                onChangeText={(text) => setcodprod(text.replace(/[^0-9]/g, ''))}
+                keyboardType="numeric"
+                style={styles.input}
+                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
+              />
+              {renderFieldStatus('codprod')}
+            </View>
+            {showErrors && checkEmptyFields('codprod') && (
+              <Animated.Text
+                style={[
+                  styles.requiredText,
+                  { opacity: fadeAnim }
+                ]}
+              >
+                Campo obrigatório
+              </Animated.Text>
+            )}
+          </View>
+
+          {/* Campo EAN */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+              <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+              {' '}EAN
+            </Text>
+            <View style={styles.eanContainer}>
+              <View style={[
+                styles.inputContainer,
+                { flex: 1, marginRight: 8 },
+                showErrors && checkEmptyFields('codauxiliar') && styles.emptyField
+              ]}>
+                <TextInput
+                  placeholder="Ex: 7891234567890"
+                  value={codauxiliar}
+                  onChangeText={(text) => setEan(text.replace(/[^0-9]/g, ''))}
+                  keyboardType="numeric"
+                  style={styles.input}
+                  placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
+                />
+                {renderFieldStatus('codauxiliar')}
+              </View>
+              <TouchableOpacity
+                style={styles.scanButton}
+                onPress={handleScanBarcode}
+              >
+                <MaterialCommunityIcons name="barcode-scan" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            {showErrors && checkEmptyFields('codauxiliar') && (
+              <Animated.Text
+                style={[
+                  styles.requiredText,
+                  { opacity: fadeAnim }
+                ]}
+              >
+                Campo obrigatório
+              </Animated.Text>
+            )}
+          </View>
+
+          {/* Campo Data de Validade */}
+          <View style={styles.fieldContainer}>
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+              <MaterialCommunityIcons name="calendar-clock" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+              {' '}Data de Validade
+            </Text>
+            <View style={[
+              styles.inputContainer,
+              showErrors && checkEmptyFields('validade') && styles.emptyField
+            ]}>
+              <TouchableOpacity
+                style={[styles.dateButton, { flex: 1, borderWidth: 0 }]}
+                onPress={toggleDatePicker}
+              >
+                <MaterialCommunityIcons
+                  name="calendar"
+                  size={24}
+                  color={isDarkMode ? COLORS.placeholderDark : COLORS.accent}
+                />
+                <Text style={[styles.dateText, isDarkMode ? styles.darkText : styles.lightText]}>
+                  {validade.toLocaleDateString('pt-BR')}
                 </Text>
               </TouchableOpacity>
-            )}
-            {productImage && (
-              <TouchableOpacity 
-                style={styles.retakePhotoButton}
-                onPress={() => setShowImageOptions(true)}
-              >
-                <MaterialCommunityIcons name="camera" size={20} color="#FFF" />
-                <Text style={styles.retakePhotoText}>Nova Foto</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Campo Nome do Produto */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-            {' '}Nome do Produto
-          </Text>
-          <View style={[
-            styles.inputContainer,
-            showErrors && checkEmptyFields('productName') && styles.emptyField
-          ]}>
-            <TextInput
-              placeholder="Ex: Sabão em Pó"
-              value={productName}
-              onChangeText={setProductName}
-              style={styles.input}
-              placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-            />
-            {renderFieldStatus('productName')}
-          </View>
-          {showErrors && checkEmptyFields('productName') && (
-            <Animated.Text 
-              style={[
-                styles.requiredText,
-                { opacity: fadeAnim }
-              ]}
-            >
-              Campo obrigatório
-            </Animated.Text>
-          )}
-        </View>
-
-        {/* Campos Lote e Quantidade em linha */}
-        <View style={styles.rowContainer}>
-          <View style={[styles.fieldContainer, { flex: 1, marginRight: 10 }]}>
-            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="barcode-scan" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}Lote
-            </Text>
-            <View style={[
-              styles.inputContainer,
-              showErrors && checkEmptyFields('lote') && styles.emptyField
-            ]}>
-              <TextInput
-                placeholder="Ex: 123456"
-                value={lote}
-                onChangeText={setBatch}
-                style={styles.input}
-                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-              />
-              {renderFieldStatus('lote')}
+              {renderFieldStatus('validade')}
             </View>
-            {showErrors && checkEmptyFields('lote') && (
-              <Animated.Text 
+            {showErrors && checkEmptyFields('validade') && (
+              <Animated.Text
                 style={[
                   styles.requiredText,
                   { opacity: fadeAnim }
@@ -1145,162 +1292,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
             )}
           </View>
 
-          <View style={[styles.fieldContainer, { flex: 1 }]}>
-            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-              <MaterialCommunityIcons name="numeric" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-              {' '}Quantidade
-            </Text>
-            <View style={[
-              styles.inputContainer,
-              showErrors && checkEmptyFields('quantidade') && styles.emptyField
-            ]}>
-              <TextInput
-                placeholder="Ex: 10"
-                value={quantidade}
-                onChangeText={(text) => setQuantity(text.replace(/[^0-9]/g, ''))}
-                keyboardType="numeric"
-                style={styles.input}
-                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-              />
-              {renderFieldStatus('quantidade')}
-            </View>
-            {showErrors && checkEmptyFields('quantidade') && (
-              <Animated.Text 
-                style={[
-                  styles.requiredText,
-                  { opacity: fadeAnim }
-                ]}
-              >
-                Campo obrigatório
-              </Animated.Text>
-            )}
-          </View>
-        </View>
-
-        {/* Campo Código Interno */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-            {' '}Código Interno
-          </Text>
-          <View style={[
-            styles.inputContainer,
-            showErrors && checkEmptyFields('codprod') && styles.emptyField
-          ]}>
-            <TextInput
-              placeholder="Ex: 001"
-              value={codprod}
-              onChangeText={(text) => setcodprod(text.replace(/[^0-9]/g, ''))}
-              keyboardType="numeric"
-              style={styles.input}
-              placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-            />
-            {renderFieldStatus('codprod')}
-          </View>
-          {showErrors && checkEmptyFields('codprod') && (
-            <Animated.Text 
-              style={[
-                styles.requiredText,
-                { opacity: fadeAnim }
-              ]}
-            >
-              Campo obrigatório
-            </Animated.Text>
-          )}
-        </View>
-
-        {/* Campo EAN */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-            {' '}EAN
-          </Text>
-          <View style={styles.eanContainer}>
-            <View style={[
-              styles.inputContainer,
-              { flex: 1, marginRight: 8 },
-              showErrors && checkEmptyFields('codauxiliar') && styles.emptyField
-            ]}>
-              <TextInput
-                placeholder="Ex: 7891234567890"
-                value={codauxiliar}
-                onChangeText={(text) => setEan(text.replace(/[^0-9]/g, ''))}
-                keyboardType="numeric"
-                style={styles.input}
-                placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
-              />
-              {renderFieldStatus('codauxiliar')}
-            </View>
-            <TouchableOpacity 
-              style={styles.scanButton} 
-              onPress={handleScanBarcode}
-            >
-              <MaterialCommunityIcons name="barcode-scan" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-          {showErrors && checkEmptyFields('codauxiliar') && (
-            <Animated.Text 
-              style={[
-                styles.requiredText,
-                { opacity: fadeAnim }
-              ]}
-            >
-              Campo obrigatório
-            </Animated.Text>
-          )}
-        </View>
-
-        {/* Campo Data de Validade */}
-        <View style={styles.fieldContainer}>
-          <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
-            <MaterialCommunityIcons name="calendar-clock" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
-            {' '}Data de Validade
-          </Text>
-          <View style={[
-            styles.inputContainer,
-            showErrors && checkEmptyFields('validade') && styles.emptyField
-          ]}>
-            <TouchableOpacity 
-              style={[styles.dateButton, { flex: 1, borderWidth: 0 }]} 
-              onPress={toggleDatePicker}
-            >
-              <MaterialCommunityIcons 
-                name="calendar" 
-                size={24} 
-                color={isDarkMode ? COLORS.placeholderDark : COLORS.accent} 
-              />
-              <Text style={[styles.dateText, isDarkMode ? styles.darkText : styles.lightText]}>
-                {validade.toLocaleDateString('pt-BR')}
-              </Text>
-            </TouchableOpacity>
-            {renderFieldStatus('validade')}
-          </View>
-          {showErrors && checkEmptyFields('validade') && (
-            <Animated.Text 
-              style={[
-                styles.requiredText,
-                { opacity: fadeAnim }
-              ]}
-            >
-              Campo obrigatório
-            </Animated.Text>
-          )}
-        </View>
-
-        {showDatePicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={validade}
-            mode="date"
-            display="spinner"
-            onChange={onChangeDate}
-            minimumDate={new Date()}
-            locale="pt-BR"
-            is24Hour={true}
-          />
-        )}
-
-        {showDatePicker && Platform.OS === 'ios' && (
-          <View style={styles.datePickerContainer}>
+          {showDatePicker && Platform.OS === 'android' && (
             <DateTimePicker
               value={validade}
               mode="date"
@@ -1308,67 +1300,80 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               onChange={onChangeDate}
               minimumDate={new Date()}
               locale="pt-BR"
+              is24Hour={true}
             />
-            <TouchableOpacity
-              style={styles.datePickerDoneButton}
-              onPress={() => setShowDatePicker(false)}
-            >
-              <Text style={styles.datePickerDoneText}>Concluir</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
 
-        <TouchableOpacity 
-          style={styles.saveButton} 
-          onPress={handleSaveProduct}
-          disabled={isSaving}
-	        >
-	          {isSaving ? (
-	            <ActivityIndicator color="#FFFFFF" size="small" />
-	          ) : (
-	            <>
-	              <MaterialCommunityIcons name="content-save" size={24} color="#FFFFFF" />
-	              <Text style={styles.saveButtonText}>
-	                {isEditing ? 'Atualizar' : 'Salvar'}
-	              </Text>
-	            </>
-	          )}
-	        </TouchableOpacity>
-	        </ScrollView>
-	      </View>
+          {showDatePicker && Platform.OS === 'ios' && (
+            <View style={styles.datePickerContainer}>
+              <DateTimePicker
+                value={validade}
+                mode="date"
+                display="spinner"
+                onChange={onChangeDate}
+                minimumDate={new Date()}
+                locale="pt-BR"
+              />
+              <TouchableOpacity
+                style={styles.datePickerDoneButton}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={styles.datePickerDoneText}>Concluir</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSaveProduct}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="content-save" size={24} color="#FFFFFF" />
+                <Text style={styles.saveButtonText}>
+                  {isEditing ? 'Atualizar' : 'Salvar'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {showImageOptions && (
-        <TouchableOpacity 
-          style={styles.imageOptionsOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.imageOptionsOverlay}
+          activeOpacity={1}
           onPress={() => setShowImageOptions(false)}
         >
-          <TouchableOpacity 
-            activeOpacity={1} 
+          <TouchableOpacity
+            activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
             style={styles.imageOptionsContainer}
           >
             <Text style={styles.imageOptionsTitle}>
               Escolher Foto do Produto
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.imageOptionButton}
               onPress={handleTakePhoto}
             >
               <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
               <Text style={styles.imageOptionText}>Capturar Nova Foto</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.imageOptionButton}
               onPress={handleChooseFromGallery}
             >
               <MaterialCommunityIcons name="image-multiple" size={24} color="#FFFFFF" />
               <Text style={styles.imageOptionText}>Escolher da Galeria</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setShowImageOptions(false)}
             >
@@ -1378,132 +1383,51 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         </TouchableOpacity>
       )}
 
-      {/* Modal de Histórico */}
-      {showHistory && (
-        <TouchableOpacity 
-          style={styles.historyOverlay} 
-          activeOpacity={1} 
-          onPress={handleOutsidePress}
+      {/* Modal de Histórico como DIALOG Padronizado */}
+      <Portal>
+        <Dialog
+          visible={historyDialogVisible}
+          onDismiss={() => setHistoryDialogVisible(false)}
+          style={{ backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card, borderRadius: 16 }}
         >
-          <Animated.View 
-            style={[
-              styles.historyContainer,
-              {
-                transform: [
-                  {
-                    translateY: historyAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-20, 0]
-                    })
-                  }
-                ],
-                opacity: historyAnimation
-              }
-            ]}
-          >
-            <TouchableOpacity 
-              activeOpacity={1} 
-              onPress={(e) => e.stopPropagation()}
-            >
-              <View style={styles.historyHeader}>
-                <View style={styles.historyTitleContainer}>
-                  <MaterialCommunityIcons 
-                    name="history" 
-                    size={24} 
-                    color={isDarkMode ? COLORS.white : COLORS.text} 
-                  />
-                  <Text style={[styles.historyTitle, isDarkMode ? styles.darkText : styles.lightText]}>
-                    Produtos Recentes
-                  </Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.closeButton}
-                  onPress={() => setShowHistory(false)}
-                >
-                  <MaterialCommunityIcons 
-                    name="close-circle" 
-                    size={28} 
-                    color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight} 
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {recentProducts.map((product, index) => (
+          <Dialog.Title style={[styles.historyTitle, isDarkMode ? styles.darkText : styles.lightText]}>
+            Produtos Recentes
+          </Dialog.Title>
+          <Dialog.Content>
+            {recentProducts.length > 0 ? (
+              recentProducts.map((product, index) => (
                 <TouchableOpacity
                   key={index}
                   style={styles.historyItem}
-                  onPress={() => handleCopyFromHistory(product)}
+                  onPress={() => {
+                    handleCopyFromHistory(product);
+                    setHistoryDialogVisible(false);
+                  }}
                 >
-                  <MaterialCommunityIcons 
-                    name="package-variant" 
-                    size={24} 
-                    color={isDarkMode ? '#A8B0D8' : COLORS.accent} 
+                  <MaterialCommunityIcons
+                    name="package-variant"
+                    size={24}
+                    color={isDarkMode ? '#A8B0D8' : COLORS.accent}
                   />
                   <Text style={[styles.historyText, isDarkMode ? styles.darkText : styles.lightText]}>
                     {product.descricao}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </TouchableOpacity>
-          </Animated.View>
-        </TouchableOpacity>
-      )}
+              ))
+            ) : (
+              <Text style={[styles.historyText, { textAlign: 'center', opacity: 0.6 }]}>
+                Nenhum produto recente encontrado
+              </Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setHistoryDialogVisible(false)} color={isDarkMode ? COLORS.secondary : COLORS.accent}>
+              Fechar
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
-      {/* Opções (Busca no Banco de Dados / SqlScreen) */}
-      {showLookupOptions && (
-        <TouchableOpacity
-          style={styles.lookupOverlay}
-          activeOpacity={1}
-          onPress={() => setShowLookupOptions(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-            style={styles.lookupContainer}
-          >
-            <View style={styles.lookupHeader}>
-              <View style={styles.lookupTitleContainer}>
-                <MaterialCommunityIcons
-                  name={isSqlLookupEnabled ? 'database-search' : 'database-search-outline'}
-                  size={24}
-                  color={isDarkMode ? COLORS.white : COLORS.text}
-                />
-                <Text style={[styles.lookupTitle, isDarkMode ? styles.darkText : styles.lightText]}>
-                  Opções
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.closeButton} onPress={() => setShowLookupOptions(false)}>
-                <MaterialCommunityIcons
-                  name="close-circle"
-                  size={28}
-                  color={isDarkMode ? COLORS.dangerDark : COLORS.dangerLight}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.lookupRow}>
-              <View style={styles.lookupTextBlock}>
-                <Text style={[styles.lookupLabel, isDarkMode ? styles.darkText : styles.lightText]}>
-                  Buscar produto no banco
-                </Text>
-                <Text style={styles.lookupDescription}>
-                  Ao bipar o EAN, preenche automaticamente usando a lista de produtos importada.
-                </Text>
-              </View>
-              <Switch
-                value={isSqlLookupEnabled}
-                onValueChange={persistSqlLookupPreference}
-                trackColor={{
-                  false: isDarkMode ? COLORS.borderDark : COLORS.neutralLight,
-                  true: COLORS.secondary,
-                }}
-                ios_backgroundColor={isDarkMode ? COLORS.borderDark : COLORS.neutralLight}
-                thumbColor={COLORS.white}
-              />
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
     </ScreenLayout>
   );
 };

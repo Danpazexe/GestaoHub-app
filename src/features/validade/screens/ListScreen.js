@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, Alert, TextInput, ActivityIndicator, Image, TouchableOpacity, Text, Modal, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ProductItem from '../../../shared/components/ProductItem';
-import TreatmentModal from '../../../shared/components/TreatmentModal';
-import DeleteConfirmationModal from '../../../shared/components/DeleteConfirmationModal';
+import ProductItem from '../components/ProductItem';
+import TreatmentModal from '../components/TreatmentModal';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import debounce from 'lodash.debounce';
 import { Animated, LayoutAnimation } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Toast from 'react-native-toast-message';
-import SwipeableListItem from '../../../shared/components/SwipeableListItem';
+import SwipeableListItem from '../components/SwipeableListItem';
 import ScreenLayout, {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
   createHeaderActionsTemplate,
 } from '../../../shared/components/ScreenLayout';
-import { CORESLIST } from '../../../../assets/cores/coresAuth';
+import { CORESLIST } from '../../../shared/components/coresAuth';
 
 const COLORS = CORESLIST;
 
@@ -27,7 +27,15 @@ const useProducts = () => {
     try {
       const storedProducts = await AsyncStorage.getItem('products');
       if (storedProducts) {
-        setProducts(JSON.parse(storedProducts));
+        if (storedProducts) {
+          let parsedProducts = JSON.parse(storedProducts);
+          // Garante que todo produto tenha um ID único
+          parsedProducts = parsedProducts.map(p => ({
+            ...p,
+            id: p.id || Math.random().toString(36).substr(2, 9) + Date.now().toString()
+          }));
+          setProducts(parsedProducts);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
@@ -162,7 +170,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       const updatedProducts = products.filter(p => p.id !== productToDelete.id);
       setProducts(updatedProducts);
       await saveProducts(updatedProducts);
-      
+
       Toast.show({
         type: 'success',
         text1: 'Produto excluído',
@@ -189,10 +197,10 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
   const filterAndSortProducts = useMemo(() => {
     const normalizedSearchText = searchText.toLowerCase().trim();
-    
+
     // Primeiro, filtra os produtos não tratados
     let filteredProducts = products.filter(product => !product.status || product.status !== 'treated');
-    
+
     // Filtro de produtos próximos ao vencimento (30 dias)
     if (showExpiring) {
       filteredProducts = filteredProducts.filter(product => {
@@ -200,7 +208,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         return diasrestantes <= 30;
       });
     }
-    
+
     if (!normalizedSearchText) {
       return filteredProducts.sort((a, b) => new Date(a.validade) - new Date(b.validade));
     }
@@ -210,7 +218,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         switch (filterType) {
           case 'descricao':
             return product.descricao?.toLowerCase().includes(normalizedSearchText) ||
-                   product.lote?.toLowerCase().includes(normalizedSearchText);
+              product.lote?.toLowerCase().includes(normalizedSearchText);
           case 'codprod':
             const codprod = product.codprod?.toString().toLowerCase();
             return codprod?.includes(normalizedSearchText);
@@ -227,7 +235,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         const bMatch = b[filterType]?.toString().toLowerCase() === normalizedSearchText;
         if (aMatch && !bMatch) return -1;
         if (!aMatch && bMatch) return 1;
-        
+
         // Depois ordena por data de validade
         return new Date(a.validade) - new Date(b.validade);
       });
@@ -286,17 +294,17 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
     return (
       <View style={[styles.sortContainer, isDarkMode && styles.darkSortContainer]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.sortButton, 
+            styles.sortButton,
             sortOrder.field === 'validade' && styles.activeSortButton
           ]}
           onPress={() => toggleSort('validade')}
         >
-          <MaterialIcons 
-            name="event" 
-            size={16} 
-            color={sortOrder.field === 'validade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted} 
+          <MaterialIcons
+            name="event"
+            size={16}
+            color={sortOrder.field === 'validade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted}
           />
           <Text style={[
             styles.sortButtonText,
@@ -305,7 +313,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           ]}>
             Validade
             {sortOrder.field === 'validade' && (
-              <MaterialIcons 
+              <MaterialIcons
                 name={getSortIcon('validade')}
                 size={12}
                 color={COLORS.white}
@@ -317,17 +325,17 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
         <View style={dividerStyle} />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.sortButton, 
+            styles.sortButton,
             sortOrder.field === 'quantidade' && styles.activeSortButton
           ]}
           onPress={() => toggleSort('quantidade')}
         >
-          <MaterialIcons 
-            name="sort" 
-            size={16} 
-            color={sortOrder.field === 'quantidade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted} 
+          <MaterialIcons
+            name="sort"
+            size={16}
+            color={sortOrder.field === 'quantidade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted}
           />
           <Text style={[
             styles.sortButtonText,
@@ -336,7 +344,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           ]}>
             Qtd
             {sortOrder.field === 'quantidade' && (
-              <MaterialIcons 
+              <MaterialIcons
                 name={getSortIcon('quantidade')}
                 size={12}
                 color={COLORS.white}
@@ -348,17 +356,17 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
         <View style={dividerStyle} />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.sortButton, 
+            styles.sortButton,
             sortOrder.field === 'nome' && styles.activeSortButton
           ]}
           onPress={() => toggleSort('nome')}
         >
-          <MaterialIcons 
-            name="sort-by-alpha" 
-            size={16} 
-            color={sortOrder.field === 'nome' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted} 
+          <MaterialIcons
+            name="sort-by-alpha"
+            size={16}
+            color={sortOrder.field === 'nome' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted}
           />
           <Text style={[
             styles.sortButtonText,
@@ -367,7 +375,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           ]}>
             Nome
             {sortOrder.field === 'nome' && (
-              <MaterialIcons 
+              <MaterialIcons
                 name={getSortIcon('nome')}
                 size={12}
                 color={COLORS.white}
@@ -445,19 +453,19 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   );
 
   const FilterOption = ({ label, icon, isSelected, onPress }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.filterOption,
         isSelected && styles.filterOptionSelected,
         isDarkMode && styles.darkFilterOption,
         isSelected && isDarkMode && styles.darkFilterOptionSelected
-      ]} 
+      ]}
       onPress={onPress}
     >
-      <MaterialIcons 
-        name={icon} 
-        size={20} 
-        color={isSelected ? COLORS.white : (isDarkMode ? COLORS.textDark : COLORS.textMuted)} 
+      <MaterialIcons
+        name={icon}
+        size={20}
+        color={isSelected ? COLORS.white : (isDarkMode ? COLORS.textDark : COLORS.textMuted)}
       />
       <Text style={[
         styles.filterOptionText,
@@ -472,31 +480,31 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const renderSearchBar = () => (
     <View style={styles.searchWrapper}>
       <View style={[styles.searchContainer, isDarkMode && styles.darkSearchContainer]}>
-        <TouchableOpacity 
-          style={[styles.filterButton, isDarkMode && styles.darkFilterButton]} 
+        <TouchableOpacity
+          style={[styles.filterButton, isDarkMode && styles.darkFilterButton]}
           onPress={toggleFilter}
         >
-          <MaterialIcons 
-            name={filterType === 'descricao' ? 'text-fields' : 
-                  filterType === 'codprod' ? 'code' : 'qr-code'} 
-            size={24} 
+          <MaterialIcons
+            name={filterType === 'descricao' ? 'text-fields' :
+              filterType === 'codprod' ? 'code' : 'qr-code'}
+            size={24}
             color={COLORS.white}
           />
         </TouchableOpacity>
-        
+
         <TextInput
           style={[styles.searchInput, isDarkMode && styles.darkSearchInput]}
           placeholder={
             filterType === 'descricao' ? 'Buscar por nome do produto...' :
-            filterType === 'codprod' ? 'Buscar por código interno...' :
-            'Buscar por código EAN...'
+              filterType === 'codprod' ? 'Buscar por código interno...' :
+                'Buscar por código EAN...'
           }
           placeholderTextColor={isDarkMode ? COLORS.textMutedDark : COLORS.placeholderLight}
           onChangeText={debouncedSearch}
           keyboardType={filterType !== 'descricao' ? 'numeric' : 'default'}
         />
       </View>
-      
+
       {isFilterVisible && (
         <Animated.View style={[styles.filterOptions, isDarkMode && styles.darkFilterOptions]}>
           <FilterOption
@@ -525,7 +533,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const handleTreatProduct = async (product, treatmentType) => {
     try {
       const quantity = parseInt(treatmentQuantity);
-      
+
       if (isNaN(quantity) || quantity <= 0) {
         Toast.show({
           type: 'error',
@@ -546,26 +554,23 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         return;
       }
 
-      const updatedProducts = products.map(p => {
+      const updatedProducts = products.flatMap(p => {
         if (p.id === product.id) {
           const remainingQuantity = p.quantidade - quantity;
-          
+
           if (remainingQuantity > 0) {
             // Se ainda sobrar quantidade, cria um novo produto tratado e atualiza o original
             const treatedProduct = {
               ...p,
-              id: Date.now().toString(), // Novo ID para o produto tratado
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // Novo ID único
               status: 'treated',
               treatmentType,
               treatmentDate: new Date().toISOString(),
               quantidade: quantity,
             };
-            
-            // Atualiza a quantidade do produto original
-            p.quantidade = remainingQuantity;
-            
-            // Retorna um array com ambos os produtos
-            return [p, treatedProduct];
+
+            // Retorna o original atualizado e o novo tratado
+            return [{ ...p, quantidade: remainingQuantity }, treatedProduct];
           } else {
             // Se toda a quantidade foi tratada, apenas marca o produto como tratado
             return [{
@@ -580,8 +585,8 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         return [p];
       });
 
-      // Flatten o array de produtos
-      const flattenedProducts = updatedProducts.flat();
+      // Como usamos flatMap, updatedProducts já está "flattened"
+      const flattenedProducts = updatedProducts;
 
       await AsyncStorage.setItem('products', JSON.stringify(flattenedProducts));
       setProducts(flattenedProducts);
@@ -592,12 +597,11 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       Toast.show({
         type: 'success',
         text1: 'Produto Tratado',
-        text2: `${quantity} unidades ${
-          treatmentType === 'sold' ? 'vendidas' : 
-          treatmentType === 'exchanged' ? 'trocadas' : 
-          treatmentType === 'returned' ? 'devolvidas' : 
-          'vencidas'
-        }`,
+        text2: `${quantity} unidades ${treatmentType === 'sold' ? 'vendidas' :
+          treatmentType === 'exchanged' ? 'trocadas' :
+            treatmentType === 'returned' ? 'devolvidas' :
+              'vencidas'
+          }`,
         visibilityTime: 2000,
       });
     } catch (error) {
@@ -632,7 +636,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         <FlatList
           data={sortProducts(filterAndSortProducts)}
           renderItem={renderProductItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item.id?.toString() || item.codprod?.toString() || index.toString()}
           contentContainerStyle={[
             filterAndSortProducts.length === 0 ? { flex: 1 } : { paddingBottom: 20 },
             { paddingTop: 8 }
@@ -723,7 +727,7 @@ const styles = StyleSheet.create({
   darkSearchInput: {
     color: COLORS.textDark,
   },
-  
+
   // ==================== Estilos das Opções de Filtro ====================
   filterOptions: {
     position: 'absolute',
@@ -771,7 +775,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontWeight: '500',
   },
-  
+
   // ==================== Estilos da Lista de Produtos ====================
   productItem: {
     backgroundColor: COLORS.card,
@@ -802,7 +806,7 @@ const styles = StyleSheet.create({
   darkEmptyText: {
     color: COLORS.textMutedDark,
   },
-  
+
   // ==================== Estilos das Estatísticas ====================
   statsContainer: {
     paddingHorizontal: 4,

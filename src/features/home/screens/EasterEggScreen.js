@@ -18,7 +18,7 @@ import notifee, { AuthorizationStatus } from '@notifee/react-native';
 import { Camera } from 'react-native-vision-camera';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { version } from '../../../../package.json';
-import { CORESHOME } from '../../../../assets/cores/coresAuth';
+import { CORESHOME } from '../../../shared/components/coresAuth';
 
 const COLORS = CORESHOME;
 const TOKEN_STORAGE_KEYS = ['fcmToken', 'firebaseToken', 'pushToken', 'deviceToken', 'notificationToken'];

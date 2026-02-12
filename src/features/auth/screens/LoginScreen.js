@@ -20,7 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../../../services/authService';
-import { CORESLOGIN } from '../../../../assets/cores/coresAuth';
+import { CORESLOGIN } from '../../../shared/components/coresAuth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,7 +37,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [pressedButton, setPressedButton] = useState(false);
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const shakeAnimation = useRef(new Animated.Value(0)).current;
@@ -84,7 +84,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   const loadSavedCredentials = async () => {
     try {
       const { savedEmail, savedRememberMe } = await authService.loadSavedCredentials();
-      
+
       if (savedEmail && savedRememberMe === 'true') {
         setEmail(savedEmail);
         setRememberMe(true);
@@ -104,14 +104,14 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const handleLogin = async () => {
     Keyboard.dismiss();
-    
+
     if (!validateFields(email, password)) return;
 
     setIsLoading(true);
 
     try {
       const response = await authService.login(email, password);
-      
+
       if (response.success || response.status === 200) {
         await handleSuccessfulLogin();
       }
@@ -206,7 +206,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
               </Text>
             </View>
           </Animated.View>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.formContainer,
               {
@@ -221,17 +221,17 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
             {/* Campo Email */}
             <View style={styles.inputWrapper}>
               <View style={[
-                styles.inputContainer, 
-                { 
+                styles.inputContainer,
+                {
                   backgroundColor: COLORS.fundo,
                   borderColor: emailError ? COLORS.erro : COLORS.borda,
                 }
               ]}>
-                <MaterialIcons 
-                  name="email" 
-                  size={22} 
-                  color={emailError ? COLORS.erro : COLORS.textoSecundario} 
-                  style={styles.inputIcon} 
+                <MaterialIcons
+                  name="email"
+                  size={22}
+                  color={emailError ? COLORS.erro : COLORS.textoSecundario}
+                  style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
@@ -261,17 +261,17 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
             {/* Campo Senha */}
             <View style={styles.inputWrapper}>
               <View style={[
-                styles.inputContainer, 
-                { 
+                styles.inputContainer,
+                {
                   backgroundColor: COLORS.fundo,
                   borderColor: passwordError ? COLORS.erro : COLORS.borda,
                 }
               ]}>
-                <MaterialIcons 
-                  name="lock" 
-                  size={22} 
-                  color={passwordError ? COLORS.erro : COLORS.textoSecundario} 
-                  style={styles.inputIcon} 
+                <MaterialIcons
+                  name="lock"
+                  size={22}
+                  color={passwordError ? COLORS.erro : COLORS.textoSecundario}
+                  style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
@@ -309,14 +309,14 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
             {/* Opções */}
             <View style={styles.optionsContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.checkboxContainer}
                 onPress={handleRememberMeToggle}
                 activeOpacity={0.7}
               >
                 <View style={[
                   styles.checkbox,
-                  { 
+                  {
                     backgroundColor: rememberMe ? COLORS.textoPrincipal : 'transparent',
                     borderColor: rememberMe ? COLORS.textoPrincipal : COLORS.borda,
                   }
@@ -335,26 +335,26 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
             </View>
 
             {/* Botão de Login */}
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  pressedButton && styles.loginButtonPressed,
-                ]}
-                activeOpacity={0.9}
-                onPressIn={() => setPressedButton(true)}
-                onPressOut={() => setPressedButton(false)}
-                onPress={handleLogin}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.branco} />
-                ) : (
-                  <>
-                    <MaterialIcons name="login" size={20} color={COLORS.branco} />
-                    <Text style={styles.loginButtonText}>Entrar</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                pressedButton && styles.loginButtonPressed,
+              ]}
+              activeOpacity={0.9}
+              onPressIn={() => setPressedButton(true)}
+              onPressOut={() => setPressedButton(false)}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={COLORS.branco} />
+              ) : (
+                <>
+                  <MaterialIcons name="login" size={20} color={COLORS.branco} />
+                  <Text style={styles.loginButtonText}>Entrar</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
             {/* Link para Registro */}
             <TouchableOpacity
@@ -366,9 +366,9 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 { color: COLORS.textoSecundario }
               ]}>
                 Não tem uma conta?{' '}
-                  <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
-                </Text>
-              </TouchableOpacity>
+                <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
+              </Text>
+            </TouchableOpacity>
           </Animated.View>
         </View>
       </View>

@@ -17,7 +17,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../../../services/authService';
-import { CORESREGISTER } from '../../../../assets/cores/coresAuth';
+import { CORESREGISTER } from '../../../shared/components/coresAuth';
 
 const { width, height } = Dimensions.get('window');
 
@@ -117,14 +117,14 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
 
   const handleRegister = async () => {
     Keyboard.dismiss();
-    
+
     if (!validateFields()) return;
 
     setIsLoading(true);
 
     try {
       const response = await authService.register(name, email, password);
-      
+
       if (response.status === 201 || response.status === 200) {
         Toast.show({
           type: 'success',
@@ -184,273 +184,273 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]} edges={['top', 'left', 'right']}>
       <View style={styles.background}>
         <View style={styles.centeredContent}>
-            <Animated.View style={styles.header}>
-              <Image
-                source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <View style={styles.welcomeContainer}>
-                <Text style={[styles.subtitleText, { color: COLORS.textoSecundario }]}>
-                  Crie sua conta para começar
-                </Text>
-              </View>
-            </Animated.View>
-            <Animated.View 
-              style={[
-                styles.formContainer,
+          <Animated.View style={styles.header}>
+            <Image
+              source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <View style={styles.welcomeContainer}>
+              <Text style={[styles.subtitleText, { color: COLORS.textoSecundario }]}>
+                Crie sua conta para começar
+              </Text>
+            </View>
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateY: slideAnim },
+                  { translateX: shakeAnimation }
+                ]
+              }
+            ]}
+          >
+            {/* Campo Nome */}
+            <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputContainer,
                 {
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: slideAnim },
-                    { translateX: shakeAnimation }
-                  ]
+                  backgroundColor: COLORS.fundo,
+                  borderColor: nameError ? COLORS.erro : COLORS.borda,
                 }
-              ]}
-            >
-              {/* Campo Nome */}
-              <View style={styles.inputWrapper}>
-                <View style={[
-                  styles.inputContainer, 
-                  { 
-                    backgroundColor: COLORS.fundo,
-                    borderColor: nameError ? COLORS.erro : COLORS.borda,
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name="person" 
-                    size={22} 
-                    color={nameError ? COLORS.erro : COLORS.textoSecundario} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: COLORS.textoPrincipal }
-                    ]}
-                    placeholder="Nome completo"
-                    placeholderTextColor={COLORS.placeholder}
-                    value={name}
-                    onChangeText={(text) => {
-                      setName(text);
-                      setNameError("");
-                    }}
-                    autoCapitalize="words"
-                  />
-                </View>
-                {nameError ? (
-                  <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
-                    <Text style={styles.errorText}>{nameError}</Text>
-                  </View>
-                ) : null}
+              ]}>
+                <MaterialIcons
+                  name="person"
+                  size={22}
+                  color={nameError ? COLORS.erro : COLORS.textoSecundario}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: COLORS.textoPrincipal }
+                  ]}
+                  placeholder="Nome completo"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={name}
+                  onChangeText={(text) => {
+                    setName(text);
+                    setNameError("");
+                  }}
+                  autoCapitalize="words"
+                />
               </View>
-
-              {/* Campo Email */}
-              <View style={styles.inputWrapper}>
-                <View style={[
-                  styles.inputContainer, 
-                  { 
-                    backgroundColor: COLORS.fundo,
-                    borderColor: emailError ? COLORS.erro : COLORS.borda,
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name="email" 
-                    size={22} 
-                    color={emailError ? COLORS.erro : COLORS.textoSecundario} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: COLORS.textoPrincipal }
-                    ]}
-                    placeholder="Digite seu email"
-                    placeholderTextColor={COLORS.placeholder}
-                    value={email}
-                    onChangeText={(text) => {
-                      setEmail(text);
-                      setEmailError("");
-                    }}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
+              {nameError ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error" size={16} color={COLORS.erro} />
+                  <Text style={styles.errorText}>{nameError}</Text>
                 </View>
-                {emailError ? (
-                  <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
-                    <Text style={styles.errorText}>{emailError}</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Campo Senha */}
-              <View style={styles.inputWrapper}>
-                <View style={[
-                  styles.inputContainer, 
-                  { 
-                    backgroundColor: COLORS.fundo,
-                    borderColor: passwordError ? COLORS.erro : COLORS.borda,
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name="lock" 
-                    size={22} 
-                    color={passwordError ? COLORS.erro : COLORS.textoSecundario} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: COLORS.textoPrincipal }
-                    ]}
-                    placeholder="Digite sua senha"
-                    placeholderTextColor={COLORS.placeholder}
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      setPasswordError("");
-                    }}
-                    secureTextEntry={secureText}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setSecureText(!secureText)}
-                  >
-                    <MaterialIcons
-                      name={secureText ? "visibility" : "visibility-off"}
-                      size={22}
-                      color={COLORS.textoSecundario}
-                    />
-                  </TouchableOpacity>
-                </View>
-                {passwordError ? (
-                  <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
-                    <Text style={styles.errorText}>{passwordError}</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Campo Confirmar Senha */}
-              <View style={styles.inputWrapper}>
-                <View style={[
-                  styles.inputContainer, 
-                  { 
-                    backgroundColor: COLORS.fundo,
-                    borderColor: confirmPasswordError ? COLORS.erro : COLORS.borda,
-                  }
-                ]}>
-                  <MaterialIcons 
-                    name="lock-outline" 
-                    size={22} 
-                    color={confirmPasswordError ? COLORS.erro : COLORS.textoSecundario} 
-                    style={styles.inputIcon} 
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { color: COLORS.textoPrincipal }
-                    ]}
-                    placeholder="Confirme sua senha"
-                    placeholderTextColor={COLORS.placeholder}
-                    value={confirmPassword}
-                    onChangeText={(text) => {
-                      setConfirmPassword(text);
-                      setConfirmPasswordError("");
-                    }}
-                    secureTextEntry={secureConfirmText}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setSecureConfirmText(!secureConfirmText)}
-                  >
-                    <MaterialIcons
-                      name={secureConfirmText ? "visibility" : "visibility-off"}
-                      size={22}
-                      color={COLORS.textoSecundario}
-                    />
-                  </TouchableOpacity>
-                </View>
-                {confirmPasswordError ? (
-                  <View style={styles.errorContainer}>
-                    <MaterialIcons name="error" size={16} color={COLORS.erro} />
-                    <Text style={styles.errorText}>{confirmPasswordError}</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Termos e Privacidade */}
-              <TouchableOpacity
-                style={styles.termsContainer}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setTermsAccepted(!termsAccepted);
-                  setTermsError('');
-                }}
-              >
-                <View style={[
-                  styles.termsCheckbox,
-                  {
-                    backgroundColor: termsAccepted ? COLORS.textoPrincipal : 'transparent',
-                    borderColor: termsAccepted ? COLORS.textoPrincipal : COLORS.borda,
-                  }
-                ]}>
-                  {termsAccepted && (
-                    <MaterialIcons name="check" size={16} color={COLORS.branco} />
-                  )}
-                </View>
-                <Text style={styles.termsText}>
-                  Li e aceito os{' '}
-                  <Text style={styles.termsLink} onPress={() => openTerms('terms')}>Termos de Uso</Text>
-                  {' '}e a{' '}
-                  <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>Política de Privacidade</Text>
-                </Text>
-              </TouchableOpacity>
-              {termsError ? (
-                <Text style={styles.termsError}>{termsError}</Text>
               ) : null}
+            </View>
 
-              {/* Botão de Cadastro */}
-              <TouchableOpacity
-                style={[
-                  styles.registerButton,
-                  pressedButton && styles.registerButtonPressed,
-                ]}
-                activeOpacity={0.9}
-                onPressIn={() => setPressedButton(true)}
-                onPressOut={() => setPressedButton(false)}
-                onPress={handleRegister}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.branco} />
-                ) : (
-                  <>
-                    <MaterialIcons name="person-add" size={20} color={COLORS.branco} />
-                    <Text style={styles.registerButtonText}>Cadastrar</Text>
-                  </>
+            {/* Campo Email */}
+            <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: COLORS.fundo,
+                  borderColor: emailError ? COLORS.erro : COLORS.borda,
+                }
+              ]}>
+                <MaterialIcons
+                  name="email"
+                  size={22}
+                  color={emailError ? COLORS.erro : COLORS.textoSecundario}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: COLORS.textoPrincipal }
+                  ]}
+                  placeholder="Digite seu email"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    setEmailError("");
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              {emailError ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error" size={16} color={COLORS.erro} />
+                  <Text style={styles.errorText}>{emailError}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Campo Senha */}
+            <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: COLORS.fundo,
+                  borderColor: passwordError ? COLORS.erro : COLORS.borda,
+                }
+              ]}>
+                <MaterialIcons
+                  name="lock"
+                  size={22}
+                  color={passwordError ? COLORS.erro : COLORS.textoSecundario}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: COLORS.textoPrincipal }
+                  ]}
+                  placeholder="Digite sua senha"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setPasswordError("");
+                  }}
+                  secureTextEntry={secureText}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setSecureText(!secureText)}
+                >
+                  <MaterialIcons
+                    name={secureText ? "visibility" : "visibility-off"}
+                    size={22}
+                    color={COLORS.textoSecundario}
+                  />
+                </TouchableOpacity>
+              </View>
+              {passwordError ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error" size={16} color={COLORS.erro} />
+                  <Text style={styles.errorText}>{passwordError}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Campo Confirmar Senha */}
+            <View style={styles.inputWrapper}>
+              <View style={[
+                styles.inputContainer,
+                {
+                  backgroundColor: COLORS.fundo,
+                  borderColor: confirmPasswordError ? COLORS.erro : COLORS.borda,
+                }
+              ]}>
+                <MaterialIcons
+                  name="lock-outline"
+                  size={22}
+                  color={confirmPasswordError ? COLORS.erro : COLORS.textoSecundario}
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    { color: COLORS.textoPrincipal }
+                  ]}
+                  placeholder="Confirme sua senha"
+                  placeholderTextColor={COLORS.placeholder}
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text);
+                    setConfirmPasswordError("");
+                  }}
+                  secureTextEntry={secureConfirmText}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setSecureConfirmText(!secureConfirmText)}
+                >
+                  <MaterialIcons
+                    name={secureConfirmText ? "visibility" : "visibility-off"}
+                    size={22}
+                    color={COLORS.textoSecundario}
+                  />
+                </TouchableOpacity>
+              </View>
+              {confirmPasswordError ? (
+                <View style={styles.errorContainer}>
+                  <MaterialIcons name="error" size={16} color={COLORS.erro} />
+                  <Text style={styles.errorText}>{confirmPasswordError}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Termos e Privacidade */}
+            <TouchableOpacity
+              style={styles.termsContainer}
+              activeOpacity={0.7}
+              onPress={() => {
+                setTermsAccepted(!termsAccepted);
+                setTermsError('');
+              }}
+            >
+              <View style={[
+                styles.termsCheckbox,
+                {
+                  backgroundColor: termsAccepted ? COLORS.textoPrincipal : 'transparent',
+                  borderColor: termsAccepted ? COLORS.textoPrincipal : COLORS.borda,
+                }
+              ]}>
+                {termsAccepted && (
+                  <MaterialIcons name="check" size={16} color={COLORS.branco} />
                 )}
-              </TouchableOpacity>
+              </View>
+              <Text style={styles.termsText}>
+                Li e aceito os{' '}
+                <Text style={styles.termsLink} onPress={() => openTerms('terms')}>Termos de Uso</Text>
+                {' '}e a{' '}
+                <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>Política de Privacidade</Text>
+              </Text>
+            </TouchableOpacity>
+            {termsError ? (
+              <Text style={styles.termsError}>{termsError}</Text>
+            ) : null}
 
-              {/* Link para Login */}
-              <TouchableOpacity
-                style={styles.loginLink}
-                onPress={() => navigation.navigate("LoginScreen")}
-              >
-                <Text style={[
-                  styles.loginLinkText,
+            {/* Botão de Cadastro */}
+            <TouchableOpacity
+              style={[
+                styles.registerButton,
+                pressedButton && styles.registerButtonPressed,
+              ]}
+              activeOpacity={0.9}
+              onPressIn={() => setPressedButton(true)}
+              onPressOut={() => setPressedButton(false)}
+              onPress={handleRegister}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={COLORS.branco} />
+              ) : (
+                <>
+                  <MaterialIcons name="person-add" size={20} color={COLORS.branco} />
+                  <Text style={styles.registerButtonText}>Cadastrar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Link para Login */}
+            <TouchableOpacity
+              style={styles.loginLink}
+              onPress={() => navigation.navigate("LoginScreen")}
+            >
+              <Text style={[
+                styles.loginLinkText,
                 { color: COLORS.textoSecundario }
-                ]}>
-                  Já tem uma conta?{' '}
-                  <Text style={styles.loginLinkTextBold}>Faça login</Text>
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
+              ]}>
+                Já tem uma conta?{' '}
+                <Text style={styles.loginLinkTextBold}>Faça login</Text>
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </View>
       <Modal

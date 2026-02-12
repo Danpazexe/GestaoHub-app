@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
+import { Menu } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BarChart, PieChart } from 'react-native-chart-kit';
@@ -25,7 +26,8 @@ import ScreenLayout, {
   createHeaderTitleTemplate,
   createHeaderActionsTemplate,
 } from '../../../shared/components/ScreenLayout';
-import { CORESDASHBOARD } from '../../../../assets/cores/coresAuth';
+import HeaderMenu from '../../../shared/components/HeaderMenu';
+import { CORESDASHBOARD } from '../../../shared/components/coresAuth';
 
 const COLORS = CORESDASHBOARD;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -136,8 +138,8 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('30');
   const [scopeFilter, setScopeFilter] = useState('all');
-  const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const treatmentInfo = useMemo(
     () => ({
@@ -207,26 +209,49 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
           iconName: 'analytics',
           tintColor: COLORS.white,
         }),
-      headerRight: () =>
-        createHeaderActionsTemplate({
-          isDarkMode,
-          actions: [
-            {
-              key: 'refresh-dashboard',
-              iconName: 'refresh',
-              onPress: onRefresh,
-              iconColor: COLORS.white,
-            },
-            {
-              key: 'export-dashboard',
-              iconName: 'file-download',
-              onPress: () => setExportModalVisible(true),
-              iconColor: COLORS.white,
-            },
-          ],
-        }),
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', marginRight: 8 }}>
+          <TouchableOpacity
+            onPress={onRefresh}
+            style={styles.headerButton}
+          >
+            <MaterialIcons name="refresh" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <HeaderMenu
+            visible={menuVisible}
+            onOpen={() => setMenuVisible(true)}
+            onDismiss={() => setMenuVisible(false)}
+            items={[
+              {
+                key: 'pdf',
+                title: 'Exportar como PDF',
+                icon: 'file-pdf-box',
+                onPress: () => handleExport('pdf')
+              },
+              {
+                key: 'xlsx',
+                title: 'Exportar como Excel',
+                icon: 'file-excel',
+                onPress: () => handleExport('xlsx')
+              },
+              {
+                key: 'csv',
+                title: 'Exportar como CSV',
+                icon: 'file-delimited',
+                onPress: () => handleExport('csv')
+              },
+              {
+                key: 'json',
+                title: 'Exportar como JSON',
+                icon: 'code-json',
+                onPress: () => handleExport('json')
+              }
+            ]}
+          />
+        </View>
+      ),
     });
-  }, [navigation, isDarkMode, onRefresh]);
+  }, [navigation, isDarkMode, onRefresh, menuVisible]);
 
   const normalizedProducts = useMemo(
     () =>
@@ -625,7 +650,6 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
         return;
       }
 
-      setExportModalVisible(false);
       setExporting(true);
 
       try {
@@ -877,7 +901,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
                     </Text>
                   </View>
 
-                  <Text style={[styles.rowValue, { color }]}> 
+                  <Text style={[styles.rowValue, { color }]}>
                     {isExpired ? `${Math.abs(item._daysRemaining)}d atraso` : `${item._daysRemaining}d`}
                   </Text>
                 </View>
@@ -923,43 +947,14 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
         </View>
       </ScrollView>
 
-      <Modal
-        transparent
-        animationType="fade"
-        visible={exportModalVisible}
-        onRequestClose={() => !exporting && setExportModalVisible(false)}
-      >
+      {exporting && (
         <View style={styles.exportOverlay}>
-          <View style={[styles.exportModal, cardTheme]}>
-            <Text style={[styles.exportTitle, textPrimary]}>Exportar Dashboard</Text>
-            <Text style={[styles.exportSubtitle, textSecondary]}>
-              Formatos mais usados para compartilhar e analisar dados.
-            </Text>
-
-            {EXPORT_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.key}
-                style={styles.exportOption}
-                onPress={() => handleExport(option.key)}
-                disabled={exporting}
-              >
-                <MaterialIcons name={option.icon} size={20} color={COLORS.primary} />
-                <Text style={[styles.exportOptionText, textPrimary]}>{option.label}</Text>
-              </TouchableOpacity>
-            ))}
-
-            {exporting ? <ActivityIndicator color={COLORS.primary} style={styles.exportLoader} /> : null}
-
-            <TouchableOpacity
-              style={styles.closeExportButton}
-              onPress={() => setExportModalVisible(false)}
-              disabled={exporting}
-            >
-              <Text style={styles.closeExportText}>Fechar</Text>
-            </TouchableOpacity>
+          <View style={[styles.loadingCard, cardTheme]}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[styles.loadingText, textPrimary]}>Gerando arquivo...</Text>
           </View>
         </View>
-      </Modal>
+      )}
     </ScreenLayout>
   );
 };
@@ -969,6 +964,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   loadingText: {
     marginTop: 12,
@@ -1156,20 +1159,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  exportModal: {
-    width: '100%',
-    borderRadius: 14,
+  loadingCard: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    padding: 16,
-  },
-  exportTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  exportSubtitle: {
-    marginTop: 4,
-    marginBottom: 14,
-    fontSize: 12,
+    elevation: 5,
   },
   exportOption: {
     flexDirection: 'row',

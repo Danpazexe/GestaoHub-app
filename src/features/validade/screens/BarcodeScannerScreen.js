@@ -20,7 +20,7 @@ import Sound from 'react-native-sound';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import HapticFeedback from 'react-native-haptic-feedback';
 import Toast from 'react-native-toast-message';
-import { CORESBARCODESCANNER } from '../../../../assets/cores/coresAuth';
+import { CORESBARCODESCANNER } from '../../../shared/components/coresAuth';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SCAN_BOX_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 330);
@@ -384,7 +384,7 @@ const BarcodeScannerScreen = ({ navigation }) => {
       <View style={styles.overlay} pointerEvents="none">
         <View style={styles.overlayTop} />
 
-        <View style={[styles.overlayMiddle, { height: SCAN_BOX_HEIGHT }]}> 
+        <View style={[styles.overlayMiddle, { height: SCAN_BOX_HEIGHT }]}>
           <View style={styles.overlaySide} />
 
           <View

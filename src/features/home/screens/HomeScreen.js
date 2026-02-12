@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CORESFUNCIONALIDADES, CORESHOME } from '../../../../assets/cores/coresAuth';
+import { CORESFUNCIONALIDADES, CORESHOME } from '../../../shared/components/coresAuth';
 
 const COLORS = CORESHOME;
 const FUNC_COLORS = CORESFUNCIONALIDADES;
@@ -32,6 +32,7 @@ const HomeScreen = ({ isDarkMode }) => {
         { id: 'validade-add', title: 'Adicionar', icon: 'add-circle-outline', screen: 'AddProductScreen', color: FUNC_COLORS.actions['validade-add'] },
         { id: 'validade-dashboard', title: 'Dashboard', icon: 'analytics', screen: 'DashboardScreen', color: FUNC_COLORS.actions['validade-dashboard'] },
         { id: 'validade-tratativas', title: 'Tratativas', icon: 'assignment-turned-in', screen: 'TratarScreen', color: FUNC_COLORS.actions['validade-tratativas'] },
+        { id: 'validade-excel', title: 'Exportar/Importar', icon: 'table-chart', screen: 'ExcelScreen', color: FUNC_COLORS.actions['validade-excel'] },
       ],
     },
     {
@@ -46,28 +47,21 @@ const HomeScreen = ({ isDarkMode }) => {
           title: 'Lançar avaria',
           icon: 'playlist-add-check-circle',
           color: FUNC_COLORS.actions['avaria-lancar'],
-          screen: 'ModuleBaseScreen',
-          routeParams: {
-            title: 'Lançamento de Avaria',
-            subtitle: 'Registre avarias com motivo, quantidade e evidência',
-            icon: 'playlist-add-check-circle',
-            color: FUNC_COLORS.actions['avaria-lancar'],
-            bullets: ['Captura por código de barras', 'Tipo e motivo da avaria', 'Fluxo de tratativa e aprovação'],
-          },
+          screen: 'AvariaEntryScreen',
         },
         {
           id: 'avaria-consultar',
           title: 'Consultar avarias',
           icon: 'search',
           color: FUNC_COLORS.actions['avaria-consultar'],
-          screen: 'ModuleBaseScreen',
-          routeParams: {
-            title: 'Consulta de Avarias',
-            subtitle: 'Acompanhe pendências e status das ocorrências',
-            icon: 'search',
-            color: FUNC_COLORS.actions['avaria-consultar'],
-            bullets: ['Filtros por período e situação', 'Histórico por produto e loja', 'Exportação de ocorrências'],
-          },
+          screen: 'AvariaListScreen',
+        },
+        {
+          id: 'avaria-historico',
+          title: 'Histórico',
+          icon: 'history',
+          color: FUNC_COLORS.actions['avaria-historico'],
+          screen: 'AvariaHistoryScreen',
         },
       ],
     },
