@@ -26,6 +26,12 @@ import {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
 } from '../../../shared/components/ScreenLayout';
+import { STORAGE_KEYS } from '../../../shared/constants/storage';
+import { DATABASE_TABLES } from '../constants/schemas';
+import { CORESSQL } from '../../../shared/components/coresAuth';
+
+const PRIMARY_COLOR = CORESSQL.primary;
+const CURRENT_TABLE = DATABASE_TABLES.PRODUCTS;
 
 const { width } = Dimensions.get('window');
 
@@ -68,15 +74,15 @@ const ProductItem = React.memo(({ item, isDarkMode, onPress }) => {
   };
 
   return (
-    <Animated.View 
-      style={{ 
+    <Animated.View
+      style={{
         opacity: fadeAnim,
         transform: [{ scale: scaleAnim }]
       }}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[
-          styles.item, 
+          styles.item,
           isDarkMode ? styles.itemDark : styles.itemLight,
           styles.itemElevated
         ]}
@@ -94,10 +100,10 @@ const ProductItem = React.memo(({ item, isDarkMode, onPress }) => {
               #{item.CODPROD}
             </Text>
           </View>
-          <MaterialIcons 
-            name="info-outline" 
-            size={20} 
-            color={isDarkMode ? '#1E40AF' : '#2563EB'} 
+          <MaterialIcons
+            name="info-outline"
+            size={20}
+            color={isDarkMode ? '#1E40AF' : '#2563EB'}
           />
         </View>
 
@@ -143,19 +149,19 @@ const ProductItem = React.memo(({ item, isDarkMode, onPress }) => {
 
 const SearchBar = React.memo(({ value, onChangeText, isDarkMode }) => {
   const [isFocused, setIsFocused] = useState(false);
-  
+
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.searchContainer, 
+        styles.searchContainer,
         isDarkMode ? styles.searchContainerDark : styles.searchContainerLight,
         isFocused && styles.searchContainerFocused
       ]}
     >
-      <MaterialIcons 
-        name="search" 
-        size={24} 
-        color={isDarkMode ? '#1E40AF' : '#2563EB'} 
+      <MaterialIcons
+        name="search"
+        size={24}
+        color={isDarkMode ? '#1E40AF' : '#2563EB'}
       />
       <TextInput
         style={[styles.searchInput, isDarkMode ? styles.searchInputDark : styles.searchInputLight]}
@@ -167,14 +173,14 @@ const SearchBar = React.memo(({ value, onChangeText, isDarkMode }) => {
         onBlur={() => setIsFocused(false)}
       />
       {value.length > 0 && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={() => onChangeText('')}
           style={styles.clearButton}
         >
-          <MaterialIcons 
-            name="close" 
-            size={20} 
-            color={isDarkMode ? '#9CA3AF' : '#6B7280'} 
+          <MaterialIcons
+            name="close"
+            size={20}
+            color={isDarkMode ? '#9CA3AF' : '#6B7280'}
           />
         </TouchableOpacity>
       )}
@@ -182,16 +188,16 @@ const SearchBar = React.memo(({ value, onChangeText, isDarkMode }) => {
   );
 });
 
-const FilterBar = React.memo(({ 
-  filterType, 
-  setFilterType, 
-  departamento, 
+const FilterBar = React.memo(({
+  filterType,
+  setFilterType,
+  departamento,
   setDepartamento,
   secao,
-  setSecao, 
+  setSecao,
   departamentos,
   secoes,
-  isDarkMode 
+  isDarkMode
 }) => {
   const [filterVisible, setFilterVisible] = useState(false);
   const [deptVisible, setDeptVisible] = useState(false);
@@ -221,21 +227,21 @@ const FilterBar = React.memo(({
           visible={filterVisible}
           onDismiss={() => setFilterVisible(false)}
           anchor={
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
               onPress={() => setFilterVisible(true)}
             >
-              <MaterialIcons 
-                name={getFilterIcon()} 
-                size={20} 
-                color="#FFFFFF" 
+              <MaterialIcons
+                name={getFilterIcon()}
+                size={20}
+                color="#FFFFFF"
               />
               <Text style={styles.filterChipText} numberOfLines={1}>
                 {filterTypes.find(f => f.value === filterType)?.label || "Filtrar"}
               </Text>
-              <MaterialIcons 
+              <MaterialIcons
                 name="expand-more"
-                size={20} 
+                size={20}
                 color="#FFFFFF"
               />
             </TouchableOpacity>
@@ -266,21 +272,21 @@ const FilterBar = React.memo(({
           visible={deptVisible}
           onDismiss={() => setDeptVisible(false)}
           anchor={
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
               onPress={() => setDeptVisible(true)}
             >
-              <MaterialIcons 
-                name="category" 
-                size={20} 
+              <MaterialIcons
+                name="category"
+                size={20}
                 color="#FFFFFF"
               />
               <Text style={styles.filterChipText} numberOfLines={1}>
                 {departamento === 'ALL' ? 'Departamento' : departamento.length > 15 ? departamento.substring(0, 15) + '...' : departamento}
               </Text>
-              <MaterialIcons 
+              <MaterialIcons
                 name="expand-more"
-                size={20} 
+                size={20}
                 color="#FFFFFF"
               />
             </TouchableOpacity>
@@ -319,21 +325,21 @@ const FilterBar = React.memo(({
           visible={secaoVisible}
           onDismiss={() => setSecaoVisible(false)}
           anchor={
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.filterChip, isDarkMode ? styles.filterChipDark : styles.filterChipLight]}
               onPress={() => setSecaoVisible(true)}
             >
-              <MaterialIcons 
+              <MaterialIcons
                 name="folder-special"
-                size={20} 
+                size={20}
                 color="#FFFFFF"
               />
               <Text style={styles.filterChipText} numberOfLines={1}>
                 {secao === 'ALL' ? 'Seção' : secao.length > 15 ? secao.substring(0, 15) + '...' : secao}
               </Text>
-              <MaterialIcons 
+              <MaterialIcons
                 name="expand-more"
-                size={20} 
+                size={20}
                 color="#FFFFFF"
               />
             </TouchableOpacity>
@@ -387,45 +393,15 @@ const ProductDetailsModal = ({ visible, item, onClose, onShare, isDarkMode }) =>
         <View style={styles.productModalIconCircle}>
           <MaterialIcons name="info" size={40} color="#2563EB" />
         </View>
-        <Text style={styles.productModalTitle}>Detalhes do Produto</Text>
+        <Text style={styles.productModalTitle}>Detalhes do {CURRENT_TABLE.label}</Text>
         <View style={styles.productModalBody}>
-          <View style={styles.productModalRow}>
-            <MaterialIcons name="tag" size={22} color="#2563EB" />
-            <Text style={styles.productModalLabel}>Código</Text>
-            <Text style={styles.productModalValue}>{item.CODPROD}</Text>
-          </View>
-          <View style={styles.productModalRow}>
-            <MaterialIcons name="description" size={22} color="#2563EB" />
-            <Text style={styles.productModalLabel}>Descrição</Text>
-            <Text style={styles.productModalValue}>{item.DESCRICAO}</Text>
-          </View>
-          <View style={styles.productModalRow}>
-            <MaterialIcons name="local-offer" size={22} color="#2563EB" />
-            <Text style={styles.productModalLabel}>Marca</Text>
-            <Text style={styles.productModalValue}>{item.MARCA}</Text>
-          </View>
-          <View style={styles.productModalRow}>
-            <MaterialIcons name="category" size={22} color="#2563EB" />
-            <Text style={styles.productModalLabel}>Departamento</Text>
-            <Text style={styles.productModalValue}>{item.DEPARTAMENTO}</Text>
-          </View>
-          <View style={styles.productModalRow}>
-            <MaterialIcons name="folder-special" size={22} color="#2563EB" />
-            <Text style={styles.productModalLabel}>Seção</Text>
-            <Text style={styles.productModalValue}>{item.SECAO}</Text>
-          </View>
-          <View style={styles.productModalRow}>
-            <MaterialIcons name="qr-code" size={22} color="#2563EB" />
-            <Text style={styles.productModalLabel}>EAN</Text>
-            <Text style={styles.productModalValue}>{item.CODAUXILIAR}</Text>
-          </View>
-          {Boolean(item.CODAUXILIAR2) && (
-            <View style={styles.productModalRow}>
-              <MaterialIcons name="qr-code-2" size={22} color="#2563EB" />
-              <Text style={styles.productModalLabel}>DUN</Text>
-              <Text style={styles.productModalValue}>{item.CODAUXILIAR2}</Text>
+          {CURRENT_TABLE.fields.map((field) => (
+            <View key={field.key} style={styles.productModalRow}>
+              <MaterialIcons name={field.icon} size={22} color="#2563EB" />
+              <Text style={styles.productModalLabel}>{field.label}</Text>
+              <Text style={styles.productModalValue}>{item[field.key] || 'N/A'}</Text>
             </View>
-          )}
+          ))}
         </View>
         <TouchableOpacity style={styles.productModalShareButton} onPress={onShare}>
           <MaterialIcons name="share" size={22} color="#fff" />
@@ -508,10 +484,10 @@ const ClearDatabaseModal = ({ visible, onClose, onConfirm, isDarkMode }) => {
           isDarkMode ? styles.modalContentDark : styles.modalContentLight
         ]}>
           <View style={styles.clearModalHeader}>
-            <MaterialIcons 
-              name="warning" 
-              size={48} 
-              color="#DC2626" 
+            <MaterialIcons
+              name="warning"
+              size={48}
+              color="#DC2626"
             />
             <Text style={[styles.clearModalTitle, { color: '#DC2626' }]}>
               Atenção!
@@ -578,16 +554,16 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
           {
             icon: () => (
               <View style={fabIconStyle}>
-                <MaterialIcons 
-                  name="cloud-upload" 
-                  size={24} 
+                <MaterialIcons
+                  name="cloud-upload"
+                  size={24}
                   color="#FFFFFF"
                 />
               </View>
             ),
             label: 'IMPORTAR',
             onPress: onImport,
-            style: { 
+            style: {
               backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
               borderRadius: 16,
               elevation: 8,
@@ -601,16 +577,16 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
           {
             icon: () => (
               <View style={fabIconStyle}>
-                <MaterialIcons 
-                  name="cloud-download" 
-                  size={24} 
+                <MaterialIcons
+                  name="cloud-download"
+                  size={24}
                   color="#FFFFFF"
                 />
               </View>
             ),
             label: 'EXPORTAR',
             onPress: onExport,
-            style: { 
+            style: {
               backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB',
               borderRadius: 16,
               elevation: 8,
@@ -624,16 +600,16 @@ const FabGroup = ({ onImport, onExport, onClear, isDarkMode }) => {
           {
             icon: () => (
               <View style={fabIconStyle}>
-                <MaterialIcons 
-                  name="delete-forever" 
-                  size={24} 
+                <MaterialIcons
+                  name="delete-forever"
+                  size={24}
                   color="#FFFFFF"
                 />
               </View>
             ),
             label: 'LIMPAR',
             onPress: onClear,
-            style: { 
+            style: {
               backgroundColor: '#DC2626',
               borderRadius: 16,
               elevation: 8,
@@ -680,7 +656,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
   }, [dados]);
 
   const secoes = useMemo(() => {
-    let secoesArray = selectedDepartamento === 'ALL' 
+    let secoesArray = selectedDepartamento === 'ALL'
       ? [...new Set(dados.map(item => item.SECAO))]
       : [...new Set(dados.filter(item => item.DEPARTAMENTO === selectedDepartamento).map(item => item.SECAO))];
     return secoesArray.sort();
@@ -715,20 +691,20 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
           case 'BRAND':
             return item.MARCA.toLowerCase().includes(query);
           case 'BARCODE':
-            return String(item.CODAUXILIAR).includes(query) || 
-                   String(item.CODAUXILIAR2).includes(query);
+            return String(item.CODAUXILIAR).includes(query) ||
+              String(item.CODAUXILIAR2).includes(query);
           case 'DEPT':
             return item.DEPARTAMENTO.toLowerCase().includes(query);
           case 'SECTION':
             return item.SECAO.toLowerCase().includes(query);
           default:
             return item.DESCRICAO.toLowerCase().includes(query) ||
-                   item.CODPROD.toString().includes(query) ||
-                   item.MARCA.toLowerCase().includes(query) ||
-                   String(item.CODAUXILIAR).includes(query) ||
-                   String(item.CODAUXILIAR2).includes(query) ||
-                   item.DEPARTAMENTO.toLowerCase().includes(query) ||
-                   item.SECAO.toLowerCase().includes(query);
+              item.CODPROD.toString().includes(query) ||
+              item.MARCA.toLowerCase().includes(query) ||
+              String(item.CODAUXILIAR).includes(query) ||
+              String(item.CODAUXILIAR2).includes(query) ||
+              item.DEPARTAMENTO.toLowerCase().includes(query) ||
+              item.SECAO.toLowerCase().includes(query);
         }
       });
     }
@@ -739,7 +715,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     setIsLoading(true);
-    
+
     try {
       // Carrega dados do cache sem apagar
       const cached = await AsyncStorage.getItem('cached_products');
@@ -777,7 +753,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
   }, []);
 
   const exportData = async (format) => {
-    switch(format) {
+    switch (format) {
       case 'json':
         await exportJSON();
         break;
@@ -795,7 +771,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `produtos_filtrados_${timestamp}.json`;
       const fileString = JSON.stringify(filteredDados, null, 2);
-      
+
       const filePath = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}`;
       await ReactNativeBlobUtil.fs.writeFile(filePath, fileString, 'utf8');
 
@@ -821,7 +797,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `todos_produtos_${timestamp}.json`;
       const fileString = JSON.stringify(dados, null, 2);
-      
+
       const filePath = `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/${fileName}`;
       await ReactNativeBlobUtil.fs.writeFile(filePath, fileString, 'utf8');
 
@@ -878,21 +854,13 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
           if (isValidStructure) {
             // Normaliza os dados para o formato esperado
-            const normalizedData = produtos.map(item => ({
-              CODPROD: item.CODPROD || item.id || 0,
-              DESCRICAO: item.DESCRICAO || item.descricao || item.nome || '',
-              MARCA: item.MARCA || item.marca || 'N/A',
-              DEPARTAMENTO: item.DEPARTAMENTO || item.departamento || 'Geral',
-              SECAO: item.SECAO || item.secao || 'Geral',
-              CODAUXILIAR: item.CODAUXILIAR || item.codauxiliar || item.ean || '',
-              CODAUXILIAR2: item.CODAUXILIAR2 || item.codauxiliar2 || item.dun || ''
-            }));
+            const normalizedData = produtos.map(CURRENT_TABLE.normalize);
 
             try {
-              await AsyncStorage.setItem('cached_products', JSON.stringify(normalizedData));
+              await AsyncStorage.setItem(STORAGE_KEYS.SQL_CACHE, JSON.stringify(normalizedData));
 
               // Verifica se o dado realmente ficou persistido (evita "sumir" ao sair da tela)
-              const persisted = await AsyncStorage.getItem('cached_products');
+              const persisted = await AsyncStorage.getItem(STORAGE_KEYS.SQL_CACHE);
               let persistedCount = 0;
               if (persisted) {
                 const parsedPersisted = JSON.parse(persisted);
@@ -963,11 +931,11 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
       Toast.show({
         type: 'error',
         text1: 'Erro',
-      text2: 'Não foi possível importar os dados: ' + error.message,
-      visibilityTime: 4000,
-    });
-  }
-};
+        text2: 'Não foi possível importar os dados: ' + error.message,
+        visibilityTime: 4000,
+      });
+    }
+  };
 
   const handleItemPress = (item) => {
     setSelectedItem(item);
@@ -976,7 +944,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   const handleShare = async (item) => {
     try {
-      const message = 
+      const message =
         `Produto: ${item.DESCRICAO}\n` +
         `Código: ${item.CODPROD}\n` +
         `Marca: ${item.MARCA}\n` +
@@ -1000,9 +968,9 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
   };
 
   const renderItem = ({ item }) => (
-    <ProductItem 
-      item={item} 
-      isDarkMode={isDarkMode} 
+    <ProductItem
+      item={item}
+      isDarkMode={isDarkMode}
       onPress={() => handleItemPress(item)}
     />
   );
@@ -1048,7 +1016,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   const cacheData = async (data) => {
     try {
-      await AsyncStorage.setItem('cached_products', JSON.stringify(data));
+      await AsyncStorage.setItem(STORAGE_KEYS.SQL_CACHE, JSON.stringify(data));
     } catch (error) {
       console.error('Erro ao cachear dados:', error);
     }
@@ -1056,7 +1024,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
   const loadCachedData = useCallback(async () => {
     try {
-      const cached = await AsyncStorage.getItem('cached_products');
+      const cached = await AsyncStorage.getItem(STORAGE_KEYS.SQL_CACHE);
       if (!cached) {
         setDados([]);
         setFilteredDados([]);
@@ -1092,7 +1060,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     try {
       setDados([]);
       setFilteredDados([]);
-      await AsyncStorage.setItem('cached_products', JSON.stringify([]));
+      await AsyncStorage.setItem(STORAGE_KEYS.SQL_CACHE, JSON.stringify([]));
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
@@ -1115,12 +1083,12 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     <Provider>
       <SafeAreaView style={[styles.container, isDarkMode ? styles.containerDark : styles.containerLight]}>
         <View style={styles.header}>
-          <SearchBar 
+          <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
             isDarkMode={isDarkMode}
           />
-          
+
           <FilterBar
             filterType={filterType}
             setFilterType={setFilterType}
@@ -1133,9 +1101,9 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
             isDarkMode={isDarkMode}
           />
 
-          <Text 
+          <Text
             style={[
-              styles.resultCount, 
+              styles.resultCount,
               { color: isDarkMode ? '#2563EB' : '#2563EB' }
             ]}
           >
@@ -1145,7 +1113,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
         {isLoading ? (
           <FlatList
-            data={[1,2,3,4,5]}
+            data={[1, 2, 3, 4, 5]}
             renderItem={() => <SkeletonItem isDarkMode={isDarkMode} />}
             keyExtractor={item => String(item)}
           />
@@ -1170,10 +1138,10 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <View style={[styles.emptyIconContainer, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
-                  <MaterialIcons 
-                    name="inbox" 
-                    size={48} 
-                    color={isDarkMode ? '#1E40AF' : '#2563EB'} 
+                  <MaterialIcons
+                    name="inbox"
+                    size={48}
+                    color={isDarkMode ? '#1E40AF' : '#2563EB'}
                   />
                 </View>
                 <Text style={[
@@ -1188,7 +1156,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
                 ]}>
                   Importe dados para começar a gerenciar seus produtos
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.emptyButton, { backgroundColor: isDarkMode ? '#1E40AF' : '#2563EB' }]}
                   onPress={importData}
                 >
@@ -1199,7 +1167,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
             )}
           />
         )}
-        
+
         {selectedItem && (
           <ProductDetailsModal
             visible={modalVisible}
@@ -1212,7 +1180,7 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
 
         <View style={styles.searchHistoryContainer}>
           {searchHistory.map(query => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={query}
               onPress={() => setSearchQuery(query)}
             >
@@ -1221,14 +1189,14 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
           ))}
         </View>
 
-        <FabGroup 
+        <FabGroup
           onImport={importData}
           onExport={exportFilteredData}
           onClear={() => setShowClearModal(true)}
           isDarkMode={isDarkMode}
         />
 
-        <ClearDatabaseModal 
+        <ClearDatabaseModal
           visible={showClearModal}
           onClose={() => setShowClearModal(false)}
           onConfirm={clearDatabase}
@@ -1531,8 +1499,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   modalContent: {
@@ -1642,8 +1610,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    alignSelf: 'center', 
-    maxWidth: 400, 
+    alignSelf: 'center',
+    maxWidth: 400,
   },
   clearModalHeader: {
     alignItems: 'center',

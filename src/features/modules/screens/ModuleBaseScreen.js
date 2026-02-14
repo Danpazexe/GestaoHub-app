@@ -42,7 +42,7 @@ const ModuleBaseScreen = ({ isDarkMode }) => {
     <ScreenLayout
       isDarkMode={isDarkMode}
       lightBackground={COLORS.fundo}
-      darkBackground={COLORS.destaqueCinza}
+      darkBackground={COLORS.fundoDark}
       contentStyle={styles.content}
     >
       <View style={[styles.heroCard, { borderLeftColor: color }]}>

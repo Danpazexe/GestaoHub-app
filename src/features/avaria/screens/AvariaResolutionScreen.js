@@ -7,18 +7,13 @@ import ScreenLayout, {
     createScreenHeaderTemplate,
     createHeaderTitleTemplate,
 } from '../../../shared/components/ScreenLayout';
-import { CORESLIST, CORESFUNCIONALIDADES } from '../../../shared/components/coresAuth';
+import { CORESAVARIARESOLUTION, CORESFUNCIONALIDADES } from '../../../shared/components/coresAuth';
 import Toast from 'react-native-toast-message';
-import { DAMAGE_TYPES } from './AvariaListScreen';
+import { DAMAGE_TYPES, RESOLUTION_TYPES } from '../constants';
 
-const RESOLUTION_TYPES = {
-    discard: { label: 'Descarte', icon: 'delete-outline', color: '#5d4037', desc: 'Item sem condições de uso. Irá para o lixo.' },
-    supplier_return: { label: 'Devolução', icon: 'keyboard-return', color: '#1976d2', desc: 'Devolver ao fornecedor para troca/crédito.' },
-    donation: { label: 'Doação', icon: 'volunteer-activism', color: '#e91e63', desc: 'Ainda consumível, doar para instituição.' },
-    discount_sale: { label: 'Venda c/ Desconto', icon: 'percent', color: '#2e7d32', desc: 'Vender com preço reduzido.' },
-    stock_return: { label: 'Retornar ao Estoque', icon: 'undo', color: '#fbc02d', desc: 'Engano, item está bom. Voltar para prateleira.' },
-};
+// RESOLUTION_TYPES moved to constants/index.js
 
+const COLORS = CORESAVARIARESOLUTION;
 const AvariaResolutionScreen = ({ navigation, route, isDarkMode }) => {
     const { item } = route.params;
     const [resolutionNote, setResolutionNote] = useState('');
@@ -124,11 +119,11 @@ const AvariaResolutionScreen = ({ navigation, route, isDarkMode }) => {
     const damageInfo = DAMAGE_TYPES[item.damageType] || DAMAGE_TYPES.other;
 
     return (
-        <ScreenLayout isDarkMode={isDarkMode} lightBackground="#fff" darkBackground="#1a1a1a" contentStyle={styles.container}>
+        <ScreenLayout isDarkMode={isDarkMode} lightBackground="#fff" darkBackground={COLORS.backgroundDark || COLORS.darkBackground} contentStyle={styles.container}>
             <ScrollView contentContainerStyle={styles.scroll}>
 
                 {/* Card do Item */}
-                <View style={[styles.itemCard, isDarkMode && styles.darkCard]}>
+                <View style={[styles.itemCard, isDarkMode && styles.darkItemCard]}>
                     <View style={[styles.damageBadge, { backgroundColor: damageInfo.color }]}>
                         <MaterialCommunityIcons name={damageInfo.icon} size={24} color="#fff" />
                         <Text style={styles.damageBadgeText}>{damageInfo.label}</Text>
@@ -165,7 +160,7 @@ const AvariaResolutionScreen = ({ navigation, route, isDarkMode }) => {
                 <TextInput
                     style={[styles.input, isDarkMode && styles.darkInput]}
                     placeholder="Observação da resolução (opcional)..."
-                    placeholderTextColor="#999"
+                    placeholderTextColor={isDarkMode ? COLORS.textMutedDark : '#999'}
                     value={resolutionNote}
                     onChangeText={setResolutionNote}
                 />
@@ -174,7 +169,7 @@ const AvariaResolutionScreen = ({ navigation, route, isDarkMode }) => {
                     {Object.entries(RESOLUTION_TYPES).map(([key, res]) => (
                         <TouchableOpacity
                             key={key}
-                            style={[styles.actionCard, isDarkMode && styles.darkActionCard]}
+                            style={[styles.actionCard, isDarkMode && styles.darkResolutionCard]}
                             onPress={() => handleResolution(key)}
                             activeOpacity={0.7}
                         >
@@ -211,8 +206,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#eee',
     },
-    darkCard: {
-        backgroundColor: '#2d2d2d',
+    darkItemCard: {
+        backgroundColor: COLORS.cardDark,
         borderColor: '#444',
     },
     damageBadge: {
@@ -302,7 +297,7 @@ const styles = StyleSheet.create({
     darkInput: {
         backgroundColor: '#333',
         borderColor: '#444',
-        color: '#fff',
+        color: COLORS.textDark,
     },
     actionsGrid: {
         gap: 12,
@@ -322,9 +317,9 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         elevation: 2,
     },
-    darkActionCard: {
-        backgroundColor: '#2d2d2d',
-        borderColor: '#444',
+    darkResolutionCard: {
+        backgroundColor: COLORS.cardDark,
+        borderColor: COLORS.borderDark,
     },
     actionIcon: {
         width: 48,
@@ -347,10 +342,10 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     darkText: {
-        color: '#fff',
+        color: COLORS.textDark,
     },
     darkTextMuted: {
-        color: '#aaa',
+        color: COLORS.textMutedDark,
     },
 });
 

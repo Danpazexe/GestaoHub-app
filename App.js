@@ -43,6 +43,7 @@ import AvariaListScreen from './src/features/avaria/screens/AvariaListScreen';
 import AvariaEntryScreen from './src/features/avaria/screens/AvariaEntryScreen';
 import AvariaResolutionScreen from './src/features/avaria/screens/AvariaResolutionScreen';
 import AvariaHistoryScreen from './src/features/avaria/screens/AvariaHistoryScreen';
+import AvariaDashboardScreen from './src/features/avaria/screens/AvariaDashboardScreen';
 
 const Stack = createStackNavigator();
 
@@ -432,6 +433,9 @@ export default function App() {
               </Stack.Screen>
               <Stack.Screen name="AvariaHistoryScreen">
                 {props => <AvariaHistoryScreen {...props} isDarkMode={isDarkMode} />}
+              </Stack.Screen>
+              <Stack.Screen name="AvariaDashboardScreen">
+                {props => <AvariaDashboardScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
             </Stack.Navigator>

@@ -7,7 +7,7 @@ const ScreenLayout = ({
   children,
   isDarkMode = false,
   lightBackground = '#ffffff',
-  darkBackground = '#111827',
+  darkBackground = '#181818',
   edges = ['left', 'right', 'bottom'],
   safeAreaStyle,
   contentStyle,
@@ -24,7 +24,7 @@ const ScreenLayout = ({
 export const createScreenHeaderTemplate = ({
   isDarkMode = false,
   lightHeaderColor = '#40444c',
-  darkHeaderColor = '#1f2937',
+  darkHeaderColor = '#181818',
   tintColor = '#ffffff',
   titleAlign = 'left',
   titleSize = 18,
@@ -129,7 +129,7 @@ const headerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
-    marginBottom:4,
+    marginBottom: 4,
   },
   titleText: {
     fontSize: 18,
@@ -147,7 +147,7 @@ const headerStyles = StyleSheet.create({
     marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom:4,
+    marginBottom: 4,
   },
 });
 

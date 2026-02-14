@@ -16,6 +16,7 @@ import ScreenLayout, {
 } from '../../../shared/components/ScreenLayout';
 import HeaderMenu from '../../../shared/components/HeaderMenu';
 import { CORESADDPRODUCT } from '../../../shared/components/coresAuth';
+import { STORAGE_KEYS } from '../../../shared/constants/storage';
 
 const COLORS = {
   ...CORESADDPRODUCT,
@@ -37,7 +38,7 @@ const COLORS = {
 };
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
-  const LOOKUP_SQL_PREF_KEY = 'addProduct_lookupFromSql';
+  const LOOKUP_SQL_PREF_KEY = STORAGE_KEYS.LOOKUP_SQL_PREF;
   const [productName, setProductName] = useState('');
   const [lote, setBatch] = useState('');
   const [quantidade, setQuantity] = useState('');
@@ -206,7 +207,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const loadRecentProducts = async () => {
-    const existingProducts = await AsyncStorage.getItem('products');
+    const existingProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
     let products = existingProducts ? JSON.parse(existingProducts) : [];
     setRecentProducts(products.slice(-5));
   };
@@ -336,7 +337,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         imageUrl: productImage,
       };
 
-      const existingProducts = await AsyncStorage.getItem('products');
+      const existingProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
       let products = existingProducts ? JSON.parse(existingProducts) : [];
 
       if (isEditing) {
@@ -345,7 +346,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         products.push(product);
       }
 
-      await AsyncStorage.setItem('products', JSON.stringify(products));
+      await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
 
       Toast.show({
         type: 'success',

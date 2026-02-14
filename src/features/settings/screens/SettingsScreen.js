@@ -9,10 +9,11 @@ import {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
 } from '../../../shared/components/ScreenLayout';
-
+import { CORESSETTINGS } from '../../../shared/components/coresAuth';
 
 
 const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
+  const COLORS = CORESSETTINGS;
   const rnBiometrics = new ReactNativeBiometrics();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isBiometricEnabled, setBiometricEnabled] = useState(false);
@@ -80,12 +81,12 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
         // Verifica se existem credenciais salvas
         const savedEmail = await AsyncStorage.getItem('savedEmail');
         const savedPassword = await AsyncStorage.getItem('savedPassword');
-        
+
         if (savedEmail && savedPassword) {
           const newValue = !isBiometricEnabled;
           setBiometricEnabled(newValue);
           await AsyncStorage.setItem('biometricEnabled', newValue.toString());
-          
+
           Toast.show({
             type: 'success',
             text1: 'Biometria',
@@ -134,9 +135,9 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
   const SettingItem = ({ icon, title, value, onToggle, iconColor }) => (
     <View style={[styles.settingGroup, isDarkMode ? styles.darkContainer : styles.lightContainer]}>
       <View style={styles.settingItem}>
-        <MaterialCommunityIcons 
-          name={icon} 
-          size={24} 
+        <MaterialCommunityIcons
+          name={icon}
+          size={24}
           color={iconColor || (isDarkMode ? '#fff' : '#374151')}
         />
         <Text style={[styles.settingText, isDarkMode ? styles.darkText : styles.lightText]}>
@@ -146,7 +147,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ 
+        trackColor={{
           false: isDarkMode ? "#4B5563" : "#D1D5DB",
           true: isDarkMode ? "#10B981" : "#059669"
         }}
@@ -158,23 +159,23 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
   );
 
   const NavigationItem = ({ icon, title, onPress, iconColor }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.settingGroup, isDarkMode ? styles.darkContainer : styles.lightContainer]}
       onPress={onPress}
     >
       <View style={styles.settingItem}>
-        <MaterialCommunityIcons 
-          name={icon} 
-          size={24} 
+        <MaterialCommunityIcons
+          name={icon}
+          size={24}
           color={iconColor || (isDarkMode ? '#fff' : '#374151')}
         />
         <Text style={[styles.settingText, isDarkMode ? styles.darkText : styles.lightText]}>
           {title}
         </Text>
       </View>
-      <MaterialCommunityIcons 
-        name="chevron-right" 
-        size={24} 
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={24}
         color={isDarkMode ? '#fff' : '#374151'}
       />
     </TouchableOpacity>
@@ -182,7 +183,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
 
   return (
     <View style={[styles.container, isDarkMode ? styles.darkBackground : styles.lightBackground]}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -190,7 +191,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
         <Text style={[styles.sectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>
           Aparência e Interface
         </Text>
-        
+
         <SettingItem
           icon="theme-light-dark"
           title="Modo Escuro"
@@ -254,8 +255,8 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
           iconColor="#3B82F6"
         />
 
-        <TouchableOpacity 
-          style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton]} 
+        <TouchableOpacity
+          style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton]}
           onPress={() => setIsModalVisible(true)}
         >
           <MaterialCommunityIcons name="restore" size={24} color="#FFFFFF" />
@@ -279,14 +280,14 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
               </Text>
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]} 
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
                   onPress={() => setIsModalVisible(false)}
                 >
                   <Text style={styles.modalButtonText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.confirmButton]} 
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.confirmButton]}
                   onPress={handleResetData}
                 >
                   <Text style={styles.modalButtonText}>Confirmar</Text>
@@ -304,46 +305,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  contentContainer: {
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+  lightBackground: {
+    backgroundColor: '#f9fafb',
   },
   darkBackground: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#111827',
   },
-  lightBackground: {
-    backgroundColor: '#f5f5f5',
-  },
-  darkContainer: {
-    backgroundColor: '#374151',
-  },
-  lightContainer: {
-    backgroundColor: '#ffffff',
-  },
-  section: {
-    marginBottom: 24,
+  contentContainer: {
+    padding: 22,
+    paddingBottom: 40,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
+    marginTop: 24,
     marginBottom: 12,
-    marginLeft: 4,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     opacity: 0.8,
   },
   settingGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 3,
+  },
+  lightContainer: {
+    backgroundColor: '#fff',
+    borderColor: '#f1f5f9',
+    borderWidth: 1,
+  },
+  darkContainer: {
+    backgroundColor: '#1F2937',
+    borderColor: '#374151',
+    borderWidth: 1,
   },
   settingItem: {
     flexDirection: 'row',
@@ -355,7 +358,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   darkText: {
-    color: '#fff',
+    color: '#f9fafb',
   },
   lightText: {
     color: '#374151',
@@ -378,7 +381,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#374151',
   },
   darkButton: {
-    backgroundColor: '#111827',
+    backgroundColor: '#1F2937',
   },
   buttonText: {
     color: '#fff',
@@ -431,10 +434,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cancelButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#ef4444',
   },
   confirmButton: {
-    backgroundColor: '#111827',
+    backgroundColor: '#1F2937',
   },
 });
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Share, Platform, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -7,380 +7,835 @@ import ScreenLayout, {
     createScreenHeaderTemplate,
     createHeaderTitleTemplate,
 } from '../../../shared/components/ScreenLayout';
-import { CORESFUNCIONALIDADES } from '../../../shared/components/coresAuth';
+import { CORESFUNCIONALIDADES, CORESAVARIAENTRY } from '../../../shared/components/coresAuth';
+import Toast from 'react-native-toast-message';
+import { BONUS_TYPES, DAMAGE_TYPES } from '../constants';
 
 const SCREEN_COLOR = CORESFUNCIONALIDADES.actions['avaria-lancar'];
-import Toast from 'react-native-toast-message';
-import { DAMAGE_TYPES } from './AvariaListScreen';
 
-const AvariaEntryScreen = ({ navigation, isDarkMode }) => {
+const COLORS = {
+    ...CORESAVARIAENTRY,
+    dangerLight: '#B00020',
+    dangerDark: '#FF6B6B',
+    successLight: '#4CAF50',
+    successDark: '#6EE7B7',
+    borderDark: '#3a4265',
+    neutralDark: '#26304a',
+    neutralMid: '#6f789b',
+    neutralLight: '#c2c8dd',
+    fieldIconLight: '#3f476e',
+    fieldIconDark: '#d6dbf1',
+};
+
+const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
+    const { batchId } = route.params || {};
+    const [loading, setLoading] = useState(!!batchId);
+
+    // Header State
+    const [supplierName, setSupplierName] = useState('');
+    const [supplierSearch, setSupplierSearch] = useState('');
+    const [supplierResults, setSupplierResults] = useState([]);
+    const [bonusType, setBonusType] = useState('merchandise');
+    const [batchNote, setBatchNote] = useState('');
+
+    // Items State
+    const [items, setItems] = useState([]);
+
+    // Search/Add Item State
+    const [showAddItem, setShowAddItem] = useState(false);
     const [productSearch, setProductSearch] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [quantity, setQuantity] = useState('');
-    const [damageType, setDamageType] = useState('broken');
-    const [notes, setNotes] = useState('');
-    const [loading, setLoading] = useState(false);
-
-    // Lista de produtos para autocomplete
-    const [allProducts, setAllProducts] = useState([]);
-    const [filteredProducts, setFilteredProducts] = useState([]);
-    const [showDropdown, setShowDropdown] = useState(false);
+    const [itemQty, setItemQty] = useState('');
+    const [itemDamageType, setItemDamageType] = useState('broken');
+    const searchTimeout = useRef(null);
+    const supplierTimeout = useRef(null);
+    const [isFinished, setIsFinished] = useState(false);
 
     useEffect(() => {
-        loadProducts();
+        if (batchId) {
+            loadBatch();
+        }
 
         navigation.setOptions({
             ...createScreenHeaderTemplate({
                 isDarkMode,
                 lightHeaderColor: SCREEN_COLOR,
-                darkHeaderColor: SCREEN_COLOR, // Or derived darker color
+                darkHeaderColor: SCREEN_COLOR,
                 tintColor: '#FFFFFF',
             }),
             headerTitle: () =>
                 createHeaderTitleTemplate({
-                    title: 'Nova Avaria',
-                    subtitle: 'Registrar item danificado',
-                    iconName: 'add-alert',
+                    title: batchId ? 'Editar Lote' : 'Novo Lote',
+                    subtitle: 'Gestão de Devoluções',
+                    iconName: 'post-add',
                     tintColor: '#FFFFFF',
                 }),
         });
-    }, [navigation, isDarkMode]);
+    }, [navigation, isDarkMode, batchId]);
 
-    const loadProducts = async () => {
+    const loadBatch = async () => {
+        setLoading(true);
         try {
-            const stored = await AsyncStorage.getItem('products');
+            const stored = await AsyncStorage.getItem('avaria_batches');
             if (stored) {
-                // Carrega produtos normais (status != treated e != damaged)
-                const products = JSON.parse(stored).filter(p => !p.status || (p.status !== 'treated' && p.status !== 'damaged'));
-                setAllProducts(products);
+                const batches = JSON.parse(stored);
+                const current = batches.find(b => b.id === batchId);
+                if (current) {
+                    setSupplierName(current.supplierName);
+                    setSupplierSearch(current.supplierName);
+                    setBonusType(current.bonusType);
+                    setBatchNote(current.notes || '');
+                    setItems(current.items || []);
+                    if (current.status && current.status !== 'open') {
+                        setIsFinished(true);
+                    }
+                }
             }
         } catch (e) {
             console.error(e);
-        }
-    };
-
-    const handleSearch = (text) => {
-        setProductSearch(text);
-        if (text.length > 1) {
-            const filtered = allProducts.filter(p =>
-                p.descricao?.toLowerCase().includes(text.toLowerCase()) ||
-                p.codprod?.toString().includes(text)
-            );
-            setFilteredProducts(filtered);
-            setShowDropdown(true);
-        } else {
-            setShowDropdown(false);
-        }
-    };
-
-    const selectProduct = (prod) => {
-        setSelectedProduct(prod);
-        setProductSearch(prod.descricao);
-        setShowDropdown(false);
-    };
-
-    const handleSave = async () => {
-        if (!productSearch || !quantity || !damageType) {
-            return Toast.show({ type: 'error', text1: 'Preencha todos os campos obrigatórios' });
-        }
-
-        if (selectedProduct && parseInt(quantity) > selectedProduct.quantidade) {
-            return Toast.show({ type: 'error', text1: 'Quantidade maior que o estoque disponível' });
-        }
-
-        setLoading(true);
-        try {
-            const stored = await AsyncStorage.getItem('products');
-            let currentProducts = stored ? JSON.parse(stored) : [];
-
-            const qty = parseInt(quantity);
-
-            // Lógica de Atualização
-            // 1. Encontrar produto original para decrementar (se existir selecionado)
-            // 2. Criar novo registro de avaria
-
-            const newDamageEntry = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                descricao: selectedProduct ? selectedProduct.descricao : productSearch,
-                codprod: selectedProduct ? selectedProduct.codprod : '',
-                lote: selectedProduct ? selectedProduct.lote : '',
-                validade: selectedProduct ? selectedProduct.validade : new Date().toISOString(),
-                quantidade: qty,
-                status: 'damaged',
-                damageType,
-                damageDate: new Date().toISOString(),
-                notes,
-                originalProductId: selectedProduct ? selectedProduct.id : null,
-            };
-
-            let updatedList = [];
-
-            if (selectedProduct) {
-                // Decrementa do original
-                updatedList = currentProducts.flatMap(p => {
-                    if (p.id === selectedProduct.id) {
-                        const remaining = p.quantidade - qty;
-                        if (remaining > 0) {
-                            return [{ ...p, quantidade: remaining }, newDamageEntry];
-                        } else {
-                            // Se zerou, substitui pelo registro de avaria (ou remove o original e adiciona a avaria)
-                            // Aqui vamos adicionar a avaria e remover o original da lista de 'ativos' implicitamente pois o original sumiu
-                            return [newDamageEntry];
-                        }
-                    }
-                    return [p];
-                });
-            } else {
-                // Produto avulso (não estava no estoque ou não foi selecionado)
-                updatedList = [...currentProducts, newDamageEntry];
-            }
-
-            await AsyncStorage.setItem('products', JSON.stringify(updatedList));
-
-            Toast.show({ type: 'success', text1: 'Avaria registrada com sucesso' });
-            navigation.goBack();
-
-        } catch (error) {
-            Toast.show({ type: 'error', text1: 'Erro ao salvar avaria' });
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <ScreenLayout isDarkMode={isDarkMode} lightBackground="#fff" darkBackground="#1a1a1a" contentStyle={styles.container}>
-            <ScrollView contentContainerStyle={styles.scroll}>
+    const performSupplierSearch = async (query) => {
+        setSupplierSearch(query);
+        if (supplierTimeout.current) clearTimeout(supplierTimeout.current);
 
-                {/* Produto Input */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, isDarkMode && styles.darkText]}>Produto Danificado *</Text>
-                    <View style={[styles.inputContainer, isDarkMode && styles.darkInputContainer]}>
-                        <MaterialIcons name="search" size={20} color="#999" style={{ marginRight: 8 }} />
-                        <TextInput
-                            style={[styles.input, isDarkMode && styles.darkInputText]}
-                            placeholder="Digite o nome ou código..."
-                            placeholderTextColor="#999"
-                            value={productSearch}
-                            onChangeText={handleSearch}
-                        />
-                        {selectedProduct && (
-                            <TouchableOpacity onPress={() => { setSelectedProduct(null); setProductSearch(''); }}>
-                                <MaterialIcons name="close" size={20} color={SCREEN_COLOR} />
+        const cleanQuery = query.toLowerCase().trim();
+        if (!cleanQuery) {
+            setSupplierResults([]);
+            return;
+        }
+
+        supplierTimeout.current = setTimeout(async () => {
+            try {
+                const cached = await AsyncStorage.getItem('cached_products');
+                if (cached) {
+                    const products = JSON.parse(cached);
+                    const suppliers = Array.from(new Set(products.map(p => {
+                        const s = p.FORNECEDOR || p.fornecedor || p.MARCA || p.marca;
+                        return s ? String(s).trim() : null;
+                    }))).filter(Boolean);
+
+                    const filtered = suppliers.filter(s =>
+                        s.toLowerCase().includes(cleanQuery)
+                    ).slice(0, 15);
+
+                    setSupplierResults(filtered);
+                }
+            } catch (e) { console.error(e); }
+        }, 350);
+    };
+
+    const selectSupplier = (name) => {
+        setSupplierName(name);
+        setSupplierSearch(name);
+        setSupplierResults([]);
+        Toast.show({
+            type: 'success',
+            text1: 'Fornecedor Selecionado',
+            visibilityTime: 1500,
+        });
+    };
+
+    const performProductSearch = async (query) => {
+        setProductSearch(query);
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+        const cleanQuery = query.toLowerCase().trim();
+        if (!cleanQuery) {
+            setSearchResults([]);
+            return;
+        }
+
+        searchTimeout.current = setTimeout(async () => {
+            try {
+                const cached = await AsyncStorage.getItem('cached_products');
+                if (cached) {
+                    const products = JSON.parse(cached);
+                    const filtered = products.filter(p => {
+                        const val = (key) => {
+                            const value = p[key.toUpperCase()] ?? p[key.toLowerCase()] ?? '';
+                            return String(value).toLowerCase();
+                        };
+                        return val('DESCRICAO').includes(cleanQuery) ||
+                            val('CODPROD').includes(cleanQuery) ||
+                            val('CODAUXILIAR').includes(cleanQuery);
+                    }).slice(0, 15);
+                    setSearchResults(filtered);
+                }
+            } catch (e) { console.error(e); }
+        }, 350);
+    };
+
+    const selectProduct = (p) => {
+        const val = (key) => p[key.toUpperCase()] ?? p[key.toLowerCase()] ?? '';
+        const desc = String(val('DESCRICAO'));
+        const cod = String(val('CODPROD'));
+        const ean = String(val('CODAUXILIAR'));
+
+        setSelectedProduct({ ...p, desc, cod, ean });
+        setProductSearch(desc);
+        setSearchResults([]);
+    };
+
+    const addItemToBatch = () => {
+        if ((!selectedProduct && !productSearch) || !itemQty) {
+            return Toast.show({ type: 'error', text1: 'Informe o produto e a quantidade' });
+        }
+
+        const newItem = {
+            id: Date.now().toString(),
+            productId: selectedProduct ? (selectedProduct.id || selectedProduct.cod) : 'MANUAL',
+            descricao: selectedProduct ? selectedProduct.desc : productSearch,
+            codprod: selectedProduct ? selectedProduct.cod : 'MANUAL',
+            quantity: parseInt(itemQty),
+            damageType: itemDamageType,
+            cost: 0,
+        };
+
+        setItems([...items, newItem]);
+        resetItemForm();
+        setShowAddItem(false);
+    };
+
+    const resetItemForm = () => {
+        setSelectedProduct(null);
+        setProductSearch('');
+        setItemQty('');
+        setItemDamageType('broken');
+    };
+
+    const removeItem = (id) => {
+        setItems(items.filter(i => i.id !== id));
+    };
+
+    const shareBatchSummary = async () => {
+        if (items.length === 0) return Toast.show({ type: 'info', text1: 'Adicione itens para compartilhar' });
+
+        const type = BONUS_TYPES[bonusType]?.label || 'Avaria';
+        let message = `*SOLICITAÇÃO DE BÔNUS/AVARIA*\n`;
+        message += `----------------------------\n`;
+        message += `*Fornecedor:* ${supplierName}\n`;
+        message += `*Tipo:* ${type}\n`;
+        message += `*Data:* ${new Date().toLocaleDateString()}\n\n`;
+        message += `*ITENS:*\n`;
+
+        items.forEach((item, idx) => {
+            message += `${idx + 1}. ${item.descricao}\n`;
+            message += `   Qtd: ${item.quantity} | Motivo: ${DAMAGE_TYPES[item.damageType]?.label}\n`;
+        });
+
+        try {
+            await Share.share({ message });
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const saveBatch = async (finalStatus = 'open') => {
+        const finalSupplierName = supplierName || supplierSearch;
+
+        if (!finalSupplierName) {
+            return Toast.show({ type: 'error', text1: 'Informe o fornecedor' });
+        }
+
+        setLoading(true);
+        try {
+            const stored = await AsyncStorage.getItem('avaria_batches');
+            let batches = stored ? JSON.parse(stored) : [];
+
+            const batchData = {
+                id: batchId || Date.now().toString(),
+                supplierName: finalSupplierName,
+                bonusType,
+                notes: batchNote,
+                items,
+                status: finalStatus,
+                updatedAt: new Date().toISOString(),
+                createdAt: batchId ? batches.find(b => b.id === batchId)?.createdAt : new Date().toISOString(),
+            };
+
+            if (batchId) {
+                batches = batches.map(b => b.id === batchId ? batchData : b);
+            } else {
+                batches.push(batchData);
+            }
+
+            await AsyncStorage.setItem('avaria_batches', JSON.stringify(batches));
+            Toast.show({ type: 'success', text1: 'Lote salvo com sucesso' });
+            navigation.goBack();
+        } catch (e) {
+            console.error(e);
+            Toast.show({ type: 'error', text1: 'Erro ao salvar lote' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const renderSuggestions = (type) => {
+        const results = type === 'supplier' ? supplierResults : searchResults;
+        if (results.length === 0) return null;
+
+        return (
+            <View style={[styles.suggestionsContainer, isDarkMode && styles.darkSuggestionsContainer]}>
+                <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled={true}>
+                    {results.map((item, idx) => (
+                        <TouchableOpacity
+                            key={idx}
+                            style={styles.suggestionItem}
+                            onPress={() => type === 'supplier' ? selectSupplier(item) : selectProduct(item)}
+                        >
+                            <View style={styles.suggestionIcon}>
+                                <MaterialCommunityIcons
+                                    name={type === 'supplier' ? "office-building" : "package-variant"}
+                                    size={20}
+                                    color={isDarkMode ? '#8e94af' : '#636b8f'}
+                                />
+                            </View>
+                            <View style={styles.suggestionTextContainer}>
+                                <Text style={[styles.suggestionTitle, isDarkMode && styles.darkText]} numberOfLines={1}>
+                                    {type === 'supplier' ? item : (item.DESCRICAO || item.descricao)}
+                                </Text>
+                                {type === 'product' && (
+                                    <Text style={[styles.suggestionSubtitle, isDarkMode && styles.darkSuggestionSubtitle]}>
+                                        Cód: {item.CODPROD || item.codprod}
+                                    </Text>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
+        );
+    };
+
+    if (loading && !batchId) return <ActivityIndicator style={{ flex: 1 }} />;
+
+    return (
+        <ScreenLayout isDarkMode={isDarkMode} lightBackground="#f8f9fa" darkBackground={COLORS.darkBackground} contentStyle={styles.container}>
+            <ScrollView keyboardShouldPersistTaps="handled">
+                {/* Seção de Identificação */}
+                <View style={[styles.section, isDarkMode && styles.darkSection]}>
+                    <Text style={[styles.sectionTitle, isDarkMode && styles.darkSectionTitle]}>Identificação do Lote (Capa)</Text>
+
+                    <View style={[styles.inputGroup, { zIndex: 1000 }]}>
+                        <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Fornecedor</Text>
+                        <View style={[styles.inputWrapper, { zIndex: 1001 }]}>
+                            <View style={[styles.inputContainer, isDarkMode && styles.darkInputContainer]}>
+                                <TextInput
+                                    style={[styles.input, isDarkMode && styles.darkInputText]}
+                                    placeholder="Busque o Fornecedor..."
+                                    placeholderTextColor={isDarkMode ? '#666' : '#999'}
+                                    value={supplierSearch}
+                                    onChangeText={performSupplierSearch}
+                                    editable={!isFinished}
+                                />
+                                {supplierName === supplierSearch && supplierName !== '' && (
+                                    <MaterialIcons name="check-circle" size={20} color="#43a047" style={{ marginRight: 8 }} />
+                                )}
+                            </View>
+                            {renderSuggestions('supplier')}
+                        </View>
+                    </View>
+
+                    <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Tipo de Verba / Bônus</Text>
+                    <View style={styles.bonusGrid}>
+                        {Object.entries(BONUS_TYPES).map(([key, type]) => (
+                            <TouchableOpacity
+                                key={key}
+                                style={[
+                                    styles.bonusCard,
+                                    bonusType === key && { borderColor: type.color, backgroundColor: type.color + '10' },
+                                    isDarkMode && styles.darkBonusCard
+                                ]}
+                                onPress={() => !isFinished && setBonusType(key)}
+                                disabled={isFinished}
+                            >
+                                <MaterialCommunityIcons name={type.icon} size={24} color={bonusType === key ? type.color : '#888'} />
+                                <Text style={[styles.bonusLabel, isDarkMode && styles.darkBonusLabel, bonusType === key && { color: type.color, fontWeight: 'bold' }]}>{type.label}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Seção de Itens */}
+                <View style={[styles.section, isDarkMode && styles.darkSection]}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={[styles.sectionTitle, isDarkMode && styles.darkSectionTitle]}>Itens do Lote ({items.length})</Text>
+                        {!isFinished && (
+                            <TouchableOpacity style={styles.addItemBtn} onPress={() => setShowAddItem(true)}>
+                                <MaterialIcons name="add-circle" size={24} color={SCREEN_COLOR} />
+                                <Text style={styles.addItemText}>Adicionar</Text>
                             </TouchableOpacity>
                         )}
                     </View>
 
-                    {/* Autocomplete Dropdown */}
-                    {showDropdown && filteredProducts.length > 0 && (
-                        <View style={[styles.dropdown, isDarkMode && styles.darkDropdown]}>
-                            {filteredProducts.map(item => (
-                                <TouchableOpacity key={item.id} style={styles.dropdownItem} onPress={() => selectProduct(item)}>
-                                    <Text style={[styles.dropdownText, isDarkMode && styles.darkText]}>{item.descricao}</Text>
-                                    <Text style={styles.dropdownSubtext}>Qtd: {item.quantidade} • Lote: {item.lote}</Text>
-                                </TouchableOpacity>
-                            ))}
+                    {items.length === 0 ? (
+                        <View style={styles.emptyItems}>
+                            <MaterialCommunityIcons name="playlist-minus" size={48} color="#ccc" />
+                            <Text style={styles.emptyItemsText}>Nenhum item adicionado ainda.</Text>
                         </View>
-                    )}
-
-                    {selectedProduct && (
-                        <Text style={styles.helperText}>Estoque atual: {selectedProduct.quantidade}</Text>
+                    ) : (
+                        items.map((item, index) => (
+                            <View key={item.id} style={[styles.itemCard, isDarkMode && styles.darkItemCard]}>
+                                <View style={styles.itemMain}>
+                                    <Text style={[styles.itemDesc, isDarkMode && styles.darkText]} numberOfLines={1}>{item.descricao}</Text>
+                                    <View style={styles.itemMeta}>
+                                        <Text style={[styles.itemBadge, isDarkMode && styles.darkItemBadge]}>Qtd: {item.quantity}</Text>
+                                        <Text style={[styles.itemBadge, { color: DAMAGE_TYPES[item.damageType]?.color }]}>
+                                            • {DAMAGE_TYPES[item.damageType]?.label}
+                                        </Text>
+                                        <Text style={[styles.itemBadge, isDarkMode && styles.darkItemBadge]}>• Cód: {item.codprod}</Text>
+                                    </View>
+                                </View>
+                                {!isFinished && (
+                                    <TouchableOpacity onPress={() => removeItem(item.id)}>
+                                        <MaterialIcons name="delete-outline" size={22} color="#e53935" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        ))
                     )}
                 </View>
 
-                {/* Quantidade */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, isDarkMode && styles.darkText]}>Quantidade Avariada *</Text>
-                    <View style={[styles.inputContainer, isDarkMode && styles.darkInputContainer]}>
-                        <TextInput
-                            style={[styles.input, isDarkMode && styles.darkInputText]}
-                            placeholder="0"
-                            placeholderTextColor="#999"
-                            keyboardType="numeric"
-                            value={quantity}
-                            onChangeText={setQuantity}
-                        />
-                    </View>
-                </View>
-
-                {/* Tipo de Avaria */}
-                <Text style={[styles.label, isDarkMode && styles.darkText, { marginTop: 10 }]}>Tipo de Problema *</Text>
-                <View style={styles.typesContainer}>
-                    {Object.entries(DAMAGE_TYPES).map(([key, type]) => (
+                {/* Ações Inferiores */}
+                {!isFinished && (
+                    <View style={styles.actionArea}>
                         <TouchableOpacity
-                            key={key}
-                            style={[
-                                styles.typeCard,
-                                damageType === key && { borderColor: type.color, backgroundColor: type.color + '10' },
-                                isDarkMode && styles.darkTypeCard
-                            ]}
-                            onPress={() => setDamageType(key)}
+                            style={[styles.saveBatchBtn, { backgroundColor: '#43a047' }]}
+                            onPress={() => saveBatch('open')}
                         >
-                            <MaterialCommunityIcons
-                                name={type.icon}
-                                size={32}
-                                color={damageType === key ? type.color : (isDarkMode ? '#666' : '#ccc')}
-                            />
-                            <Text style={[
-                                styles.typeLabel,
-                                damageType === key && { color: type.color, fontWeight: 'bold' },
-                                isDarkMode && !damageType === key && { color: '#aaa' }
-                            ]}>
-                                {type.label}
-                            </Text>
+                            <Text style={styles.btnText}>{batchId ? 'Salvar Alterações' : 'Criar Lote'}</Text>
                         </TouchableOpacity>
-                    ))}
-                </View>
 
-                {/* Observação */}
-                <View style={styles.inputGroup}>
-                    <Text style={[styles.label, isDarkMode && styles.darkText]}>Observação (Opcional)</Text>
-                    <View style={[styles.inputContainer, isDarkMode && styles.darkInputContainer, { height: 100, alignItems: 'flex-start' }]}>
-                        <TextInput
-                            style={[styles.input, isDarkMode && styles.darkInputText, { height: '100%', textAlignVertical: 'top' }]}
-                            placeholder="Detalhes sobre o ocorrido..."
-                            placeholderTextColor="#999"
-                            multiline
-                            value={notes}
-                            onChangeText={setNotes}
-                        />
+                        {batchId && (
+                            <TouchableOpacity
+                                style={[styles.saveBatchBtn, isDarkMode ? styles.darkConcludeBtn : styles.lightConcludeBtn]}
+                                onPress={() => saveBatch('concluded')}
+                            >
+                                <MaterialCommunityIcons
+                                    name="check-all"
+                                    size={20}
+                                    color={isDarkMode ? COLORS.textMutedDark : '#666'}
+                                    style={styles.btnIcon}
+                                />
+                                <Text style={[styles.btnText, isDarkMode ? styles.darkConcludeBtnText : styles.lightConcludeBtnText]}>
+                                    Concluir e Enviar p/ Histórico
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.saveBatchBtn, { backgroundColor: SCREEN_COLOR, flexDirection: 'row', marginTop: 12 }]}
+                            onPress={shareBatchSummary}
+                        >
+                            <MaterialCommunityIcons name="share-variant" size={20} color="#fff" style={styles.btnIcon} />
+                            <Text style={styles.btnText}>Compartilhar com Fornecedor</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {isFinished && (
+                    <View style={styles.actionArea}>
+                        <TouchableOpacity
+                            style={[styles.saveBatchBtn, { backgroundColor: SCREEN_COLOR, flexDirection: 'row' }]}
+                            onPress={shareBatchSummary}
+                        >
+                            <MaterialCommunityIcons name="share-variant" size={20} color="#fff" style={styles.btnIcon} />
+                            <Text style={styles.btnText}>Compartilhar com Fornecedor</Text>
+                        </TouchableOpacity>
+
+                        <View style={{ marginTop: 20, alignItems: 'center' }}>
+                            <Text style={{ color: isDarkMode ? '#aaa' : '#666', fontStyle: 'italic' }}>Este lote está finalizado e não pode ser editado.</Text>
+                        </View>
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* Modal para Adicionar Item */}
+            {showAddItem && (
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, isDarkMode && styles.darkModalContent]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>Adicionar Item</Text>
+                            <TouchableOpacity onPress={() => setShowAddItem(false)}>
+                                <MaterialIcons name="close" size={24} color="#888" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.modalBody}>
+                            <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Buscar Produto</Text>
+                            <View style={[styles.inputWrapper, { zIndex: 1000 }]}>
+                                <View style={[styles.inputContainer, isDarkMode && styles.darkInputContainer]}>
+                                    <TextInput
+                                        style={[styles.input, isDarkMode && styles.darkInputText]}
+                                        placeholder="Nome, Código ou EAN..."
+                                        placeholderTextColor={isDarkMode ? '#666' : '#999'}
+                                        value={productSearch}
+                                        onChangeText={performProductSearch}
+                                    />
+                                </View>
+                                {renderSuggestions('product')}
+                            </View>
+
+                            <View style={styles.qtyInputContainer}>
+                                <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Quantidade</Text>
+                                <View style={[styles.inputContainer, isDarkMode && styles.darkInputContainer]}>
+                                    <TextInput
+                                        style={[styles.input, isDarkMode && styles.darkInputText]}
+                                        placeholder="0"
+                                        placeholderTextColor={isDarkMode ? '#666' : '#999'}
+                                        keyboardType="numeric"
+                                        value={itemQty}
+                                        onChangeText={setItemQty}
+                                    />
+                                </View>
+                            </View>
+
+                            <Text style={[styles.label, isDarkMode && styles.darkLabel, styles.damageTitle]}>Motivo do Dano</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.damageScroll}>
+                                {Object.entries(DAMAGE_TYPES).map(([key, type]) => (
+                                    <TouchableOpacity
+                                        key={key}
+                                        style={[styles.damageChip, itemDamageType === key && { backgroundColor: type.color }]}
+                                        onPress={() => setItemDamageType(key)}
+                                    >
+                                        <Text style={[styles.damageChipText, itemDamageType === key && styles.damageChipTextActive]}>
+                                            {type.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+
+                        <TouchableOpacity style={styles.confirmItemBtn} onPress={addItemToBatch}>
+                            <Text style={styles.confirmItemText}>Adicionar ao Lote</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
-
-                <TouchableOpacity
-                    style={[styles.saveButton, loading && styles.disabledButton]}
-                    onPress={handleSave}
-                    disabled={loading}
-                >
-                    <Text style={styles.saveButtonText}>{loading ? 'Salvando...' : 'Registrar Avaria'}</Text>
-                </TouchableOpacity>
-
-            </ScrollView>
+            )}
         </ScreenLayout>
     );
 };
 
 const styles = StyleSheet.create({
+    // ==================== Layout Geral ====================
     container: {
         flex: 1,
     },
-    scroll: {
-        padding: 20,
+    section: {
+        backgroundColor: '#fff',
+        padding: 16,
+        margin: 12,
+        borderRadius: 16,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
-    inputGroup: {
-        marginBottom: 20,
-        zIndex: 1,
+    darkSection: {
+        backgroundColor: COLORS.cardDark,
     },
-    label: {
-        fontSize: 14,
+    sectionTitle: {
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#333',
-        marginBottom: 8,
+        marginBottom: 16,
+    },
+    darkSectionTitle: {
+        color: COLORS.textDark,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+
+    // ==================== Inputs e Labels ====================
+    inputGroup: {
+        marginBottom: 16,
+        elevation: 11,
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 6,
+    },
+    darkLabel: {
+        color: COLORS.textMutedDark,
+    },
+    inputWrapper: {
+        position: 'relative',
+        zIndex: 1000,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 12,
+        height: 48,
+        backgroundColor: '#f1f3f5',
+        borderRadius: 10,
         paddingHorizontal: 12,
-        backgroundColor: '#f9f9f9',
-        height: 50,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+        zIndex: 1,
     },
     darkInputContainer: {
-        backgroundColor: '#333',
-        borderColor: '#444',
+        backgroundColor: COLORS.inputDark || COLORS.cardDark,
+        borderColor: COLORS.borderDark,
     },
     input: {
         flex: 1,
-        color: '#333',
         fontSize: 16,
+        color: '#333',
+        height: '100%',
     },
     darkInputText: {
-        color: '#fff',
+        color: COLORS.textDark,
     },
-    dropdown: {
+
+    // ==================== Sugestões (Dropdown) Estilo AddProduct ====================
+    suggestionsContainer: {
         position: 'absolute',
-        top: 80,
+        top: 50,
         left: 0,
         right: 0,
         backgroundColor: '#fff',
         borderRadius: 8,
-        elevation: 5,
-        zIndex: 1000,
-        maxHeight: 200,
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: 'rgba(60, 68, 108, 0.2)',
+        marginTop: 2,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        shadowOffset: { width: 0, height: 4 },
+        zIndex: 9999,
+        overflow: 'hidden',
+        maxHeight: 250,
     },
-    darkDropdown: {
-        backgroundColor: '#2d2d2d',
-        borderColor: '#444',
+    darkSuggestionsContainer: {
+        backgroundColor: COLORS.inputDark || COLORS.cardDark,
+        borderColor: COLORS.borderDark,
     },
-    dropdownItem: {
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     },
-    dropdownText: {
-        fontSize: 16,
+    suggestionIcon: {
+        marginRight: 10,
+    },
+    suggestionTextContainer: {
+        flex: 1,
+    },
+    suggestionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
         color: '#333',
     },
-    dropdownSubtext: {
+    suggestionSubtitle: {
         fontSize: 12,
-        color: '#888',
+        color: 'rgba(0,0,0,0.5)',
+        marginTop: 2,
     },
-    helperText: {
-        fontSize: 12,
-        color: '#0288d1',
-        marginTop: 4,
-        fontStyle: 'italic',
+    darkSuggestionSubtitle: {
+        color: COLORS.textMutedDark,
     },
-    typesContainer: {
+
+    // ==================== Grade de Bônus ====================
+    bonusGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 10,
-        marginBottom: 20,
     },
-    typeCard: {
-        width: '30%',
-        aspectRatio: 1,
+    bonusCard: {
+        flex: 1,
+        height: 80,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'transparent',
+        backgroundColor: '#f8f9fa',
         borderRadius: 12,
-        backgroundColor: '#f5f5f5',
+        borderWidth: 1,
+        borderColor: '#eee',
+        padding: 4,
     },
-    darkTypeCard: {
-        backgroundColor: '#333',
+    darkBonusCard: {
+        backgroundColor: COLORS.cardDark,
+        borderColor: COLORS.borderDark,
     },
-    typeLabel: {
-        fontSize: 11,
-        marginTop: 6,
+    bonusLabel: {
+        fontSize: 10,
+        marginTop: 4,
         textAlign: 'center',
         color: '#666',
     },
-    saveButton: {
-        backgroundColor: SCREEN_COLOR,
-        paddingVertical: 16,
-        borderRadius: 12,
+    darkBonusLabel: {
+        color: COLORS.textMutedDark,
+    },
+
+    // ==================== Lista de Itens ====================
+    addItemBtn: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 20,
-        shadowColor: SCREEN_COLOR,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-        elevation: 5,
+        gap: 4,
     },
-    disabledButton: {
-        opacity: 0.7,
+    addItemText: {
+        fontWeight: '700',
+        color: SCREEN_COLOR,
     },
-    saveButtonText: {
+    emptyItems: {
+        padding: 40,
+        alignItems: 'center',
+    },
+    emptyItemsText: {
+        color: '#888',
+        marginTop: 8,
+    },
+    itemCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f1f1',
+    },
+    darkItemCard: {
+        borderBottomColor: '#333',
+    },
+    itemMain: {
+        flex: 1,
+    },
+    itemDesc: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#333',
+    },
+    itemMeta: {
+        flexDirection: 'row',
+        gap: 6,
+        marginTop: 4,
+    },
+    itemBadge: {
+        fontSize: 12,
+        color: '#888',
+    },
+    darkItemBadge: {
+        color: COLORS.textMutedDark,
+    },
+
+    // ==================== Área de Ações (Botões) ====================
+    actionArea: {
+        padding: 12,
+        gap: 12,
+        marginBottom: 40,
+    },
+    saveBatchBtn: {
+        height: 52,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    btnIcon: {
+        marginRight: 8,
+    },
+    btnText: {
         color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    lightConcludeBtn: {
+        backgroundColor: '#f5f5f5',
+        borderWidth: 1,
+        borderColor: '#ddd',
+    },
+    darkConcludeBtn: {
+        backgroundColor: COLORS.cardDark,
+        borderWidth: 1,
+        borderColor: COLORS.borderDark,
+    },
+    lightConcludeBtnText: {
+        color: '#666',
+    },
+    darkConcludeBtnText: {
+        color: COLORS.textMutedDark,
+    },
+
+    // ==================== Estilos do Modal ====================
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999,
+    },
+    modalContent: {
+        width: '94%',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        elevation: 10,
+    },
+    darkModalContent: {
+        backgroundColor: COLORS.cardDark,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
         fontSize: 18,
         fontWeight: 'bold',
     },
-    darkText: {
+    modalBody: {},
+    qtyInputContainer: {
+        marginTop: 12,
+    },
+    damageTitle: {
+        marginTop: 12,
+    },
+    damageScroll: {
+        marginBottom: 20,
+    },
+    damageChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: '#f1f3f5',
+        marginRight: 8,
+    },
+    damageChipText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#666',
+    },
+    damageChipTextActive: {
         color: '#fff',
+    },
+    confirmItemBtn: {
+        backgroundColor: SCREEN_COLOR,
+        height: 52,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    confirmItemText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+
+    // ==================== Utilidades ====================
+    darkText: {
+        color: COLORS.textDark,
     },
 });
 

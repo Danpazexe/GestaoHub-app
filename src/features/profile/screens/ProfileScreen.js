@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CORESPROFILE } from '../../../shared/components/coresAuth';
 
 const ProfileScreen = ({ isDarkMode }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [profileImage, setProfileImage] = useState(null);
+
+  const COLORS = CORESPROFILE;
 
   // Função para carregar os dados salvos no AsyncStorage
   const loadProfileData = useCallback(async () => {
@@ -96,19 +99,23 @@ const ProfileScreen = ({ isDarkMode }) => {
   };
 
   return (
-    <View style={[styles.container, isDarkMode ? styles.darkBackground : styles.lightBackground]}>
-      <Text style={[styles.title, isDarkMode ? styles.darkText : styles.lightText]}>Perfil do Usuário</Text>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? COLORS.darkBackground : COLORS.background }]}>
+      <Text style={[styles.title, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Perfil do Usuário</Text>
       <TouchableOpacity onPress={handleImagePick}>
         <Image
           source={profileImage ? { uri: profileImage } : require('../../../../assets/Perfil/default-profile.png')}
-          style={styles.profileImage}
+          style={[styles.profileImage, { borderColor: isDarkMode ? COLORS.accent : '#ccc' }]}
         />
-        <Text style={[styles.editPhotoText, isDarkMode ? styles.darkText : styles.lightText]}>Alterar Foto</Text>
+        <Text style={[styles.editPhotoText, { color: COLORS.primary }]}>Alterar Foto</Text>
       </TouchableOpacity>
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Nome</Text>
+        <Text style={[styles.label, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Nome</Text>
         <TextInput
-          style={[styles.input, isDarkMode ? styles.darkInput : styles.lightInput]}
+          style={[styles.input, {
+            backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.white,
+            borderColor: isDarkMode ? COLORS.accent : '#ccc',
+            color: isDarkMode ? COLORS.textDark : COLORS.text
+          }]}
           value={name}
           onChangeText={setName}
           placeholder="Digite seu nome"
@@ -116,9 +123,13 @@ const ProfileScreen = ({ isDarkMode }) => {
         />
       </View>
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>E-mail</Text>
+        <Text style={[styles.label, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>E-mail</Text>
         <TextInput
-          style={[styles.input, isDarkMode ? styles.darkInput : styles.lightInput]}
+          style={[styles.input, {
+            backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.white,
+            borderColor: isDarkMode ? COLORS.accent : '#ccc',
+            color: isDarkMode ? COLORS.textDark : COLORS.text
+          }]}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -127,9 +138,13 @@ const ProfileScreen = ({ isDarkMode }) => {
         />
       </View>
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Senha</Text>
+        <Text style={[styles.label, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Senha</Text>
         <TextInput
-          style={[styles.input, isDarkMode ? styles.darkInput : styles.lightInput]}
+          style={[styles.input, {
+            backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.white,
+            borderColor: isDarkMode ? COLORS.accent : '#ccc',
+            color: isDarkMode ? COLORS.textDark : COLORS.text
+          }]}
           value={password}
           onChangeText={setPassword}
           placeholder="Digite sua senha"
@@ -137,7 +152,7 @@ const ProfileScreen = ({ isDarkMode }) => {
           secureTextEntry
         />
       </View>
-      <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
+      <TouchableOpacity style={[styles.saveButton, { backgroundColor: COLORS.primary }]} onPress={handleSaveChanges}>
         <Text style={styles.saveButtonText}>Salvar Alterações</Text>
       </TouchableOpacity>
     </View>
@@ -149,23 +164,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  lightBackground: {
-    backgroundColor: '#f5f5f5',
-  },
-  darkBackground: {
-    backgroundColor: '#888',
-  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-  },
-  lightText: {
-    color: '#333',
-  },
-  darkText: {
-    color: '#EAEAEA',
   },
   profileImage: {
     width: 120,
@@ -174,12 +177,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: '#ccc',
   },
   editPhotoText: {
     textAlign: 'center',
-    color: '#007BFF',
     marginBottom: 20,
+    fontWeight: '600',
   },
   inputContainer: {
     marginBottom: 15,
@@ -194,22 +196,16 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
   },
-  lightInput: {
-    backgroundColor: '#fff',
-    borderColor: '#ccc',
-    color: '#000',
-  },
-  darkInput: {
-    backgroundColor: '#333',
-    borderColor: '#555',
-    color: '#EAEAEA',
-  },
   saveButton: {
-    backgroundColor: '#007BFF',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   saveButtonText: {
     color: '#fff',

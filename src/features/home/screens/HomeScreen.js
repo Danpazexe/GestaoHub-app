@@ -63,6 +63,13 @@ const HomeScreen = ({ isDarkMode }) => {
           color: FUNC_COLORS.actions['avaria-historico'],
           screen: 'AvariaHistoryScreen',
         },
+        {
+          id: 'avaria-dashboard',
+          title: 'Dashboard de Avaria',
+          icon: 'bar-chart',
+          color: FUNC_COLORS.actions['avaria-dashboard'],
+          screen: 'AvariaDashboardScreen',
+        },
       ],
     },
     {

@@ -15,6 +15,7 @@ import ScreenLayout, {
   createHeaderActionsTemplate,
 } from '../../../shared/components/ScreenLayout';
 import { CORESLIST } from '../../../shared/components/coresAuth';
+import { STORAGE_KEYS } from '../../../shared/constants/storage';
 
 const COLORS = CORESLIST;
 
@@ -25,7 +26,7 @@ const useProducts = () => {
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const storedProducts = await AsyncStorage.getItem('products');
+      const storedProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (storedProducts) {
         if (storedProducts) {
           let parsedProducts = JSON.parse(storedProducts);
@@ -52,7 +53,7 @@ const useProducts = () => {
 
   const saveProducts = async (productsToSave) => {
     try {
-      await AsyncStorage.setItem('products', JSON.stringify(productsToSave));
+      await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(productsToSave));
     } catch (error) {
       console.error('Erro ao salvar produtos:', error);
       Toast.show({

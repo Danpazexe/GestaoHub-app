@@ -20,6 +20,7 @@ export const CORESLOGIN = {
   // Estados
   erro: '#dc2626',
   branco: '#ffffff',
+  fundoDark: '#1f2438',
 };
 
 export const CORESREGISTER = {
@@ -44,6 +45,7 @@ export const CORESREGISTER = {
   // Estados
   erro: '#dc2626',
   branco: '#ffffff',
+  fundoDark: '#1f2438',
 };
 
 export const CORESHOME = {
@@ -67,6 +69,7 @@ export const CORESHOME = {
 
   // Estados
   branco: '#ffffff',
+  fundoDark: '#1f2438',
 };
 
 export const CORESMODULEFUNCTIONS = {
@@ -221,7 +224,7 @@ export const CORESBARCODESCANNER = {
   white: '#ffffff',
   shadow: '#000000',
 
-  cameraBackground: '#000000',
+  cameraBackground: '#1f2438',
   overlay: 'rgba(0, 0, 0, 0.7)',
   overlayStrong: 'rgba(0, 0, 0, 0.82)',
   modalBackground: 'rgba(0, 0, 0, 0.72)',
@@ -244,16 +247,180 @@ export const CORESEXCEL = {
   secondary: '#012677',
   accent: '#012677',
   background: '#f8f8f8',
-  backgroundDark: '#181818',
+  backgroundDark: '#1f2438',
   card: '#ffffff',
   cardDark: '#262d47',
   border: 'rgba(1, 38, 119, 0.22)',
   text: '#333333',
-  textDark: '#FFFFFF',
+  textDark: '#f3f5ff',
   textMuted: '#666666',
   white: '#FFFFFF',
   shadow: '#012677',
 };
+
+export const CORESAVARIAENTRY = {
+  primary: '#b91c1c',
+  secondary: '#991b1b',
+  accent: '#7f1d1d',
+  background: '#f4f6fb',
+  darkBackground: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  inputDark: '#2b3350',
+  border: 'rgba(185, 28, 28, 0.24)',
+  text: '#2e3554',
+  textMuted: 'rgba(46, 53, 84, 0.68)',
+  textDark: '#f3f5ff',
+  textMutedDark: '#aab1cf',
+  white: '#ffffff',
+};
+
+export const CORESAVARIALIST = {
+  primary: '#334155',
+  secondary: '#1e293b',
+  accent: '#0f172a',
+  background: '#f7f7f8',
+  darkBackground: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  inputDark: '#2b3350',
+  border: 'rgba(51, 65, 85, 0.22)',
+  borderDark: '#3a4265',
+  text: '#40444c',
+  textDark: '#f3f5ff',
+  textMuted: 'rgba(64, 68, 76, 0.75)',
+  textMutedDark: '#aab1cf',
+  white: '#ffffff',
+};
+
+export const CORESAVARIAHISTORY = {
+  primary: '#4c1d95',
+  secondary: '#2e1065',
+  accent: '#1e1b4b',
+  background: '#f8f8f8',
+  backgroundDark: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  border: 'rgba(76, 29, 149, 0.22)',
+  text: '#333333',
+  textDark: '#f3f5ff',
+  textMuted: '#666666',
+  textMutedDark: '#aab1cf',
+  white: '#FFFFFF',
+};
+
+export const CORESAVARIADASHBOARD = {
+  primary: '#c2410c',
+  secondary: '#9a3412',
+  accent: '#7c2d12',
+  background: '#f9f9f9',
+  backgroundDark: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  inputDark: '#2b3350',
+  border: 'rgba(194, 65, 12, 0.22)',
+  borderDark: '#3a4265',
+  text: '#333333',
+  textDark: '#f3f5ff',
+  textMuted: '#666666',
+  textMutedDark: '#aab1cf',
+  white: '#ffffff',
+};
+
+export const CORESAVARIARESOLUTION = {
+  primary: '#065f46',
+  secondary: '#064e3b',
+  accent: '#047857',
+  background: '#f5f5f5',
+  backgroundDark: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  border: 'rgba(6, 95, 70, 0.22)',
+  text: '#333333',
+  textDark: '#f3f5ff',
+  textMuted: '#666666',
+  textMutedDark: '#aab1cf',
+  white: '#ffffff',
+};
+
+export const CORESSQL = {
+  primary: '#2563EB',
+  secondary: '#1E40AF',
+  accent: '#3B82F6',
+  background: '#f4f6fb',
+  backgroundDark: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#262d47',
+  border: 'rgba(37, 99, 235, 0.22)',
+  text: '#1e293b',
+  textDark: '#f3f5ff',
+  white: '#ffffff',
+};
+
+export const CORESPROFILE = {
+  primary: '#3b82f6',
+  secondary: '#2563eb',
+  accent: '#60a5fa',
+  background: '#f8fafc',
+  darkBackground: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#1e293b',
+  text: '#1e293b',
+  textDark: '#f3f5ff',
+  white: '#ffffff',
+};
+
+export const CORESSETTINGS = {
+  primary: '#374151',
+  secondary: '#1F2937',
+  accent: '#4B5563',
+  background: '#f9fafb',
+  darkBackground: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#1F2937',
+  text: '#111827',
+  textDark: '#f3f5ff',
+  white: '#ffffff',
+};
+
+export const CORESNOTIFICATION = {
+  primary: '#6cb6a5',
+  secondary: '#1a4645',
+  accent: '#a7d7c5',
+  background: '#f1f5f9',
+  darkBackground: '#1f2438',
+  card: '#ffffff',
+  cardDark: '#113332',
+  text: '#1e293b',
+  textDark: '#f3f5ff',
+  white: '#ffffff',
+};
+
+
+// CONFERÊNCIA
+export const CORESCONFERENCIARECB = { primary: '#0f766e', secondary: '#0d9488', text: '#134e4a', background: '#f0fdfa' };
+export const CORESCONFERENCIASAIDA = { primary: '#4338ca', secondary: '#3730a3', text: '#312e81', background: '#eef2ff' };
+export const CORESCONFERENCIADIVERG = { primary: '#06b6d4', secondary: '#0891b2', text: '#164e63', background: '#ecfeff' };
+
+// INVENTÁRIO
+export const CORESINVENTARIOCONT = { primary: '#6d28d9', secondary: '#5b21b6', text: '#2e1065', background: '#f5f3ff' };
+export const CORESINVENTARIORECONT = { primary: '#a21caf', secondary: '#86198f', text: '#4a044e', background: '#fdf4ff' };
+export const CORESINVENTARIOAJUSTE = { primary: '#8b5cf6', secondary: '#7c3aed', text: '#2e1065', background: '#f5f3ff' };
+
+// PEDIDOS
+export const CORESPEDIDOSSEPARACAO = { primary: '#0e7490', secondary: '#0891b2', text: '#164e63', background: '#ecfeff' };
+export const CORESPEDIDOSCARGA = { primary: '#334155', secondary: '#1e293b', text: '#0f172a', background: '#f8fafc' };
+export const CORESPEDIDOSROTA = { primary: '#14b8a6', secondary: '#0d9488', text: '#134e4a', background: '#f0fdfa' };
+
+// AUDITORIA
+export const CORESAUDITORIAETIQUETA = { primary: '#b45309', secondary: '#92400e', text: '#451a03', background: '#fffbeb' };
+export const CORESAUDITORIADIVERG = { primary: '#4d7c0f', secondary: '#3f6212', text: '#1a2e05', background: '#f7fee7' };
+export const CORESAUDITORIAHIST = { primary: '#7c2d12', secondary: '#431407', text: '#2d0f0a', background: '#fffaf8' };
+
+// REQUISIÇÕES
+export const CORESREQUISICOESCONSUMO = { primary: '#15803d', secondary: '#166534', text: '#052e16', background: '#f0fdf4' };
+export const CORESREQUISICOESLOJAS = { primary: '#0369a1', secondary: '#075985', text: '#082f49', background: '#f0f9ff' };
+export const CORESREQUISICOESAPROV = { primary: '#65a30d', secondary: '#4d7c0f', text: '#1a2e05', background: '#f7fee7' };
 
 export const CORESFUNCIONALIDADES = {
   modules: {
@@ -270,31 +437,32 @@ export const CORESFUNCIONALIDADES = {
     'validade-add': CORESADDPRODUCT.primary,
     'validade-dashboard': CORESDASHBOARD.primary,
     'validade-tratativas': CORESTRATAR.primary,
-    'validade-excel': '#012677',
+    'validade-excel': CORESEXCEL.primary,
 
-    'avaria-lancar': '#b91c1c',
-    'avaria-consultar': '#be123c',
-    'avaria-resolucao': '#e11d48',
-    'avaria-historico': '#881337',
+    'avaria-lancar': CORESAVARIAENTRY.primary,
+    'avaria-consultar': CORESAVARIALIST.primary,
+    'avaria-resolucao': CORESAVARIARESOLUTION.primary,
+    'avaria-historico': CORESAVARIAHISTORY.primary,
+    'avaria-dashboard': CORESAVARIADASHBOARD.primary,
 
-    'conferencia-recebimento': '#0f766e',
-    'conferencia-saida': '#4338ca',
-    'conferencia-divergencias': '#06b6d4',
+    'conferencia-recebimento': CORESCONFERENCIARECB.primary,
+    'conferencia-saida': CORESCONFERENCIASAIDA.primary,
+    'conferencia-divergencias': CORESCONFERENCIADIVERG.primary,
 
-    'inventario-contagem': '#6d28d9',
-    'inventario-recontagem': '#a21caf',
-    'inventario-ajustes': '#8b5cf6',
+    'inventario-contagem': CORESINVENTARIOCONT.primary,
+    'inventario-recontagem': CORESINVENTARIORECONT.primary,
+    'inventario-ajustes': CORESINVENTARIOAJUSTE.primary,
 
-    'pedidos-separacao': '#0e7490',
-    'pedidos-carga': '#334155',
-    'pedidos-rota': '#14b8a6',
+    'pedidos-separacao': CORESPEDIDOSSEPARACAO.primary,
+    'pedidos-carga': CORESPEDIDOSCARGA.primary,
+    'pedidos-rota': CORESPEDIDOSROTA.primary,
 
-    'auditoria-etiquetas': '#b45309',
-    'auditoria-divergencias': '#4d7c0f',
-    'auditoria-historico': '#7c2d12',
+    'auditoria-etiquetas': CORESAUDITORIAETIQUETA.primary,
+    'auditoria-divergencias': CORESAUDITORIADIVERG.primary,
+    'auditoria-historico': CORESAUDITORIAHIST.primary,
 
-    'requisicoes-consumo': '#15803d',
-    'requisicoes-lojas': '#0369a1',
-    'requisicoes-aprovacao': '#65a30d',
+    'requisicoes-consumo': CORESREQUISICOESCONSUMO.primary,
+    'requisicoes-lojas': CORESREQUISICOESLOJAS.primary,
+    'requisicoes-aprovacao': CORESREQUISICOESAPROV.primary,
   },
 };

@@ -10,6 +10,7 @@ import {
   createHeaderTitleTemplate,
   createHeaderActionsTemplate,
 } from '../../../shared/components/ScreenLayout';
+import { CORESNOTIFICATION } from '../../../shared/components/coresAuth';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +27,8 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const COLORS = CORESNOTIFICATION;
+
   useEffect(() => {
     setupNotificationChannels();
     loadNotificationStats();
@@ -40,8 +43,8 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
         isDarkMode,
-        lightHeaderColor: '#6cb6a5',
-        darkHeaderColor: '#1a4645',
+        lightHeaderColor: COLORS.primary,
+        darkHeaderColor: COLORS.secondary,
         tintColor: '#FFFFFF',
         titleSize: 18,
         titleWeight: '700',
@@ -68,7 +71,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
               IconComponent: MaterialCommunityIcons,
               onPress: () => setShowAdvanced((prev) => !prev),
               isActive: showAdvanced,
-              activeBackgroundColor: isDarkMode ? '#3d7a77' : '#1a4645',
+              activeBackgroundColor: isDarkMode ? '#3d7a77' : COLORS.secondary,
               baseBackgroundColor: isDarkMode ? '#2d5a57' : 'rgba(255, 255, 255, 0.2)',
               iconColor: '#FFFFFF',
             },
@@ -159,12 +162,12 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
   const clearPastNotifications = async () => {
     try {
       setIsLoading(true);
-      
+
       await notifee.cancelAllNotifications();
-      
+
       console.log('Todas as notificações agendadas foram canceladas');
       setNotificationStats({ total: 0, daily: 0, alternate: 0, once: 0 });
-      
+
       Toast.show({
         type: 'success',
         text1: 'Limpeza Concluída',
@@ -186,7 +189,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
     try {
       const style = getNotificationStyle(alertLevel);
       const testBody = formatExpirationMessage(5, 'Produto Teste', '15/07/2025');
-      
+
       await notifee.createTriggerNotification(
         {
           title: `${style.icon} Teste de Notificação`,
@@ -205,7 +208,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
           timestamp: Date.now() + 3000,
         }
       );
-      
+
       Toast.show({
         type: 'success',
         text1: 'Teste Enviado',
@@ -235,9 +238,9 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
     try {
       setIsLoading(true);
-      
+
       await notifee.cancelAllNotifications();
-      
+
       const productsJson = await AsyncStorage.getItem('products');
       if (!productsJson) {
         console.log('Nenhum produto encontrado para agendar notificações');
@@ -251,7 +254,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
       const products = JSON.parse(productsJson);
       console.log(`Total de produtos encontrados: ${products.length}`);
-      
+
       let scheduledCount = 0;
       let dailyCount = 0;
       let alternateCount = 0;
@@ -266,9 +269,9 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
         try {
           const expirationDate = new Date(product.validade);
           expirationDate.setHours(0, 0, 0, 0);
-          
+
           const daysUntilExpiration = Math.ceil((expirationDate - hoje) / (1000 * 60 * 60 * 24));
-          
+
           if (daysUntilExpiration > 0 && daysUntilExpiration <= maxDiasAgendamento) {
             // Definir nível de alerta automaticamente baseado nos dias restantes
             let autoAlertLevel;
@@ -279,28 +282,28 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
             } else {
               autoAlertLevel = 'normal';   // 15-21 dias = Normal
             }
-            
+
             const style = getNotificationStyle(autoAlertLevel);
-            
+
             if (daysUntilExpiration <= 7) {
               console.log(`Produto ${product.descricao}: Agendando notificações DIÁRIAS (${daysUntilExpiration} dias restantes) - Nível: CRÍTICO`);
-              
+
               for (let day = 0; day <= daysUntilExpiration; day++) {
                 if (scheduledCount >= 450) break;
-                
+
                 const notificationDate = new Date(expirationDate);
                 notificationDate.setDate(expirationDate.getDate() - day);
                 notificationDate.setHours(9, 0, 0, 0);
-                
+
                 if (notificationDate > new Date()) {
                   const daysLeft = daysUntilExpiration - day;
                   const title = `${style.icon} Alerta de Validade`;
                   const body = formatExpirationMessage(daysLeft, product.descricao, product.validade);
-                  
+
                   const notificationContent = {
                     title,
                     body,
-                    data: { 
+                    data: {
                       productId: product.id,
                       alertLevel: autoAlertLevel,
                       expirationDate: product.validade,
@@ -321,7 +324,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                       type: TriggerType.TIMESTAMP,
                       timestamp: notificationDate.getTime(),
                     });
-                    
+
                     scheduledCount++;
                     dailyCount++;
                     console.log(`Notificação DIÁRIA agendada para ${product.descricao} em ${notificationDate.toLocaleDateString()} (${daysLeft} dias restantes) - Nível: ${autoAlertLevel.toUpperCase()}`);
@@ -330,26 +333,26 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                   }
                 }
               }
-              
+
             } else if (daysUntilExpiration <= 14) {
               console.log(`Produto ${product.descricao}: Agendando notificações ALTERNADAS (${daysUntilExpiration} dias restantes) - Nível: ATENÇÃO`);
-              
+
               for (let day = 0; day <= daysUntilExpiration; day += 2) {
                 if (scheduledCount >= 450) break;
-                
+
                 const notificationDate = new Date(expirationDate);
                 notificationDate.setDate(expirationDate.getDate() - day);
                 notificationDate.setHours(9, 0, 0, 0);
-                
+
                 if (notificationDate > new Date()) {
                   const daysLeft = daysUntilExpiration - day;
                   const title = `${style.icon} Alerta de Validade`;
                   const body = formatExpirationMessage(daysLeft, product.descricao, product.validade);
-                  
+
                   const notificationContent = {
                     title,
                     body,
-                    data: { 
+                    data: {
                       productId: product.id,
                       alertLevel: autoAlertLevel,
                       expirationDate: product.validade,
@@ -370,7 +373,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                       type: TriggerType.TIMESTAMP,
                       timestamp: notificationDate.getTime(),
                     });
-                    
+
                     scheduledCount++;
                     alternateCount++;
                     console.log(`Notificação ALTERNADA agendada para ${product.descricao} em ${notificationDate.toLocaleDateString()} (${daysLeft} dias restantes) - Nível: ${autoAlertLevel.toUpperCase()}`);
@@ -379,27 +382,27 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                   }
                 }
               }
-              
+
             } else if (daysUntilExpiration <= 21) {
               console.log(`Produto ${product.descricao}: Agendando notificação ÚNICA (${daysUntilExpiration} dias restantes) - Nível: NORMAL`);
-              
+
               if (scheduledCount < 450) {
                 const notificationDate = new Date(expirationDate);
                 notificationDate.setDate(expirationDate.getDate() - 21);
                 notificationDate.setHours(9, 0, 0, 0);
-                
+
                 if (notificationDate <= new Date()) {
                   notificationDate.setTime(new Date().getTime() + 24 * 60 * 60 * 1000);
                 }
-                
+
                 if (notificationDate > new Date()) {
                   const title = `${style.icon} Alerta de Validade`;
                   const body = formatExpirationMessage(21, product.descricao, product.validade);
-                  
+
                   const notificationContent = {
                     title,
                     body,
-                    data: { 
+                    data: {
                       productId: product.id,
                       alertLevel: autoAlertLevel,
                       expirationDate: product.validade,
@@ -420,7 +423,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                       type: TriggerType.TIMESTAMP,
                       timestamp: notificationDate.getTime(),
                     });
-                    
+
                     scheduledCount++;
                     onceCount++;
                     console.log(`Notificação ÚNICA agendada para ${product.descricao} em ${notificationDate.toLocaleDateString()} (21 dias restantes) - Nível: ${autoAlertLevel.toUpperCase()}`);
@@ -438,9 +441,9 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
       const newStats = { total: scheduledCount, daily: dailyCount, alternate: alternateCount, once: onceCount };
       setNotificationStats(newStats);
-      
+
       console.log(`Total de ${scheduledCount} notificações agendadas`);
-      
+
       if (scheduledCount > 0) {
         Toast.show({
           type: 'success',
@@ -454,7 +457,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
           text2: 'Nenhum produto encontrado com data de vencimento nos próximos 21 dias para agendar notificações.'
         });
       }
-      
+
       if (scheduledCount >= 450) {
         Toast.show({
           type: 'error',
@@ -462,7 +465,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
           text2: 'O limite de notificações está próximo. Algumas notificações podem não ter sido agendadas.'
         });
       }
-      
+
     } catch (error) {
       console.error('Erro ao agendar notificações:', error);
       Toast.show({
@@ -511,7 +514,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ 
+        trackColor={{
           false: isDarkMode ? "#4B5563" : "#D1D5DB",
           true: isDarkMode ? "#10B981" : "#059669"
         }}
@@ -570,7 +573,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
   return (
     <View style={[styles.container, isDarkMode ? styles.darkBackground : styles.lightBackground]}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
@@ -583,33 +586,33 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
             </Text>
           </View>
           <View style={styles.statsGrid}>
-            <StatCard 
-              title="Total" 
-              value={notificationStats.total} 
-              icon="notifications-active" 
-              color="#6cb6a5" 
+            <StatCard
+              title="Total"
+              value={notificationStats.total}
+              icon="notifications-active"
+              color="#6cb6a5"
               bgColor={isDarkMode ? '#1B4332' : '#E8F5E8'}
             />
-            <StatCard 
-              title="Diárias" 
-              value={notificationStats.daily} 
-              icon="calendar-today" 
-              color="#e45635" 
+            <StatCard
+              title="Diárias"
+              value={notificationStats.daily}
+              icon="calendar-today"
+              color="#e45635"
               bgColor={isDarkMode ? '#4A1C1C' : '#FFEBEE'}
             />
-            <StatCard 
-              title="Alternadas" 
-              value={notificationStats.alternate} 
-              icon="swap-horizontal" 
-              color="#FFA000" 
+            <StatCard
+              title="Alternadas"
+              value={notificationStats.alternate}
+              icon="swap-horizontal"
+              color="#FFA000"
               bgColor={isDarkMode ? '#4A3C00' : '#FFF8E1'}
               community={true}
             />
-            <StatCard 
-              title="Únicas" 
-              value={notificationStats.once} 
-              icon="star-circle" 
-              color="#3B82F6" 
+            <StatCard
+              title="Únicas"
+              value={notificationStats.once}
+              icon="star-circle"
+              color="#3B82F6"
               bgColor={isDarkMode ? '#1E3A8A' : '#E0F2FE'}
               community={true}
             />
@@ -643,55 +646,55 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
         {/* Configurações avançadas */}
         {showAdvanced && (
-          <TouchableOpacity 
-            style={dynamicStyles.advancedOverlay} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={dynamicStyles.advancedOverlay}
+            activeOpacity={1}
             onPress={() => setShowAdvanced(false)}
           >
-            <TouchableOpacity 
-              activeOpacity={1} 
+            <TouchableOpacity
+              activeOpacity={1}
               onPress={(e) => e.stopPropagation()}
               style={dynamicStyles.advancedContainer}
             >
               <View style={dynamicStyles.advancedHeader}>
                 <View style={dynamicStyles.advancedTitleContainer}>
-                  <MaterialCommunityIcons 
-                    name="cog" 
-                    size={24} 
-                    color={isDarkMode ? '#FFFFFF' : '#333333'} 
+                  <MaterialCommunityIcons
+                    name="cog"
+                    size={24}
+                    color={isDarkMode ? '#FFFFFF' : '#333333'}
                   />
                   <Text style={[dynamicStyles.advancedTitle, isDarkMode ? styles.darkText : styles.lightText]}>
                     Configurações Avançadas
                   </Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={dynamicStyles.closeButton}
                   onPress={() => setShowAdvanced(false)}
                 >
-                  <MaterialCommunityIcons 
-                    name="close-circle" 
-                    size={28} 
-                    color={isDarkMode ? '#FF6B6B' : '#B00020'} 
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={28}
+                    color={isDarkMode ? '#FF6B6B' : '#B00020'}
                   />
                 </TouchableOpacity>
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[
-                  styles.advancedButton, 
+                  styles.advancedButton,
                   { backgroundColor: isDarkMode ? '#4F46E5' : '#3B82F6' }
-                ]} 
+                ]}
                 onPress={testNotification}
               >
                 <MaterialCommunityIcons name="bell-alert" size={20} color="#FFFFFF" />
                 <Text style={styles.advancedButtonText}>Testar Notificação</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.advancedButton, 
+                  styles.advancedButton,
                   { backgroundColor: isDarkMode ? '#059669' : '#10B981' }
-                ]} 
+                ]}
                 onPress={loadNotificationStats}
               >
                 <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
@@ -706,8 +709,8 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
           Gerenciar Notificações
         </Text>
 
-        <TouchableOpacity 
-          style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton, isLoading && styles.disabledButton]} 
+        <TouchableOpacity
+          style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton, isLoading && styles.disabledButton]}
           onPress={updateNotificationSchedule}
           disabled={isLoading}
         >
@@ -717,8 +720,8 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.button, styles.clearButton, isLoading && styles.disabledButton]} 
+        <TouchableOpacity
+          style={[styles.button, styles.clearButton, isLoading && styles.disabledButton]}
           onPress={clearPastNotifications}
           disabled={isLoading}
         >

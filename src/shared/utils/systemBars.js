@@ -15,10 +15,11 @@ const LIGHT_ROUTE_HEADER_COLORS = {
   PdfScreen: '#d7263d',
   PdfViewerScreen: '#294380',
   BarcodeScannerScreen: '#000000',
-  AvariaListScreen: '#be123c',
+  AvariaListScreen: '#334155',
   AvariaEntryScreen: '#b91c1c',
-  AvariaResolutionScreen: '#e11d48',
-  AvariaHistoryScreen: '#881337',
+  AvariaResolutionScreen: '#065f46',
+  AvariaHistoryScreen: '#4c1d95',
+  AvariaDashboardScreen: '#c2410c',
 };
 
 const DARK_ROUTE_HEADER_COLORS = {
@@ -38,10 +39,11 @@ const DARK_ROUTE_HEADER_COLORS = {
   PdfScreen: '#d7263d',
   PdfViewerScreen: '#294380',
   BarcodeScannerScreen: '#000000',
-  AvariaListScreen: '#be123c',
+  AvariaListScreen: '#334155',
   AvariaEntryScreen: '#b91c1c',
-  AvariaResolutionScreen: '#e11d48',
-  AvariaHistoryScreen: '#881337',
+  AvariaResolutionScreen: '#065f46',
+  AvariaHistoryScreen: '#4c1d95',
+  AvariaDashboardScreen: '#c2410c',
 };
 
 const resolveRoute = (route) => {
