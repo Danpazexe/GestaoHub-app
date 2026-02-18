@@ -116,6 +116,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
   };
 
   const handleRegister = async () => {
+    if (isLoading) return;
     Keyboard.dismiss();
 
     if (!validateFields()) return;
@@ -135,10 +136,15 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
       }
     } catch (error) {
       shakeForm();
+      const errorMessage =
+        error?.data?.message
+        || error?.message
+        || error?.error_description
+        || 'Erro ao criar conta';
       Toast.show({
         type: 'error',
         text1: 'Erro no Cadastro',
-        text2: error.response?.data?.message || 'Erro ao criar conta',
+        text2: errorMessage,
       });
     } finally {
       setIsLoading(false);

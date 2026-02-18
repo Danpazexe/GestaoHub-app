@@ -6,7 +6,12 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import notifee, { AndroidImportance, TriggerType } from '@notifee/react-native';
 import Toast from 'react-native-toast-message';
 import { CORESNOTIFICATION } from '../../components/coresAuth';
-import { createScreenHeaderTemplate, createHeaderTitleTemplate } from '../../components/ScreenLayout';
+import { STORAGE_KEYS } from '../../constants/storage';
+import {
+  createScreenHeaderTemplate,
+  createHeaderTitleTemplate,
+  createHeaderActionsTemplate,
+} from '../../components/ScreenLayout';
 
 const { width } = Dimensions.get('window');
 
@@ -31,10 +36,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
   }, []);
 
   useLayoutEffect(() => {
-    if (!navigation) {
-      console.log('navigation não está disponível!');
-      return;
-    }
+    if (!navigation) return;
 
     navigation.setOptions({
       ...createScreenHeaderTemplate({
@@ -79,18 +81,15 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
   const setupNotificationChannels = async () => {
     if (Platform.OS === 'android') {
       try {
-        console.log('Configurando canal de notificação...');
-
         await notifee.createChannel({
           id: 'default',
           name: 'Notificações de Validade',
           importance: AndroidImportance.HIGH,
           vibration: true,
-          vibrationPattern: [0, 250, 250, 250],
+          vibrationPattern: [250, 250],
           lightColor: '#FF231F7C',
           sound: 'notification',
         });
-        console.log('Canal "default" configurado com sucesso');
       } catch (error) {
         console.error('Erro ao configurar canal:', error);
       }
@@ -161,7 +160,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
       await notifee.cancelAllNotifications();
 
-      console.log('Todas as notificações agendadas foram canceladas');
       setNotificationStats({ total: 0, daily: 0, alternate: 0, once: 0 });
 
       Toast.show({
@@ -194,7 +192,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
           android: {
             channelId: 'default',
             sound: 'notification',
-            vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+            vibrationPattern: vibrationEnabled ? [250, 250] : undefined,
             importance: AndroidImportance.HIGH,
             pressAction: { id: 'default' },
           },
@@ -237,9 +235,8 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
       await notifee.cancelAllNotifications();
 
-      const productsJson = await AsyncStorage.getItem('products');
+      const productsJson = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (!productsJson) {
-        console.log('Nenhum produto encontrado para agendar notificações');
         Toast.show({
           type: 'info',
           text1: 'Nenhum Produto',
@@ -249,7 +246,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
       }
 
       const products = JSON.parse(productsJson);
-      console.log(`Total de produtos encontrados: ${products.length}`);
 
       let scheduledCount = 0;
       let dailyCount = 0;
@@ -282,8 +278,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
             const style = getNotificationStyle(autoAlertLevel);
 
             if (daysUntilExpiration <= 7) {
-              console.log(`Produto ${product.descricao}: Agendando notificações DIÁRIAS (${daysUntilExpiration} dias restantes) - Nível: CRÍTICO`);
-
               for (let day = 0; day <= daysUntilExpiration; day++) {
                 if (scheduledCount >= 450) break;
 
@@ -309,7 +303,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                     android: {
                       channelId: 'default',
                       sound: 'notification',
-                      vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+                      vibrationPattern: vibrationEnabled ? [250, 250] : undefined,
                       importance: AndroidImportance.HIGH,
                       pressAction: { id: 'default' },
                     },
@@ -323,7 +317,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
                     scheduledCount++;
                     dailyCount++;
-                    console.log(`Notificação DIÁRIA agendada para ${product.descricao} em ${notificationDate.toLocaleDateString()} (${daysLeft} dias restantes) - Nível: ${autoAlertLevel.toUpperCase()}`);
                   } catch (error) {
                     console.error(`Erro ao agendar notificação diária para ${product.descricao}:`, error);
                   }
@@ -331,8 +324,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
               }
 
             } else if (daysUntilExpiration <= 14) {
-              console.log(`Produto ${product.descricao}: Agendando notificações ALTERNADAS (${daysUntilExpiration} dias restantes) - Nível: ATENÇÃO`);
-
               for (let day = 0; day <= daysUntilExpiration; day += 2) {
                 if (scheduledCount >= 450) break;
 
@@ -358,7 +349,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                     android: {
                       channelId: 'default',
                       sound: 'notification',
-                      vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+                      vibrationPattern: vibrationEnabled ? [250, 250] : undefined,
                       importance: AndroidImportance.HIGH,
                       pressAction: { id: 'default' },
                     },
@@ -372,7 +363,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
                     scheduledCount++;
                     alternateCount++;
-                    console.log(`Notificação ALTERNADA agendada para ${product.descricao} em ${notificationDate.toLocaleDateString()} (${daysLeft} dias restantes) - Nível: ${autoAlertLevel.toUpperCase()}`);
                   } catch (error) {
                     console.error(`Erro ao agendar notificação alternada para ${product.descricao}:`, error);
                   }
@@ -380,8 +370,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
               }
 
             } else if (daysUntilExpiration <= 21) {
-              console.log(`Produto ${product.descricao}: Agendando notificação ÚNICA (${daysUntilExpiration} dias restantes) - Nível: NORMAL`);
-
               if (scheduledCount < 450) {
                 const notificationDate = new Date(expirationDate);
                 notificationDate.setDate(expirationDate.getDate() - 21);
@@ -408,7 +396,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
                     android: {
                       channelId: 'default',
                       sound: 'notification',
-                      vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
+                      vibrationPattern: vibrationEnabled ? [250, 250] : undefined,
                       importance: AndroidImportance.HIGH,
                       pressAction: { id: 'default' },
                     },
@@ -422,7 +410,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
                     scheduledCount++;
                     onceCount++;
-                    console.log(`Notificação ÚNICA agendada para ${product.descricao} em ${notificationDate.toLocaleDateString()} (21 dias restantes) - Nível: ${autoAlertLevel.toUpperCase()}`);
                   } catch (error) {
                     console.error(`Erro ao agendar notificação única para ${product.descricao}:`, error);
                   }
@@ -437,8 +424,6 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
 
       const newStats = { total: scheduledCount, daily: dailyCount, alternate: alternateCount, once: onceCount };
       setNotificationStats(newStats);
-
-      console.log(`Total de ${scheduledCount} notificações agendadas`);
 
       if (scheduledCount > 0) {
         Toast.show({

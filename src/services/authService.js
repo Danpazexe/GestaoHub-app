@@ -1,70 +1,95 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
 class AuthService {
-  async postJson(url, payload) {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+  registerInFlight = false;
+
+  mapAuthErrorMessage(rawMessage, fallbackMessage) {
+    const normalized = String(rawMessage || '').toLowerCase();
+
+    if (normalized.includes('email rate limit exceeded')) {
+      return 'Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.';
+    }
+
+    if (normalized.includes('user already registered') || normalized.includes('already been registered')) {
+      return 'Este e-mail já está cadastrado. Faça login ou recupere a senha.';
+    }
+
+    if (normalized.includes('invalid email')) {
+      return 'O e-mail informado é inválido.';
+    }
+
+    if (normalized.includes('password')) {
+      return 'A senha não atende aos requisitos mínimos.';
+    }
+
+    return rawMessage || fallbackMessage;
+  }
+
+  normalizeError(error, fallbackMessage = 'Operacao falhou') {
+    const rawMessage =
+      error?.data?.message
+      || error?.message
+      || error?.error_description
+      || fallbackMessage;
+
+    const message =
+      this.mapAuthErrorMessage(rawMessage, fallbackMessage);
+
+    return {
+      status: error?.status || 500,
+      data: error?.data || null,
+      message,
+    };
+  }
+
+  async loginWithSupabase(email, password) {
+    if (!isSupabaseConfigured()) {
+      throw this.normalizeError({}, 'Supabase nao configurado');
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      throw this.normalizeError({}, 'Cliente Supabase indisponivel');
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: password.trim(),
     });
-    let data;
-    try {
-      data = await response.json();
-    } catch (e) {
-      data = null;
+
+    if (error) {
+      throw this.normalizeError(error, 'Falha ao autenticar com Supabase');
     }
-    const result = { status: response.status, data };
-    if (!response.ok) {
-      throw result;
+
+    const user = data?.user
+      ? {
+        id: data.user.id,
+        name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Usuario',
+        email: data.user.email,
+      }
+      : null;
+
+    if (user) {
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
     }
-    return result;
+
+    return { status: 200, data: { user, session: data?.session }, success: true };
   }
 
   async login(email, password) {
-    // Verificar credenciais fixas primeiro
-    if (email.trim() === 'admin@gmail.com' && password === '123456') {
-      const adminUser = {
-        user: {
-          id: 1,
-          name: 'Administrador',
-          email: 'admin@gmail.com'
-        },
-        token: 'admin-token'
-      };
-      
-      await AsyncStorage.setItem('userData', JSON.stringify(adminUser.user));
-      return { data: adminUser, status: 200, success: true };
+    if (!isSupabaseConfigured()) {
+      throw this.normalizeError({}, 'Supabase nao configurado');
     }
-
-    // login com API
-    const response = await this.postJson(
-      'https://api.gestao.aviait.com.br/sessions',
-      {
-        email: email.trim(),
-        password: password.trim(),
-      }
-    );
-
-    if (response.data.user) {
-      await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-    }
-
-    return response;
+    return this.loginWithSupabase(email, password);
   }
 
-  async saveCredentials(email, rememberMe) {
-    if (rememberMe) {
-      await AsyncStorage.setItem('savedEmail', email);
-      await AsyncStorage.setItem('rememberMe', 'true');
-    } else {
-      await AsyncStorage.multiRemove(['savedEmail', 'rememberMe']);
-    }
+  async saveCredentials() {
+    await AsyncStorage.multiRemove(['savedEmail', 'rememberMe']);
   }
 
   async loadSavedCredentials() {
-    const savedEmail = await AsyncStorage.getItem('savedEmail');
-    const savedRememberMe = await AsyncStorage.getItem('rememberMe');
-    return { savedEmail, savedRememberMe };
+    return { savedEmail: null, savedRememberMe: null };
   }
 
   async getUserData() {
@@ -73,20 +98,66 @@ class AuthService {
   }
 
   async register(name, email, password) {
-    const response = await this.postJson(
-      'https://api.gestao.aviait.com.br/users',
-      {
-        name: name.trim(),
-        email: email.trim(),
-        password: password.trim(),
-      }
-    );
-
-    if (response.data.user) {
-      await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
+    if (this.registerInFlight) {
+      throw this.normalizeError({}, 'Cadastro em andamento. Aguarde alguns segundos.');
     }
 
-    return response;
+    this.registerInFlight = true;
+    try {
+    // cadastro principal via Supabase Auth
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        throw this.normalizeError({}, 'Cliente Supabase indisponivel');
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+        options: {
+          data: {
+            name: name.trim(),
+          },
+        },
+      });
+
+      if (error) {
+        const normalized = this.normalizeError(error, 'Erro ao criar conta');
+        if (String(normalized.message).toLowerCase().includes('muitas tentativas')) {
+          try {
+            return await this.loginWithSupabase(email, password);
+          } catch {
+            // mantém erro original amigável
+          }
+        }
+        throw this.normalizeError(error, 'Erro ao criar conta');
+      }
+
+      const user = data?.user
+        ? {
+          id: data.user.id,
+          name: data.user.user_metadata?.name || name.trim(),
+          email: data.user.email || email.trim(),
+        }
+        : null;
+
+      if (user) {
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
+      }
+
+      return {
+        status: 201,
+        data: {
+          user,
+          session: data?.session || null,
+        },
+      };
+    }
+
+    throw this.normalizeError({}, 'Supabase nao configurado');
+    } finally {
+      this.registerInFlight = false;
+    }
   }
 }
 

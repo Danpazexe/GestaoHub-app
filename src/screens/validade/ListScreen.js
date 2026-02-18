@@ -17,6 +17,11 @@ import ScreenLayout, {
 } from '../../components/ScreenLayout';
 import { CORESLIST } from '../../components/coresAuth';
 import { STORAGE_KEYS } from '../../constants/storage';
+import {
+  listValidadeProducts,
+  removeValidadeProduct,
+  upsertValidadeProduct,
+} from '../../services/validadeSupabaseService';
 
 const COLORS = CORESLIST;
 
@@ -27,6 +32,18 @@ const useProducts = () => {
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
+      try {
+        const remoteProducts = await listValidadeProducts();
+        if (Array.isArray(remoteProducts) && remoteProducts.length > 0) {
+          setProducts(remoteProducts);
+          await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(remoteProducts));
+          setLoading(false);
+          return;
+        }
+      } catch (remoteError) {
+        console.warn('Falha ao carregar produtos do Supabase. Usando cache local.', remoteError?.message || remoteError);
+      }
+
       const storedProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
       if (storedProducts) {
         if (storedProducts) {
@@ -55,6 +72,11 @@ const useProducts = () => {
   const saveProducts = useCallback(async (productsToSave) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(productsToSave));
+      try {
+        await Promise.all(productsToSave.map((product) => upsertValidadeProduct(product)));
+      } catch (remoteError) {
+        console.warn('Falha ao sincronizar lista no Supabase.', remoteError?.message || remoteError);
+      }
     } catch (error) {
       console.error('Erro ao salvar produtos:', error);
       Toast.show({
@@ -81,12 +103,200 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const [sortOrder, setSortOrder] = useState({ field: 'validade', direction: 'asc' });
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [isSyncingRemote, setIsSyncingRemote] = useState(false);
   const openSwipeRef = useRef(null);
   const swipeRefs = useRef({});
+  const localProductsRef = useRef([]);
+  const pendingRemoteSnapshotRef = useRef(null);
+  const lastSyncDiffSignatureRef = useRef('');
+  const inFlightRemoteFetchRef = useRef(null);
+  const isCheckingRemoteRef = useRef(false);
+  const isSyncingRemoteRef = useRef(false);
+
+  useEffect(() => {
+    localProductsRef.current = products;
+  }, [products]);
+
+  useEffect(() => {
+    const prefetchImages = async () => {
+      const urls = products
+        .map((item) => item?.imageUrl)
+        .filter((url) => typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://')))
+        .slice(0, 24);
+
+      if (urls.length === 0) return;
+      await Promise.all(urls.map((url) => Image.prefetch(url).catch(() => null)));
+    };
+
+    prefetchImages();
+  }, [products]);
+
+  const getProductFingerprint = useCallback((product) => (
+    JSON.stringify({
+      id: String(product?.id || ''),
+      codprod: String(product?.codprod || ''),
+      descricao: String(product?.descricao || ''),
+      codauxiliar: String(product?.codauxiliar || ''),
+      lote: String(product?.lote || ''),
+      validade: String(product?.validade || ''),
+      quantidade: Number(product?.quantidade || 0),
+      diasrestantes: Number(product?.diasrestantes || 0),
+      status: String(product?.status || ''),
+      treatmentType: String(product?.treatmentType || ''),
+      treatmentQuantity: Number(product?.treatmentQuantity || 0),
+      treatmentDate: String(product?.treatmentDate || ''),
+      imagePath: String(product?.imagePath || ''),
+    })
+  ), []);
+
+  const applyRemoteSnapshot = useCallback(async (remoteProducts, showToast = true) => {
+    setProducts(remoteProducts);
+    await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(remoteProducts));
+    pendingRemoteSnapshotRef.current = null;
+    setPendingSyncCount(0);
+    lastSyncDiffSignatureRef.current = '';
+
+    if (showToast) {
+      Toast.show({
+        type: 'success',
+        text1: 'Lista atualizada',
+        text2: 'Produtos sincronizados com sucesso.',
+        visibilityTime: 2200,
+      });
+    }
+  }, [setProducts]);
+
+  const fetchRemoteProductsDedup = useCallback(async () => {
+    if (inFlightRemoteFetchRef.current) {
+      return inFlightRemoteFetchRef.current;
+    }
+
+    inFlightRemoteFetchRef.current = listValidadeProducts()
+      .finally(() => {
+        inFlightRemoteFetchRef.current = null;
+      });
+
+    return inFlightRemoteFetchRef.current;
+  }, []);
+
+  const synchronizeNow = useCallback(async (showToast = true) => {
+    if (isSyncingRemoteRef.current) return;
+    isSyncingRemoteRef.current = true;
+    setIsSyncingRemote(true);
+    try {
+      const remoteProducts = pendingRemoteSnapshotRef.current || await fetchRemoteProductsDedup();
+      if (Array.isArray(remoteProducts)) {
+        await applyRemoteSnapshot(remoteProducts, showToast);
+      }
+    } catch (error) {
+      console.warn('Falha ao sincronizar atualização remota.', error?.message || error);
+      if (showToast) {
+        Toast.show({
+          type: 'error',
+          text1: 'Falha na sincronização',
+          text2: 'Não foi possível atualizar agora.',
+          visibilityTime: 2500,
+        });
+      }
+    } finally {
+      isSyncingRemoteRef.current = false;
+      setIsSyncingRemote(false);
+    }
+  }, [applyRemoteSnapshot, fetchRemoteProductsDedup]);
+
+  const checkForIncomingProducts = useCallback(async () => {
+    if (isSyncingRemoteRef.current || isCheckingRemoteRef.current) {
+      return;
+    }
+    isCheckingRemoteRef.current = true;
+    try {
+      const remoteProducts = await fetchRemoteProductsDedup();
+      if (!Array.isArray(remoteProducts)) {
+        pendingRemoteSnapshotRef.current = null;
+        setPendingSyncCount(0);
+        lastSyncDiffSignatureRef.current = '';
+        return;
+      }
+
+      const localProducts = Array.isArray(localProductsRef.current) ? localProductsRef.current : [];
+      const localMap = new Map(localProducts.map((item) => [String(item.id), item]));
+      const remoteMap = new Map(remoteProducts.map((item) => [String(item.id), item]));
+
+      let addedCount = 0;
+      let updatedCount = 0;
+      let removedCount = 0;
+
+      for (const remoteId of remoteMap.keys()) {
+        if (!localMap.has(remoteId)) {
+          addedCount += 1;
+          continue;
+        }
+
+        const localItem = localMap.get(remoteId);
+        const remoteItem = remoteMap.get(remoteId);
+        if (getProductFingerprint(localItem) !== getProductFingerprint(remoteItem)) {
+          updatedCount += 1;
+        }
+      }
+
+      for (const localId of localMap.keys()) {
+        if (!remoteMap.has(localId)) {
+          removedCount += 1;
+        }
+      }
+
+      const totalChanges = addedCount + updatedCount + removedCount;
+
+      if (totalChanges === 0) {
+        pendingRemoteSnapshotRef.current = null;
+        setPendingSyncCount(0);
+        lastSyncDiffSignatureRef.current = '';
+        return;
+      }
+
+      const diffSignature = `${addedCount}:${updatedCount}:${removedCount}`;
+      pendingRemoteSnapshotRef.current = remoteProducts;
+      setPendingSyncCount(totalChanges);
+
+      if (lastSyncDiffSignatureRef.current !== diffSignature) {
+        lastSyncDiffSignatureRef.current = diffSignature;
+        Toast.show({
+          type: 'info',
+          text1: totalChanges === 1 ? '1 atualização disponível' : `${totalChanges} atualizações disponíveis`,
+          text2: 'Toque para sincronizar',
+          visibilityTime: 4500,
+          onPress: () => synchronizeNow(true),
+        });
+      }
+    } catch (error) {
+      console.warn('Falha ao verificar novos itens.', error?.message || error);
+    } finally {
+      isCheckingRemoteRef.current = false;
+    }
+  }, [fetchRemoteProductsDedup, getProductFingerprint, synchronizeNow]);
 
   useFocusEffect(useCallback(() => {
-    loadProducts();
-  }, [loadProducts]));
+    let cancelled = false;
+
+    const initialize = async () => {
+      await loadProducts();
+      if (!cancelled) {
+        await checkForIncomingProducts();
+      }
+    };
+
+    initialize();
+
+    const intervalId = setInterval(() => {
+      checkForIncomingProducts();
+    }, 20000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [loadProducts, checkForIncomingProducts]));
 
   useEffect(() => {
     if (route?.params?.newProduct) {
@@ -119,6 +329,34 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   }, [route?.params?.newProduct]);
 
   useEffect(() => {
+    const headerActions = [
+      {
+        key: 'toggle-expiring',
+        iconName: 'warning',
+        onPress: () => setShowExpiring(!showExpiring),
+        isActive: showExpiring,
+        activeBackgroundColor: COLORS.warningActiveBackground,
+        iconColor: COLORS.white,
+        iconSize: 20,
+      },
+      {
+        key: 'sync-products',
+        iconName: 'sync',
+        onPress: () => synchronizeNow(true),
+        isActive: isSyncingRemote,
+        activeBackgroundColor: COLORS.warningActiveBackground,
+        iconColor: COLORS.white,
+        iconSize: 20,
+      },
+      {
+        key: 'add-product',
+        iconName: 'add',
+        onPress: () => navigation.navigate('AddProductScreen'),
+        iconColor: COLORS.white,
+        iconSize: 20,
+      },
+    ];
+
     navigation.setOptions({
       ...createScreenHeaderTemplate({
         isDarkMode,
@@ -142,25 +380,10 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       headerRight: () =>
         createHeaderActionsTemplate({
           isDarkMode,
-          actions: [
-            {
-              key: 'toggle-expiring',
-              iconName: 'warning',
-              onPress: () => setShowExpiring(!showExpiring),
-              isActive: showExpiring,
-              activeBackgroundColor: COLORS.warningActiveBackground,
-              iconColor: COLORS.white,
-            },
-            {
-              key: 'add-product',
-              iconName: 'add',
-              onPress: () => navigation.navigate('AddProductScreen'),
-              iconColor: COLORS.white,
-            },
-          ],
+          actions: headerActions,
         }),
     });
-  }, [navigation, isDarkMode, showExpiring]);
+  }, [navigation, isDarkMode, showExpiring, synchronizeNow, isSyncingRemote]);
 
   const handleDeleteProduct = (product) => {
     setProductToDelete(product);
@@ -172,6 +395,11 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       const updatedProducts = products.filter(p => p.id !== productToDelete.id);
       setProducts(updatedProducts);
       await saveProducts(updatedProducts);
+      try {
+        await removeValidadeProduct(productToDelete.id);
+      } catch (remoteError) {
+        console.warn('Falha ao excluir produto no Supabase.', remoteError?.message || remoteError);
+      }
 
       Toast.show({
         type: 'success',
@@ -590,7 +818,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       // Como usamos flatMap, updatedProducts já está "flattened"
       const flattenedProducts = updatedProducts;
 
-      await AsyncStorage.setItem('products', JSON.stringify(flattenedProducts));
+      await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(flattenedProducts));
       setProducts(flattenedProducts);
       setTreatmentModalVisible(false);
       setSelectedProduct(null);
@@ -632,6 +860,20 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           {showExpiring ? ' próximos ao vencimento' : ''}
         </Text>
       </View>
+      {pendingSyncCount > 0 && (
+        <View style={[styles.syncNoticeContainer, isDarkMode && styles.darkSyncNoticeContainer]}>
+          <Text style={[styles.syncNoticeText, isDarkMode && styles.darkSyncNoticeText]}>
+            {pendingSyncCount === 1 ? '1 item para sincronizar' : `${pendingSyncCount} itens para sincronizar`}
+          </Text>
+          <TouchableOpacity
+            style={styles.syncNoticeButton}
+            onPress={() => synchronizeNow(true)}
+            disabled={isSyncingRemote}
+          >
+            <Text style={styles.syncNoticeButtonText}>{isSyncingRemote ? 'Atualizando...' : 'Sincronizar agora'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {loading ? (
         <ActivityIndicator size="large" color={COLORS.accent} style={styles.loadingIndicator} />
       ) : (
@@ -824,6 +1066,42 @@ const styles = StyleSheet.create({
   },
   darkStatsText: {
     color: COLORS.textMutedDark,
+  },
+  syncNoticeContainer: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.accent,
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  darkSyncNoticeContainer: {
+    backgroundColor: COLORS.cardDark,
+    borderColor: COLORS.secondary,
+  },
+  syncNoticeText: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  darkSyncNoticeText: {
+    color: COLORS.textDark,
+  },
+  syncNoticeButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  syncNoticeButtonText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   // ==================== Estilos de Ordenação ====================

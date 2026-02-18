@@ -127,7 +127,7 @@ const configurePushNotifications = async () => {
         name: 'Validade de Produtos',
         importance: AndroidImportance.HIGH,
         vibration: true,
-        vibrationPattern: [0, 250, 250, 250],
+        vibrationPattern: [250, 250],
         lights: true,
         lightColor: '#FF231F7C',
         sound: 'notification',
@@ -183,25 +183,29 @@ export default function App() {
     let unsubscribe;
 
     const configureNotifications = async () => {
-      await notifee.requestPermission();
+      try {
+        await notifee.requestPermission();
 
-      if (Platform.OS === 'android') {
-        await notifee.createChannel({
-          id: 'default',
-          name: 'Validade de Produtos',
-          importance: AndroidImportance.HIGH,
-          vibration: true,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-          sound: 'notification',
-        });
-      }
-
-      unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
-        if (type === EventType.DELIVERED) {
-          console.log('Notificação recebida:', detail.notification);
+        if (Platform.OS === 'android') {
+          await notifee.createChannel({
+            id: 'default',
+            name: 'Validade de Produtos',
+            importance: AndroidImportance.HIGH,
+            vibration: true,
+            vibrationPattern: [250, 250],
+            lightColor: '#FF231F7C',
+            sound: 'notification',
+          });
         }
-      });
+
+        unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
+          if (type === EventType.DELIVERED) {
+            console.log('Notificação recebida:', detail.notification);
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao configurar canal/listener de notificação:', error);
+      }
     };
 
     configureNotifications();

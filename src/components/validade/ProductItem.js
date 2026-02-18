@@ -1,14 +1,24 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, Modal, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import ImageViewer from 'react-native-image-zoom-viewer';
 import { CORESPRODUCTITEM } from '../coresAuth';
+import { getSignedProductImageUrl } from '../../services/supabaseStorageService';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 const COLORS = CORESPRODUCTITEM;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MODAL_IMAGE_WIDTH = Math.floor(SCREEN_WIDTH * 0.9);
+const MODAL_IMAGE_HEIGHT = Math.floor(SCREEN_HEIGHT * 0.72);
 
 // Componente para exibir detalhes sobre um produto
 const ProductItem = ({ product, isDarkMode }) => {
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = React.useState(false);
+  const [resolvedImageUrl, setResolvedImageUrl] = React.useState('');
+  const [isResolvingImage, setIsResolvingImage] = React.useState(false);
+  const [isModalImageLoading, setIsModalImageLoading] = React.useState(false);
+  const [hasRetriedSignedUrl, setHasRetriedSignedUrl] = React.useState(false);
+  const [localModalImageUri, setLocalModalImageUri] = React.useState('');
 
   // Função melhorada para determinar o texto e cor da validade
   const getDaysToExpirationText = (days) => {
@@ -97,19 +107,139 @@ const ProductItem = ({ product, isDarkMode }) => {
   const diffDays = calcularDiasRestantes();
   const expirationInfo = getDaysToExpirationText(diffDays);
 
-  const imageUrl = product.imageUrl || product.foto || '';
-  const isHttpImage = imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
+  const rawImageValue = product.imageUrl || product.imagePath || product.foto || '';
+  const imagePathValue = product.imagePath ? String(product.imagePath) : '';
+
   React.useEffect(() => {
-    if (modalVisible) {
-      console.log('URL da imagem para visualização:', imageUrl);
+    let active = true;
+    const resolveImage = async () => {
+      setImageLoadFailed(false);
+      setHasRetriedSignedUrl(false);
+
+      if (!rawImageValue) {
+        setResolvedImageUrl('');
+        setIsResolvingImage(false);
+        return;
+      }
+
+      const value = String(rawImageValue);
+      const isHttp = value.startsWith('http://') || value.startsWith('https://');
+      const isLocal = value.startsWith('file://') || value.startsWith('content://') || value.startsWith('/');
+
+      if (isHttp || isLocal) {
+        setResolvedImageUrl(value);
+        setIsResolvingImage(false);
+        return;
+      }
+
+      if (imagePathValue) {
+        setIsResolvingImage(true);
+        try {
+          const signedUrl = await getSignedProductImageUrl(imagePathValue, 7 * 24 * 3600);
+          if (active) {
+            setResolvedImageUrl(signedUrl || '');
+          }
+        } catch (error) {
+          if (active) {
+            setResolvedImageUrl('');
+          }
+        } finally {
+          if (active) {
+            setIsResolvingImage(false);
+          }
+        }
+        return;
+      }
+
+      const isStoragePath = !isHttp && !isLocal;
+
+      if (!isStoragePath) {
+        setResolvedImageUrl(value);
+        setIsResolvingImage(false);
+        return;
+      }
+
+      setIsResolvingImage(true);
+      try {
+        const signedUrl = await getSignedProductImageUrl(value, 7 * 24 * 3600);
+        if (active) {
+          setResolvedImageUrl(signedUrl || '');
+        }
+      } catch (error) {
+        if (active) {
+          setResolvedImageUrl('');
+        }
+      } finally {
+        if (active) {
+          setIsResolvingImage(false);
+        }
+      }
+    };
+
+    resolveImage();
+    return () => {
+      active = false;
+    };
+  }, [rawImageValue, imagePathValue]);
+
+  const canRenderImage = Boolean(resolvedImageUrl) && !imageLoadFailed;
+  React.useEffect(() => {
+    setImageLoadFailed(false);
+  }, [resolvedImageUrl]);
+  React.useEffect(() => {
+    if (!modalVisible) {
+      setIsModalImageLoading(false);
+      setLocalModalImageUri('');
     }
   }, [modalVisible]);
-  const images = [
-    {
-      url: imageUrl,
-      props: {},
-    },
-  ];
+
+  React.useEffect(() => {
+    let active = true;
+
+    const prepareLocalModalImage = async () => {
+      if (!modalVisible || !resolvedImageUrl) return;
+      if (resolvedImageUrl.startsWith('file://') || resolvedImageUrl.startsWith('content://')) {
+        setLocalModalImageUri(resolvedImageUrl);
+        return;
+      }
+
+      try {
+        const cacheDir = ReactNativeBlobUtil.fs.dirs.CacheDir;
+        const localPath = `${cacheDir}/product_preview_${String(product?.id || 'default')}.jpg`;
+        await ReactNativeBlobUtil.config({ fileCache: true, path: localPath }).fetch('GET', resolvedImageUrl);
+        if (active) {
+          setLocalModalImageUri(`file://${localPath}`);
+        }
+      } catch (error) {
+        if (active) {
+          setLocalModalImageUri('');
+        }
+      }
+    };
+
+    prepareLocalModalImage();
+    return () => {
+      active = false;
+    };
+  }, [modalVisible, resolvedImageUrl, product?.id]);
+
+  const handleImageRenderError = React.useCallback(async () => {
+    if (imagePathValue && !hasRetriedSignedUrl) {
+      setHasRetriedSignedUrl(true);
+      setIsResolvingImage(true);
+      try {
+        const renewedUrl = await getSignedProductImageUrl(imagePathValue, 7 * 24 * 3600, true);
+        setResolvedImageUrl(renewedUrl || '');
+        setImageLoadFailed(!renewedUrl);
+      } catch (error) {
+        setImageLoadFailed(true);
+      } finally {
+        setIsResolvingImage(false);
+      }
+      return;
+    }
+    setImageLoadFailed(true);
+  }, [hasRetriedSignedUrl, imagePathValue]);
 
   return (
     <View style={styles.wrapper}>
@@ -125,24 +255,29 @@ const ProductItem = ({ product, isDarkMode }) => {
           <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
             <MaterialIcons name="close" size={32} color={COLORS.white} />
           </TouchableOpacity>
-          {imageUrl ? (
-            isHttpImage ? (
-              <ImageViewer
-                imageUrls={images}
-                enableSwipeDown={true}
-                onSwipeDown={() => setModalVisible(false)}
-                backgroundColor={COLORS.modalBackground}
-                renderIndicator={() => null}
-                saveToLocalByLongPress={false}
+          {isResolvingImage ? (
+            <View style={styles.noImageContainer}>
+              <ActivityIndicator size="large" color={COLORS.white} />
+              <Text style={styles.noImageText}>Carregando imagem...</Text>
+            </View>
+          ) : canRenderImage ? (
+            <View style={styles.previewContainer}>
+              <Image
+                source={{ uri: localModalImageUri || resolvedImageUrl }}
+                style={styles.previewImage}
+                onLoadStart={() => setIsModalImageLoading(true)}
+                onLoadEnd={() => setIsModalImageLoading(false)}
+                onError={() => {
+                  setIsModalImageLoading(false);
+                  handleImageRenderError();
+                }}
               />
-            ) : (
-              <View style={styles.previewContainer}>
-                <Image
-                  source={{ uri: imageUrl }}
-                  style={styles.previewImage}
-                />
-              </View>
-            )
+              {isModalImageLoading && (
+                <View style={styles.previewLoadingOverlay}>
+                  <ActivityIndicator size="large" color={COLORS.white} />
+                </View>
+              )}
+            </View>
           ) : (
             <View style={styles.noImageContainer}>
               <Text style={styles.noImageText}>Imagem não disponível</Text>
@@ -209,12 +344,19 @@ const ProductItem = ({ product, isDarkMode }) => {
         </View>
         {/* Imagem do Produto */}
         <View style={styles.imageWrapper}>
-          {imageUrl ? (
-            <TouchableOpacity onPress={() => setModalVisible(true)}>
+          {isResolvingImage ? (
+            <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
+              <ActivityIndicator size="small" color={isDarkMode ? COLORS.labelDark : COLORS.label} />
+            </View>
+          ) : canRenderImage ? (
+            <TouchableOpacity
+              onPress={() => setModalVisible(true)}
+            >
               <Image
-                source={{ uri: imageUrl }}
+                source={{ uri: resolvedImageUrl }}
                 style={styles.image}
                 resizeMode="cover"
+                onError={handleImageRenderError}
               />
             </TouchableOpacity>
           ) : (
@@ -374,10 +516,17 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   previewImage: {
-    width: '90%',
-    height: '80%',
+    width: MODAL_IMAGE_WIDTH,
+    height: MODAL_IMAGE_HEIGHT,
     borderRadius: 10,
     resizeMode: 'contain',
+  },
+  previewLoadingOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   noImageContainer: {
     flex: 1,

@@ -19,6 +19,8 @@ import { Camera } from 'react-native-vision-camera';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { version } from '../../../package.json';
 import { CORESHOME } from '../../components/coresAuth';
+import { SUPABASE_CONFIG } from '../../services/supabaseConfig';
+import { getSupabaseClient, isSupabaseConfigured } from '../../services/supabaseClient';
 
 const COLORS = CORESHOME;
 const TOKEN_STORAGE_KEYS = ['fcmToken', 'firebaseToken', 'pushToken', 'deviceToken', 'notificationToken'];
@@ -359,6 +361,59 @@ const getRelevantPermissions = async () => {
   return [notifPermission, cameraPermission];
 };
 
+const getSupabaseHealth = async () => {
+  const configured = isSupabaseConfigured();
+
+  if (!configured) {
+    return {
+      configured: false,
+      connected: false,
+      statusText: 'Nao configurado',
+      detail: 'Defina url e anonKey em supabaseConfig.js',
+    };
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return {
+      configured: true,
+      connected: false,
+      statusText: 'Cliente indisponivel',
+      detail: 'Falha ao inicializar cliente Supabase',
+    };
+  }
+
+  try {
+    const { error } = await client
+      .from(SUPABASE_CONFIG.storageTable)
+      .select('id')
+      .limit(1);
+
+    if (error) {
+      return {
+        configured: true,
+        connected: false,
+        statusText: 'Offline',
+        detail: error.message,
+      };
+    }
+
+    return {
+      configured: true,
+      connected: true,
+      statusText: 'Online',
+      detail: 'Conexao e consulta OK',
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      connected: false,
+      statusText: 'Offline',
+      detail: error?.message || 'Erro desconhecido',
+    };
+  }
+};
+
 const compactToken = (token) => {
   if (!isMeaningfulString(token)) return token;
   if (token.length < 30) return token;
@@ -401,6 +456,7 @@ const EasterEggScreen = ({ navigation, isDarkMode }) => {
         macAddress,
         fcmToken,
         allPermissions,
+        supabaseHealth,
       ] = await Promise.all([
         getDeviceInfo(),
         getLocalIpAddress(),
@@ -408,6 +464,7 @@ const EasterEggScreen = ({ navigation, isDarkMode }) => {
         getMacAddress(),
         getFcmToken(),
         getRelevantPermissions(),
+        getSupabaseHealth(),
       ]);
 
       const permissionsAllowed = allPermissions
@@ -454,6 +511,11 @@ const EasterEggScreen = ({ navigation, isDarkMode }) => {
         permissionsAllowed,
         permissionsDenied,
         permissionsUnknown,
+        supabaseConfigured: supabaseHealth.configured,
+        supabaseConnected: supabaseHealth.connected,
+        supabaseStatusText: supabaseHealth.statusText,
+        supabaseDetail: supabaseHealth.detail,
+        supabaseTable: SUPABASE_CONFIG.storageTable,
       });
     } catch (error) {
       setSnapshot({
@@ -491,6 +553,10 @@ const EasterEggScreen = ({ navigation, isDarkMode }) => {
       `Usuario: ${snapshot.userName || 'n/a'}`,
       `Email: ${snapshot.userEmail || 'n/a'}`,
       `FCM Token: ${snapshot.fcmToken || 'n/a'}`,
+      `Supabase configurado: ${snapshot.supabaseConfigured ? 'sim' : 'nao'}`,
+      `Supabase status: ${snapshot.supabaseStatusText || 'n/a'}`,
+      `Supabase tabela: ${snapshot.supabaseTable || 'n/a'}`,
+      `Supabase detalhe: ${snapshot.supabaseDetail || 'n/a'}`,
       `Produtos total: ${snapshot.productTotal ?? 'n/a'}`,
       `Produtos vencidos: ${snapshot.productExpired ?? 'n/a'}`,
       `Permissoes permitidas: ${snapshot.permissionsAllowed?.join(', ') || 'nenhuma'}`,
@@ -555,6 +621,29 @@ const EasterEggScreen = ({ navigation, isDarkMode }) => {
           <InfoRow label="Produtos total" value={loading ? '...' : String(snapshot?.productTotal ?? '-')} dark={isDarkMode} />
           <InfoRow label="Produtos vencidos" value={loading ? '...' : String(snapshot?.productExpired ?? '-')} dark={isDarkMode} />
           <InfoRow label="FCM token" value={loading ? '...' : compactToken(snapshot?.fcmToken)} dark={isDarkMode} />
+        </Section>
+
+        <Section title="Supabase" dark={isDarkMode}>
+          <InfoRow
+            label="Configurado"
+            value={loading ? '...' : snapshot?.supabaseConfigured ? 'Sim' : 'Nao'}
+            dark={isDarkMode}
+          />
+          <InfoRow
+            label="Status"
+            value={loading ? '...' : snapshot?.supabaseStatusText}
+            dark={isDarkMode}
+          />
+          <InfoRow
+            label="Tabela"
+            value={loading ? '...' : snapshot?.supabaseTable}
+            dark={isDarkMode}
+          />
+          <InfoRow
+            label="Detalhe"
+            value={loading ? '...' : snapshot?.supabaseDetail}
+            dark={isDarkMode}
+          />
         </Section>
 
         <Section title="Permissoes" dark={isDarkMode}>

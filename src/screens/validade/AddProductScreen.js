@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image, Linking, Switch, Platform, ScrollView } from 'react-native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import { View, Text, Alert, StyleSheet, TouchableOpacity, TextInput, Animated, ActivityIndicator, Image, Linking, Switch, Platform, ScrollView, PermissionsAndroid } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Camera } from 'react-native-vision-camera';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -16,8 +17,13 @@ import ScreenLayout, {
 import HeaderMenu from '../../components/HeaderMenu';
 import { CORESADDPRODUCT } from '../../components/coresAuth';
 import { STORAGE_KEYS } from '../../constants/storage';
+import { getCurrentUserId, upsertValidadeProduct } from '../../services/validadeSupabaseService';
+import { getSignedProductImageUrl, uploadProductImageToSupabase } from '../../services/supabaseStorageService';
 
 const COLORS = CORESADDPRODUCT;
+const IMAGE_UPLOAD_QUALITY = 0.4;
+const IMAGE_UPLOAD_MAX_WIDTH = 1024;
+const IMAGE_UPLOAD_MAX_HEIGHT = 1024;
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const LOOKUP_SQL_PREF_KEY = STORAGE_KEYS.LOOKUP_SQL_PREF;
@@ -38,6 +44,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [recentProducts, setRecentProducts] = useState([]);
 
   const [productImage, setProductImage] = useState(null);
+  const [productImagePath, setProductImagePath] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [isSqlLookupEnabled, setIsSqlLookupEnabled] = useState(true);
   const [isSqlLookupLoaded, setIsSqlLookupLoaded] = useState(false);
@@ -190,8 +197,16 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
   const loadRecentProducts = async () => {
     const existingProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    let products = existingProducts ? JSON.parse(existingProducts) : [];
-    setRecentProducts(products.slice(-5));
+    const products = existingProducts ? JSON.parse(existingProducts) : [];
+    const recent = products.slice(-5);
+    const resolvedRecent = await Promise.all(recent.map(async (item) => {
+      const imageUrl = await resolveProductImageUrl(item);
+      return {
+        ...item,
+        previewImageUrl: imageUrl,
+      };
+    }));
+    setRecentProducts(resolvedRecent);
   };
 
 
@@ -199,7 +214,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   useEffect(() => {
     if (!route.params?.product) return;
 
-    const { id, descricao, lote, quantidade, codprod, codauxiliar, validade, imageUrl, foto } = route.params.product;
+    const { id, descricao, lote, quantidade, codprod, codauxiliar, validade, imageUrl, imagePath, foto } = route.params.product;
     setProductId(id);
     setProductName(descricao);
     setBatch(lote);
@@ -208,6 +223,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setEan(String(codauxiliar));
     setExpirationDate(new Date(validade));
     setProductImage(imageUrl || foto || null);
+    setProductImagePath(imagePath || null);
     setIsEditing(true);
   }, [route.params?.product]);
 
@@ -317,15 +333,44 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         quantidade: parseInt(quantidade, 10),
         diasrestantes,
         imageUrl: productImage,
+        imagePath: productImagePath,
       };
+
+      let productToPersist = product;
+      try {
+        let imagePath = product.imagePath || null;
+        if (isLocalImageUri(product.imageUrl)) {
+          const userId = await getCurrentUserId();
+          imagePath = await uploadProductImageToSupabase({
+            userId,
+            productId: String(product.id),
+            localUri: product.imageUrl,
+          });
+        }
+
+        const remoteProduct = await upsertValidadeProduct({
+          ...product,
+          imagePath,
+        });
+        const remoteImagePath = remoteProduct?.image_path || imagePath || null;
+        const signedImageUrl = remoteImagePath ? await getSignedProductImageUrl(remoteImagePath) : null;
+
+        productToPersist = {
+          ...product,
+          imageUrl: signedImageUrl || product.imageUrl || null,
+          imagePath: remoteImagePath,
+        };
+      } catch (syncError) {
+        console.warn('Falha ao sincronizar no Supabase. Mantendo dados locais.', syncError?.message || syncError);
+      }
 
       const existingProducts = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
       let products = existingProducts ? JSON.parse(existingProducts) : [];
 
       if (isEditing) {
-        products = products.map((p) => (p.id === productId ? product : p));
+        products = products.map((p) => (p.id === productId ? productToPersist : p));
       } else {
-        products.push(product);
+        products.push(productToPersist);
       }
 
       await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
@@ -352,17 +397,84 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
   const handleTakePhoto = async () => {
     try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Permissão da Câmera',
+            message: 'Precisamos da câmera para tirar a foto do produto.',
+            buttonPositive: 'Permitir',
+            buttonNegative: 'Negar',
+          }
+        );
+
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+            Alert.alert(
+              'Permissão bloqueada',
+              'Ative a câmera nas configurações do app para tirar fotos.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Abrir configurações', onPress: () => Linking.openSettings() },
+              ]
+            );
+            return;
+          }
+          Toast.show({
+            type: 'error',
+            text1: 'Permissão negada',
+            text2: 'Ative a câmera nas configurações para tirar foto.',
+            visibilityTime: 2800,
+          });
+          return;
+        }
+      }
+
       const result = await launchCamera({
         mediaType: 'photo',
-        quality: 0.8,
+        quality: IMAGE_UPLOAD_QUALITY,
+        maxWidth: IMAGE_UPLOAD_MAX_WIDTH,
+        maxHeight: IMAGE_UPLOAD_MAX_HEIGHT,
+        assetRepresentationMode: 'compatible',
         saveToPhotos: true,
       });
+
+      if (result?.errorCode) {
+        console.error('Erro ao abrir câmera:', result?.errorCode, result?.errorMessage);
+        Toast.show({
+          type: 'error',
+          text1: 'Falha ao abrir câmera',
+          text2: result?.errorMessage || 'Tente novamente.',
+          visibilityTime: 3000,
+        });
+        return;
+      }
+
+      if (result?.didCancel) {
+        return;
+      }
+
       if (!result.didCancel && result.assets?.[0]) {
-        setProductImage(result.assets[0].uri);
+        const persistedImageUri = await persistImageToAppStorage(result.assets[0].uri);
+        setProductImage(persistedImageUri);
+        setProductImagePath(null);
         setShowImageOptions(false);
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Imagem não capturada',
+          text2: 'Não foi possível obter a foto da câmera.',
+          visibilityTime: 2500,
+        });
       }
     } catch (error) {
       console.error('Erro ao tirar foto:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro na câmera',
+        text2: 'Não foi possível abrir a câmera agora.',
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -370,10 +482,15 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     try {
       const result = await launchImageLibrary({
         mediaType: 'photo',
-        quality: 0.8,
+        quality: IMAGE_UPLOAD_QUALITY,
+        maxWidth: IMAGE_UPLOAD_MAX_WIDTH,
+        maxHeight: IMAGE_UPLOAD_MAX_HEIGHT,
+        assetRepresentationMode: 'compatible',
       });
       if (!result.didCancel && result.assets?.[0]) {
-        setProductImage(result.assets[0].uri);
+        const persistedImageUri = await persistImageToAppStorage(result.assets[0].uri);
+        setProductImage(persistedImageUri);
+        setProductImagePath(null);
         setShowImageOptions(false);
       }
     } catch (error) {
@@ -411,6 +528,40 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     if (selectedDate) setExpirationDate(selectedDate);
   };
 
+  const isLocalImageUri = (uri) => {
+    if (!uri) return false;
+    return uri.startsWith('file://') || uri.startsWith('content://') || uri.startsWith('/');
+  };
+
+  const persistImageToAppStorage = async (uri) => {
+    if (!isLocalImageUri(uri)) return uri;
+
+    try {
+      const documentDir = ReactNativeBlobUtil.fs.dirs.DocumentDir;
+      const imagesDir = `${documentDir}/gestao_images`;
+      const sourcePath = uri.startsWith('file://') ? uri.replace('file://', '') : uri;
+      const extension = getFileExtension(uri);
+      const destinationPath = `${imagesDir}/${Date.now()}_${Math.random().toString(36).slice(2)}.${extension}`;
+
+      const dirExists = await ReactNativeBlobUtil.fs.exists(imagesDir);
+      if (!dirExists) {
+        await ReactNativeBlobUtil.fs.mkdir(imagesDir);
+      }
+
+      await ReactNativeBlobUtil.fs.cp(sourcePath, destinationPath);
+      return `file://${destinationPath}`;
+    } catch (error) {
+      console.warn('Falha ao persistir imagem localmente. Usando URI original.', error?.message || error);
+      return uri;
+    }
+  };
+
+  const getFileExtension = (uri = '') => {
+    const cleanUri = String(uri).split('?')[0];
+    const segments = cleanUri.split('.');
+    return segments.length > 1 ? segments.pop().toLowerCase() : 'jpg';
+  };
+
   const checkEmptyFields = (field) => {
     switch (field) {
       case 'productName': return !productName.trim();
@@ -423,7 +574,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     }
   };
 
-  const handleSelectRecentProduct = (product) => {
+  const handleSelectRecentProduct = async (product) => {
     setProductName(String(product?.descricao ?? ''));
     setBatch(String(product?.lote ?? ''));
     setQuantity(String(product?.quantidade ?? ''));
@@ -435,10 +586,28 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         setExpirationDate(parsedDate);
       }
     }
-    setProductImage(product?.imageUrl || product?.foto || null);
+    const resolvedImage = product?.previewImageUrl || await resolveProductImageUrl(product);
+    setProductImage(resolvedImage || null);
+    setProductImagePath(product?.imagePath || null);
     setHistoryDialogVisible(false);
     setSearchResults([]);
     setActiveSearchField(null);
+  };
+
+  const resolveProductImageUrl = async (product) => {
+    const raw = product?.imageUrl || product?.imagePath || product?.foto || '';
+    if (!raw) return null;
+
+    const value = String(raw);
+    const isHttp = value.startsWith('http://') || value.startsWith('https://');
+    const isLocal = value.startsWith('file://') || value.startsWith('content://') || value.startsWith('/');
+    if (isHttp || isLocal) return value;
+
+    try {
+      return await getSignedProductImageUrl(value, 86400);
+    } catch (error) {
+      return null;
+    }
   };
 
   const formatDateLabel = (dateValue) => {
@@ -537,7 +706,13 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               {productImage ? (
                 <View style={{ position: 'relative', marginBottom: 10 }}>
                   <Image source={{ uri: productImage }} style={styles.photoPreview} />
-                  <TouchableOpacity style={styles.removePhotoButton} onPress={() => setProductImage(null)}>
+                  <TouchableOpacity
+                    style={styles.removePhotoButton}
+                    onPress={() => {
+                      setProductImage(null);
+                      setProductImagePath(null);
+                    }}
+                  >
                     <MaterialIcons name="close" size={18} color={COLORS.white} />
                   </TouchableOpacity>
                 </View>
@@ -679,6 +854,13 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   return (
                     <TouchableOpacity key={p.id || String(i)} style={styles.historyItem} onPress={() => handleSelectRecentProduct(p)}>
                       <View style={styles.historyHeaderRow}>
+                        {p.previewImageUrl ? (
+                          <Image source={{ uri: p.previewImageUrl }} style={styles.historyThumb} />
+                        ) : (
+                          <View style={styles.historyThumbPlaceholder}>
+                            <MaterialCommunityIcons name="image-off-outline" size={16} color={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
+                          </View>
+                        )}
                         <Text style={styles.historyTitle} numberOfLines={1}>{p.descricao || 'Produto sem descricao'}</Text>
                       </View>
                       <View style={styles.historyChipsRow}>
@@ -919,6 +1101,25 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 8,
+    },
+    historyThumb: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      marginRight: 8,
+      borderWidth: 1,
+      borderColor: isDarkMode ? COLORS.borderDark : COLORS.historyItemBorderLight,
+    },
+    historyThumbPlaceholder: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      marginRight: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDarkMode ? COLORS.neutralDark : COLORS.photoPlaceholderLight,
+      borderWidth: 1,
+      borderColor: isDarkMode ? COLORS.borderDark : COLORS.historyItemBorderLight,
     },
     historyTitle: {
       flex: 1,
