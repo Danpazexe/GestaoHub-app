@@ -6,7 +6,7 @@ import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, Touc
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import Toast from 'react-native-toast-message';
-import { toastConfig } from './src/shared/components/toastConfig';
+import { toastConfig } from './src/components/toastConfig';
 import { Provider as PaperProvider } from 'react-native-paper';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -17,37 +17,50 @@ import {
   getStatusBarStyle,
   isColorDark,
   shouldUseDarkNavigationBarIcons,
-} from './src/shared/utils/systemBars';
+} from './src/utils/systemBars';
 
 // Importações de telas
-import EntryScreen from './src/features/auth/screens/EntryScreen';
-import ListScreen from './src/features/validade/screens/ListScreen';
-import HomeScreen from './src/features/home/screens/HomeScreen';
-import EasterEggScreen from './src/features/home/screens/EasterEggScreen';
-import ModuleFunctionsScreen from './src/features/home/screens/ModuleFunctionsScreen';
-import ModuleBaseScreen from './src/features/modules/screens/ModuleBaseScreen';
-import AddProductScreen from './src/features/validade/screens/AddProductScreen';
-import BarcodeScannerScreen from './src/features/validade/screens/BarcodeScannerScreen';
-import SettingsScreen from './src/features/settings/screens/SettingsScreen';
-import DashboardScreen from './src/features/validade/screens/DashboardScreen';
-import ExcelScreen from './src/features/validade/screens/ExcelScreen';
-import LoginScreen from './src/features/auth/screens/LoginScreen';
-import ProfileScreen from "./src/features/profile/screens/ProfileScreen";
-import TratarScreen from './src/features/validade/screens/TratarScreen';
-import NotificationScreen from './src/features/notification/screens/NotificationScreen';
-import SqlScreen from './src/features/sql/screens/SqlScreen';
-import RegisterScreen from './src/features/auth/screens/RegisterScreen';
-import PdfScreen from './src/features/pdf/screens/PdfScreen';
-import PdfViewerScreen from './src/features/pdf/screens/PdfViewerScreen';
-import AvariaListScreen from './src/features/avaria/screens/AvariaListScreen';
-import AvariaEntryScreen from './src/features/avaria/screens/AvariaEntryScreen';
-import AvariaResolutionScreen from './src/features/avaria/screens/AvariaResolutionScreen';
-import AvariaHistoryScreen from './src/features/avaria/screens/AvariaHistoryScreen';
-import AvariaDashboardScreen from './src/features/avaria/screens/AvariaDashboardScreen';
+import EntryScreen from './src/screens/auth/EntryScreen';
+import ListScreen from './src/screens/validade/ListScreen';
+import HomeScreen from './src/screens/home/HomeScreen';
+import EasterEggScreen from './src/screens/home/EasterEggScreen';
+import ModuleFunctionsScreen from './src/screens/home/ModuleFunctionsScreen';
+import ModuleBaseScreen from './src/screens/modules/ModuleBaseScreen';
+import AddProductScreen from './src/screens/validade/AddProductScreen';
+import BarcodeScannerScreen from './src/screens/validade/BarcodeScannerScreen';
+import SettingsScreen from './src/screens/settings/SettingsScreen';
+import DashboardScreen from './src/screens/validade/DashboardScreen';
+import ExcelScreen from './src/screens/validade/ExcelScreen';
+import LoginScreen from './src/screens/auth/LoginScreen';
+import ProfileScreen from './src/screens/profile/ProfileScreen';
+import TratarScreen from './src/screens/validade/TratarScreen';
+import NotificationScreen from './src/screens/notification/NotificationScreen';
+import SqlScreen from './src/screens/sql/SqlScreen';
+import RegisterScreen from './src/screens/auth/RegisterScreen';
+import PdfScreen from './src/screens/pdf/PdfScreen';
+import PdfViewerScreen from './src/screens/pdf/PdfViewerScreen';
+import AvariaListScreen from './src/screens/avaria/AvariaListScreen';
+import AvariaEntryScreen from './src/screens/avaria/AvariaEntryScreen';
+import AvariaResolutionScreen from './src/screens/avaria/AvariaResolutionScreen';
+import AvariaHistoryScreen from './src/screens/avaria/AvariaHistoryScreen';
+import AvariaDashboardScreen from './src/screens/avaria/AvariaDashboardScreen';
+import ConferenciaRecebimentoScreen from './src/screens/conferencia/entrada/ConferenciaRecebimentoScreen';
+import ConferenciaSaidaScreen from './src/screens/conferencia/saida/ConferenciaSaidaScreen';
+import ConferenciaDivergenciasScreen from './src/screens/conferencia/shared/ConferenciaDivergenciasScreen';
+import ConferenciaScanScreen from './src/screens/conferencia/shared/ConferenciaScanScreen';
 
 const Stack = createStackNavigator();
 
 // ... (existing code)
+
+// Legacy route alias: prevents dev warnings if some UI/hot-reload state still tries to navigate
+// to the old bonus screen name.
+const LegacyConferenciaRecebimentoBonusScreen = ({ navigation }) => {
+  useEffect(() => {
+    navigation.replace('ConferenciaRecebimentoScreen');
+  }, [navigation]);
+  return null;
+};
 
 
 enableScreens(Platform.OS === 'android');
@@ -354,12 +367,7 @@ export default function App() {
                 {props => <ModuleFunctionsScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
-              <Stack.Screen
-                name="ModuleBaseScreen"
-                options={({ route }) => ({
-                  title: route.params?.title || 'Funcionalidade',
-                })}
-              >
+              <Stack.Screen name="ModuleBaseScreen">
                 {props => <ModuleBaseScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
@@ -419,6 +427,24 @@ export default function App() {
 
               <Stack.Screen name="PdfViewerScreen">
                 {props => <PdfViewerScreen {...props} />}
+              </Stack.Screen>
+
+              <Stack.Screen name="ConferenciaRecebimentoScreen">
+                {props => <ConferenciaRecebimentoScreen {...props} isDarkMode={isDarkMode} />}
+              </Stack.Screen>
+              <Stack.Screen name="ConferenciaScanScreen">
+                {props => <ConferenciaScanScreen {...props} isDarkMode={isDarkMode} />}
+              </Stack.Screen>
+              <Stack.Screen
+                name="ConferenciaRecebimentoBonusScreen"
+                options={{ headerShown: false }}
+                component={LegacyConferenciaRecebimentoBonusScreen}
+              />
+              <Stack.Screen name="ConferenciaSaidaScreen">
+                {props => <ConferenciaSaidaScreen {...props} isDarkMode={isDarkMode} />}
+              </Stack.Screen>
+              <Stack.Screen name="ConferenciaDivergenciasScreen">
+                {props => <ConferenciaDivergenciasScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
               {/* Avaria Module Screens */}

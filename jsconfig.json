@@ -2,10 +2,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@features/*": ["src/features/*"],
-      "@shared/*": ["src/shared/*"],
+      "@screens/*": ["src/screens/*"],
+      "@components/*": ["src/components/*"],
+      "@utils/*": ["src/utils/*"],
+      "@constants/*": ["src/constants/*"],
       "@assets/*": ["assets/*"],
-      "@services/*": ["services/*"]
+      "@services/*": ["src/services/*"]
     }
   },
   "exclude": ["node_modules", "android", "ios"]
