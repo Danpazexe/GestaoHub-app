@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,6 +26,7 @@ import ScreenLayout, {
 import HeaderMenu from '../../components/HeaderMenu';
 import { CORESDASHBOARD } from '../../components/coresAuth';
 import { STORAGE_KEYS } from '../../constants/storage';
+import { listValidadeProducts } from '../../services/validadeSupabaseService';
 
 const COLORS = CORESDASHBOARD;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -139,6 +139,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   const [scopeFilter, setScopeFilter] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const hasLoadedOnceRef = useRef(false);
 
   const treatmentInfo = useMemo(
     () => ({
@@ -151,13 +152,24 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
     [],
   );
 
-  const loadProducts = useCallback(async (silent = false) => {
-    if (!silent) {
+  const loadProducts = useCallback(async ({ showLoading = false } = {}) => {
+    if (showLoading) {
       setLoading(true);
     }
 
     try {
-      const stored = await AsyncStorage.getItem('products');
+      try {
+        const remoteProducts = await listValidadeProducts();
+        if (Array.isArray(remoteProducts)) {
+          setProducts(remoteProducts);
+          await AsyncStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(remoteProducts));
+          return;
+        }
+      } catch (remoteError) {
+        console.warn('Falha ao carregar dashboard do Supabase. Usando cache local.', remoteError?.message || remoteError);
+      }
+
+      const stored = await AsyncStorage.getItem(STORAGE_KEYS.PRODUCTS);
       const parsed = stored ? JSON.parse(stored) : [];
       setProducts(Array.isArray(parsed) ? parsed : []);
     } catch (error) {
@@ -169,88 +181,26 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
       });
       setProducts([]);
     } finally {
-      if (!silent) {
+      if (showLoading) {
         setLoading(false);
       }
     }
   }, []);
 
   const onRefresh = useCallback(async () => {
+    if (refreshing) return;
     setRefreshing(true);
-    await loadProducts(true);
+    await loadProducts({ showLoading: false });
     setRefreshing(false);
-  }, [loadProducts]);
-
-  useEffect(() => {
-    loadProducts(false);
-  }, [loadProducts]);
+  }, [loadProducts, refreshing]);
 
   useFocusEffect(
     useCallback(() => {
-      loadProducts(true);
+      const shouldShowLoading = !hasLoadedOnceRef.current;
+      hasLoadedOnceRef.current = true;
+      loadProducts({ showLoading: shouldShowLoading });
     }, [loadProducts]),
   );
-
-  useEffect(() => {
-    navigation.setOptions({
-      ...createScreenHeaderTemplate({
-        isDarkMode,
-        lightHeaderColor: COLORS.primary,
-        darkHeaderColor: COLORS.primary,
-        tintColor: COLORS.white,
-        titleSize: 20,
-        titleWeight: '700',
-      }),
-      headerTitle: () =>
-        createHeaderTitleTemplate({
-          title: 'Dashboard',
-          subtitle: 'Visão geral',
-          iconName: 'analytics',
-          tintColor: COLORS.white,
-        }),
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', marginRight: 8 }}>
-          <TouchableOpacity
-            onPress={onRefresh}
-            style={styles.headerButton}
-          >
-            <MaterialIcons name="refresh" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-          <HeaderMenu
-            visible={menuVisible}
-            onOpen={() => setMenuVisible(true)}
-            onDismiss={() => setMenuVisible(false)}
-            items={[
-              {
-                key: 'pdf',
-                title: 'Exportar PDF',
-                icon: 'file-pdf-box',
-                onPress: () => handleExport('pdf')
-              },
-              {
-                key: 'xlsx',
-                title: 'Exportar Excel',
-                icon: 'file-excel',
-                onPress: () => handleExport('xlsx')
-              },
-              {
-                key: 'csv',
-                title: 'Exportar CSV',
-                icon: 'file-delimited',
-                onPress: () => handleExport('csv')
-              },
-              {
-                key: 'json',
-                title: 'Exportar JSON',
-                icon: 'code-json',
-                onPress: () => handleExport('json')
-              }
-            ]}
-          />
-        </View>
-      ),
-    });
-  }, [navigation, isDarkMode, onRefresh, menuVisible]);
 
   const normalizedProducts = useMemo(
     () =>
@@ -713,6 +663,68 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
     },
     [buildPdfHtml, exportRows, shareGeneratedFile],
   );
+
+  useEffect(() => {
+    navigation.setOptions({
+      ...createScreenHeaderTemplate({
+        isDarkMode,
+        lightHeaderColor: COLORS.primary,
+        darkHeaderColor: COLORS.primary,
+        tintColor: COLORS.white,
+        titleSize: 20,
+        titleWeight: '700',
+      }),
+      headerTitle: () =>
+        createHeaderTitleTemplate({
+          title: 'Dashboard',
+          subtitle: 'Visão geral',
+          iconName: 'analytics',
+          tintColor: COLORS.white,
+        }),
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', marginRight: 8 }}>
+          <TouchableOpacity
+            onPress={onRefresh}
+            disabled={refreshing || loading}
+            style={styles.headerButton}
+          >
+            <MaterialIcons name="refresh" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+          <HeaderMenu
+            visible={menuVisible}
+            onOpen={() => setMenuVisible(true)}
+            onDismiss={() => setMenuVisible(false)}
+            items={[
+              {
+                key: 'pdf',
+                title: 'Exportar PDF',
+                icon: 'file-pdf-box',
+                onPress: () => handleExport('pdf')
+              },
+              {
+                key: 'xlsx',
+                title: 'Exportar Excel',
+                icon: 'file-excel',
+                onPress: () => handleExport('xlsx')
+              },
+              {
+                key: 'csv',
+                title: 'Exportar CSV',
+                icon: 'file-delimited',
+                onPress: () => handleExport('csv')
+              },
+              {
+                key: 'json',
+                title: 'Exportar JSON',
+                icon: 'code-json',
+                onPress: () => handleExport('json')
+              }
+            ]}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, isDarkMode, onRefresh, menuVisible, refreshing, loading, handleExport]);
 
   if (loading) {
     return (
