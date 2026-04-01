@@ -15,7 +15,7 @@ export const getCurrentUserId = async () => {
 
 export const listValidadeProducts = async () => {
   const supabase = getSupabaseClient();
-  if (!supabase) return [];
+  if (!supabase) return null;
   const userId = await getCurrentUserId();
 
   const { data, error } = await supabase

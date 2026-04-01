@@ -1,3 +1,4 @@
+// Compatibility bridge. Prefer tokens from `src/theme/*` in new or migrated code.
 export const CORESLOGIN = {
   // Base da marca
   fundo: '#f4f6fb',
@@ -492,6 +493,7 @@ export const CORESFUNCIONALIDADES = {
     'avaria-dashboard': CORESAVARIADASHBOARD.primary,
 
     'conferencia-recebimento': CORESCONFERENCIARECB.primary,
+    'conferencia-tratativas-recebimento': CORESTRATAR.primary,
     'conferencia-saida': CORESCONFERENCIASAIDA.primary,
     'conferencia-divergencias': CORESCONFERENCIADIVERG.primary,
 

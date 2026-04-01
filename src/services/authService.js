@@ -1,8 +1,63 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
+const DEV_USER = {
+  id: 'dev-local-user',
+  name: 'Dev Gestão',
+  email: 'dev@gestaohub.local',
+  password: 'dev123456',
+};
+
 class AuthService {
   registerInFlight = false;
+
+  isDevUserEnabled() {
+    return typeof __DEV__ !== 'undefined' && __DEV__;
+  }
+
+  getDevUserCredentials() {
+    if (!this.isDevUserEnabled()) {
+      return null;
+    }
+
+    return {
+      email: DEV_USER.email,
+      password: DEV_USER.password,
+      name: DEV_USER.name,
+    };
+  }
+
+  async loginWithDevUser(email, password) {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedPassword = String(password || '').trim();
+
+    if (
+      !this.isDevUserEnabled()
+      || normalizedEmail !== DEV_USER.email
+      || normalizedPassword !== DEV_USER.password
+    ) {
+      return null;
+    }
+
+    const user = {
+      id: DEV_USER.id,
+      name: DEV_USER.name,
+      email: DEV_USER.email,
+      isDevUser: true,
+      authProvider: 'dev-local',
+    };
+
+    await AsyncStorage.setItem('userData', JSON.stringify(user));
+
+    return {
+      status: 200,
+      data: {
+        user,
+        session: null,
+      },
+      success: true,
+    };
+  }
 
   mapAuthErrorMessage(rawMessage, fallbackMessage) {
     const normalized = String(rawMessage || '').toLowerCase();
@@ -78,6 +133,11 @@ class AuthService {
   }
 
   async login(email, password) {
+    const devResponse = await this.loginWithDevUser(email, password);
+    if (devResponse) {
+      return devResponse;
+    }
+
     if (!isSupabaseConfigured()) {
       throw this.normalizeError({}, 'Supabase nao configurado');
     }

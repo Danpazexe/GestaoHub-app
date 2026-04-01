@@ -117,6 +117,72 @@ before update on public.validade_products
 for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------
+-- Módulo Tratativas de Recebimento (espelho avulso)
+-- ---------------------------------------------
+create table if not exists public.recebimento_treatment_cases (
+  id text not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  doc_number text not null,
+  supplier_code text not null,
+  doc_sequence_number integer,
+  origin_invoice_number text,
+  return_invoice_number text,
+  status text not null default 'ABERTA', -- ABERTA | EM ANDAMENTO | AGUARDANDO | ENCERRADA | CANCELADA
+  status_updated_at timestamptz not null default now(),
+  occurrence_type text not null default 'avaria', -- avaria | falta | outro
+  resolution_type text not null default 'devolucao', -- devolucao | troca | tratativa | descarte
+  affected_quantity integer not null default 0,
+  expected_quantity integer not null default 0,
+  received_quantity integer not null default 0,
+  product_snapshot jsonb not null default '{}'::jsonb,
+  opened_at timestamptz not null default now(),
+  started_at timestamptz,
+  expected_end_at timestamptz,
+  closed_at timestamptz,
+  reasons text[] not null default '{}'::text[],
+  handling_methods text[] not null default '{}'::text[],
+  reason text,
+  handling_method text,
+  observation text,
+  authorized_by text,
+  collected_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, id)
+);
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists reasons text[] not null default '{}'::text[];
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists handling_methods text[] not null default '{}'::text[];
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists supplier_code text;
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists doc_sequence_number integer;
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists occurrence_type text not null default 'avaria';
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists expected_quantity integer not null default 0;
+
+alter table if exists public.recebimento_treatment_cases
+add column if not exists received_quantity integer not null default 0;
+
+create index if not exists idx_recebimento_treatment_cases_user on public.recebimento_treatment_cases(user_id);
+create index if not exists idx_recebimento_treatment_cases_status on public.recebimento_treatment_cases(user_id, status);
+create index if not exists idx_recebimento_treatment_cases_origin_invoice on public.recebimento_treatment_cases(user_id, origin_invoice_number);
+create index if not exists idx_recebimento_treatment_cases_supplier_code on public.recebimento_treatment_cases(user_id, supplier_code);
+
+drop trigger if exists trg_recebimento_treatment_cases_updated_at on public.recebimento_treatment_cases;
+create trigger trg_recebimento_treatment_cases_updated_at
+before update on public.recebimento_treatment_cases
+for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------
 -- Módulo Avaria
 -- ---------------------------------------------
 create table if not exists public.avaria_batches (
@@ -224,6 +290,7 @@ on conflict (id) do nothing;
 alter table public.profiles enable row level security;
 alter table public.user_settings enable row level security;
 alter table public.validade_products enable row level security;
+alter table public.recebimento_treatment_cases enable row level security;
 alter table public.avaria_batches enable row level security;
 alter table public.avaria_items enable row level security;
 alter table public.conferencia_recebimentos enable row level security;
@@ -252,6 +319,10 @@ for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists validade_products_owner_all on public.validade_products;
 create policy validade_products_owner_all on public.validade_products
+for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists recebimento_treatment_cases_owner_all on public.recebimento_treatment_cases;
+create policy recebimento_treatment_cases_owner_all on public.recebimento_treatment_cases
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists avaria_batches_owner_all on public.avaria_batches;

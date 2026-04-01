@@ -94,6 +94,26 @@ def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInRelea
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
+def resolveSigningValue = { String key ->
+    def propertyValue = findProperty(key)
+    if (propertyValue != null && String.valueOf(propertyValue).trim()) {
+        return String.valueOf(propertyValue).trim()
+    }
+
+    def envValue = System.getenv(key)
+    if (envValue != null && String.valueOf(envValue).trim()) {
+        return String.valueOf(envValue).trim()
+    }
+
+    return null
+}
+
+def releaseStoreFile = resolveSigningValue('GESTAOHUB_UPLOAD_STORE_FILE')
+def releaseStorePassword = resolveSigningValue('GESTAOHUB_UPLOAD_STORE_PASSWORD')
+def releaseKeyAlias = resolveSigningValue('GESTAOHUB_UPLOAD_KEY_ALIAS')
+def releaseKeyPassword = resolveSigningValue('GESTAOHUB_UPLOAD_KEY_PASSWORD')
+def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null }
+def isReleaseBuildRequested = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -115,15 +135,28 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            } else if (isReleaseBuildRequested) {
+                throw new GradleException(
+                    "Release signing requires GESTAOHUB_UPLOAD_STORE_FILE, GESTAOHUB_UPLOAD_STORE_PASSWORD, " +
+                    "GESTAOHUB_UPLOAD_KEY_ALIAS and GESTAOHUB_UPLOAD_KEY_PASSWORD."
+                )
+            }
             shrinkResources (findProperty('android.enableShrinkResourcesInReleaseBuilds')?.toBoolean() ?: false)
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

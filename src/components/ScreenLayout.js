@@ -2,12 +2,15 @@ import React from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { colors as themeColors } from '../theme/colors';
+import { elevation } from '../theme/elevation';
+import { typography } from '../theme/typography';
 
 const ScreenLayout = ({
   children,
   isDarkMode = false,
-  lightBackground = '#ffffff',
-  darkBackground = '#181818',
+  lightBackground = themeColors.background,
+  darkBackground = themeColors.backgroundDark,
   edges = ['left', 'right', 'bottom'],
   safeAreaStyle,
   contentStyle,
@@ -23,9 +26,9 @@ const ScreenLayout = ({
 
 export const createScreenHeaderTemplate = ({
   isDarkMode = false,
-  lightHeaderColor = '#40444c',
-  darkHeaderColor = '#181818',
-  tintColor = '#ffffff',
+  lightHeaderColor = themeColors.primary,
+  darkHeaderColor = themeColors.backgroundDark,
+  tintColor = themeColors.white,
   titleAlign = 'left',
   titleSize = 18,
   titleWeight = '700',
@@ -37,10 +40,7 @@ export const createScreenHeaderTemplate = ({
   headerStyle: {
     backgroundColor: isDarkMode ? darkHeaderColor : lightHeaderColor,
     elevation: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    ...elevation.sm,
     ...headerStyleOverride,
   },
   headerTintColor: tintColor,
@@ -58,7 +58,7 @@ export const createHeaderTitleTemplate = ({
   subtitle,
   iconName,
   IconComponent = MaterialIcons,
-  tintColor = '#ffffff',
+  tintColor = themeColors.white,
   subtitleColor = 'rgba(255,255,255,0.92)',
   iconSize = 18,
 }) => (
@@ -69,9 +69,9 @@ export const createHeaderTitleTemplate = ({
       </View>
     ) : null}
     <View>
-      <Text style={[headerStyles.titleText, { color: tintColor }]}>{title}</Text>
+      <Text style={[headerStyles.titleText, typography.title, { color: tintColor }]}>{title}</Text>
       {subtitle ? (
-        <Text style={[headerStyles.subtitleText, { color: subtitleColor }]}>{subtitle}</Text>
+        <Text style={[headerStyles.subtitleText, typography.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
       ) : null}
     </View>
   </View>
@@ -132,13 +132,13 @@ const headerStyles = StyleSheet.create({
     marginBottom: 4,
   },
   titleText: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: typography.title.fontSize,
+    fontWeight: typography.title.fontWeight,
   },
   subtitleText: {
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 16,
+    fontSize: typography.subtitle.fontSize,
+    fontWeight: typography.subtitle.fontWeight,
+    lineHeight: typography.subtitle.lineHeight,
     paddingBottom: 4,
   },
   actionButton: {
@@ -148,6 +148,7 @@ const headerStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
+    ...elevation.none,
   },
 });
 

@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
     AVARIA_BATCHES: 'avaria_batches',
 
     // Módulo de Conferência
+    RECEBIMENTO_TREATMENT_CASES: 'recebimento_treatment_cases',
     CONFERENCIA_RECEBIMENTOS: 'conferencia_recebimentos',
     CONFERENCIA_SAIDAS: 'conferencia_saidas',
     CONFERENCIA_DIVERGENCIAS: 'conferencia_divergencias',
@@ -18,4 +19,18 @@ export const STORAGE_KEYS = {
     // Módulo SQL / Banco de Dados
     SQL_CACHE: 'cached_products',
     SQL_SEARCH_HISTORY: 'sql_search_history',
+
+    // Sessão e preferências
+    USER_DATA: 'userData',
+    USER_SETTINGS: 'userSettings',
+    SAVED_EMAIL: 'savedEmail',
+    SAVED_PASSWORD: 'savedPassword',
+    REMEMBER_ME: 'rememberMe',
+    BIOMETRIC_ENABLED: 'biometricEnabled',
+
+    // Perfil local
+    PROFILE_NAME: 'name',
+    PROFILE_EMAIL: 'email',
+    PROFILE_PASSWORD: 'password',
+    PROFILE_IMAGE: 'profileImage',
 };

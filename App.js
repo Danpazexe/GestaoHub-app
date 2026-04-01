@@ -20,34 +20,36 @@ import {
 } from './src/utils/systemBars';
 
 // Importações de telas
-import EntryScreen from './src/screens/auth/EntryScreen';
-import ListScreen from './src/screens/validade/ListScreen';
-import HomeScreen from './src/screens/home/HomeScreen';
-import EasterEggScreen from './src/screens/home/EasterEggScreen';
-import ModuleFunctionsScreen from './src/screens/home/ModuleFunctionsScreen';
-import ModuleBaseScreen from './src/screens/modules/ModuleBaseScreen';
-import AddProductScreen from './src/screens/validade/AddProductScreen';
-import BarcodeScannerScreen from './src/screens/validade/BarcodeScannerScreen';
-import SettingsScreen from './src/screens/settings/SettingsScreen';
-import DashboardScreen from './src/screens/validade/DashboardScreen';
-import ExcelScreen from './src/screens/validade/ExcelScreen';
-import LoginScreen from './src/screens/auth/LoginScreen';
-import ProfileScreen from './src/screens/profile/ProfileScreen';
-import TratarScreen from './src/screens/validade/TratarScreen';
-import NotificationScreen from './src/screens/notification/NotificationScreen';
-import SqlScreen from './src/screens/sql/SqlScreen';
-import RegisterScreen from './src/screens/auth/RegisterScreen';
-import PdfScreen from './src/screens/pdf/PdfScreen';
-import PdfViewerScreen from './src/screens/pdf/PdfViewerScreen';
-import AvariaListScreen from './src/screens/avaria/AvariaListScreen';
-import AvariaEntryScreen from './src/screens/avaria/AvariaEntryScreen';
-import AvariaResolutionScreen from './src/screens/avaria/AvariaResolutionScreen';
-import AvariaHistoryScreen from './src/screens/avaria/AvariaHistoryScreen';
-import AvariaDashboardScreen from './src/screens/avaria/AvariaDashboardScreen';
-import ConferenciaRecebimentoScreen from './src/screens/conferencia/entrada/ConferenciaRecebimentoScreen';
-import ConferenciaSaidaScreen from './src/screens/conferencia/saida/ConferenciaSaidaScreen';
-import ConferenciaDivergenciasScreen from './src/screens/conferencia/shared/ConferenciaDivergenciasScreen';
-import ConferenciaScanScreen from './src/screens/conferencia/shared/ConferenciaScanScreen';
+import EntryScreen from './src/features/auth/screens/EntryScreen';
+import LoginScreen from './src/features/auth/screens/LoginScreen';
+import RegisterScreen from './src/features/auth/screens/RegisterScreen';
+import EasterEggScreen from './src/internal/screens/EasterEggScreen';
+import HomeScreen from './src/features/home/screens/HomeScreen';
+import ModuleFunctionsScreen from './src/features/home/screens/ModuleFunctionsScreen';
+import ModuleBaseScreen from './src/internal/screens/ModuleBaseScreen';
+import PdfViewerScreen from './src/features/pdf/screens/PdfViewerScreen';
+import BarcodeScannerScreen from './src/features/scanner/screens/BarcodeScannerScreen';
+import SqlScreen from './src/features/sql/screens/SqlScreen';
+import AvariaDashboardScreen from './src/features/avaria/screens/AvariaDashboardScreen';
+import AvariaEntryScreen from './src/features/avaria/screens/AvariaEntryScreen';
+import AvariaHistoryScreen from './src/features/avaria/screens/AvariaHistoryScreen';
+import AvariaListScreen from './src/features/avaria/screens/AvariaListScreen';
+import AvariaResolutionScreen from './src/features/avaria/screens/AvariaResolutionScreen';
+import ConferenciaDivergenciasScreen from './src/features/conferencia/screens/ConferenciaDivergenciasScreen';
+import ConferenciaRecebimentoScreen from './src/features/conferencia/screens/ConferenciaRecebimentoScreen';
+import ConferenciaScanScreen from './src/features/conferencia/screens/ConferenciaScanScreen';
+import ConferenciaSaidaScreen from './src/features/conferencia/screens/ConferenciaSaidaScreen';
+import NotificationScreen from './src/features/notifications/screens/NotificationScreen';
+import ProfileScreen from './src/features/profile/screens/ProfileScreen';
+import ConferenciaTratativasRecebimentoScreen from './src/features/recebimentoTratativas/screens/ConferenciaTratativasRecebimentoScreen';
+import EspelhoRecebimentoScreen from './src/features/recebimentoTratativas/screens/EspelhoRecebimentoScreen';
+import SettingsScreen from './src/features/settings/screens/SettingsScreen';
+import AddProductScreen from './src/features/validade/screens/AddProductScreen';
+import DashboardScreen from './src/features/validade/screens/DashboardScreen';
+import ExcelScreen from './src/features/validade/screens/ExcelScreen';
+import ListScreen from './src/features/validade/screens/ListScreen';
+import PdfScreen from './src/features/validade/screens/PdfScreen';
+import TratarScreen from './src/features/validade/screens/TratarScreen';
 
 const Stack = createStackNavigator();
 
@@ -358,9 +360,11 @@ export default function App() {
                 {props => <HomeScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
-              <Stack.Screen name="EasterEggScreen" options={{ headerShown: false }}>
-                {props => <EasterEggScreen {...props} isDarkMode={isDarkMode} />}
-              </Stack.Screen>
+              {__DEV__ ? (
+                <Stack.Screen name="EasterEggScreen" options={{ headerShown: false }}>
+                  {props => <EasterEggScreen {...props} isDarkMode={isDarkMode} />}
+                </Stack.Screen>
+              ) : null}
 
               <Stack.Screen
                 name="ModuleFunctionsScreen"
@@ -371,9 +375,11 @@ export default function App() {
                 {props => <ModuleFunctionsScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
-              <Stack.Screen name="ModuleBaseScreen">
-                {props => <ModuleBaseScreen {...props} isDarkMode={isDarkMode} />}
-              </Stack.Screen>
+              {__DEV__ ? (
+                <Stack.Screen name="ModuleBaseScreen">
+                  {props => <ModuleBaseScreen {...props} isDarkMode={isDarkMode} />}
+                </Stack.Screen>
+              ) : null}
 
               <Stack.Screen name="ListScreen">
                 {props => <ListScreen {...props} isDarkMode={isDarkMode} />}
@@ -413,6 +419,14 @@ export default function App() {
 
               <Stack.Screen name="TratarScreen">
                 {props => <TratarScreen {...props} isDarkMode={isDarkMode} />}
+              </Stack.Screen>
+
+              <Stack.Screen name="ConferenciaTratativasRecebimentoScreen">
+                {props => <ConferenciaTratativasRecebimentoScreen {...props} isDarkMode={isDarkMode} />}
+              </Stack.Screen>
+
+              <Stack.Screen name="EspelhoRecebimentoScreen">
+                {props => <EspelhoRecebimentoScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
 
