@@ -40,8 +40,8 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
         isDarkMode,
-        lightHeaderColor: COLORS.secondary,
-        darkHeaderColor: COLORS.secondary,
+        lightHeaderColor: COLORS.primary,
+        darkHeaderColor: COLORS.primary,
         tintColor: '#FFFFFF',
         titleSize: 18,
         titleWeight: '800',
@@ -227,8 +227,8 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
   };
 
   const InfoBadge = ({ icon, label, value, color }) => (
-    <View style={[styles.infoBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(1, 38, 119, 0.06)' }]}>
-      <View style={[styles.infoBadgeIcon, { backgroundColor: color || COLORS.secondary }]}>
+    <View style={[styles.infoBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(14, 165, 233, 0.08)' }]}>
+      <View style={[styles.infoBadgeIcon, { backgroundColor: color || COLORS.primary }]}>
         <MaterialIcons name={icon} size={16} color="#fff" />
       </View>
       <View style={styles.infoBadgeContent}>
@@ -380,7 +380,7 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
         />
 
         {/* Dicas */}
-        <View style={[styles.tipsCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(1, 38, 119, 0.04)', borderColor: palette.border }]}>
+        <View style={[styles.tipsCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(14, 165, 233, 0.06)', borderColor: palette.border }]}>
           <View style={styles.tipsHeader}>
             <MaterialIcons name="lightbulb-outline" size={18} color="#f59e0b" />
             <Text style={[styles.tipsTitle, { color: palette.text }]}>Dicas importantes</Text>

@@ -969,14 +969,14 @@ const SqlScreen = ({ isDarkMode, navigation }) => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
         isDarkMode,
-        lightHeaderColor: '#2563EB',
-        darkHeaderColor: '#1E40AF',
+        lightHeaderColor: PRIMARY_COLOR,
+        darkHeaderColor: PRIMARY_COLOR,
         tintColor: '#FFFFFF',
         titleSize: 20,
         titleWeight: '600',
         headerStyleOverride: {
           elevation: 5,
-          shadowColor: '#2563EB',
+          shadowColor: PRIMARY_COLOR,
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: 0.2,
           shadowRadius: 3,

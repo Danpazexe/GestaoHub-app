@@ -290,19 +290,19 @@ export const CORESBARCODESCANNER = {
 };
 
 export const CORESEXCEL = {
-  primary: '#294380',
-  secondary: '#012677',
-  accent: '#012677',
+  primary: '#0ea5e9',
+  secondary: '#0ea5e9',
+  accent: '#0284c7',
   background: '#f8f8f8',
   backgroundDark: '#1f2438',
   card: '#ffffff',
   cardDark: '#262d47',
-  border: 'rgba(1, 38, 119, 0.22)',
+  border: 'rgba(14, 165, 233, 0.22)',
   text: '#333333',
   textDark: '#f3f5ff',
   textMuted: '#666666',
   white: '#FFFFFF',
-  shadow: '#012677',
+  shadow: '#0284c7',
 };
 
 export const CORESAVARIAENTRY = {
