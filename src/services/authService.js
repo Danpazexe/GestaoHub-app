@@ -1,4 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '../constants/storage';
+import {
+  readJsonStorage,
+  readStringStorage,
+  removeStorageKeys,
+  writeJsonStorage,
+  writeStringStorage,
+} from './appStorageService';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
 const DEV_USER = {
@@ -47,7 +54,7 @@ class AuthService {
       authProvider: 'dev-local',
     };
 
-    await AsyncStorage.setItem('userData', JSON.stringify(user));
+    await writeJsonStorage(STORAGE_KEYS.USER_DATA, user);
 
     return {
       status: 200,
@@ -126,7 +133,7 @@ class AuthService {
       : null;
 
     if (user) {
-      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      await writeJsonStorage(STORAGE_KEYS.USER_DATA, user);
     }
 
     return { status: 200, data: { user, session: data?.session }, success: true };
@@ -144,17 +151,66 @@ class AuthService {
     return this.loginWithSupabase(email, password);
   }
 
-  async saveCredentials() {
-    await AsyncStorage.multiRemove(['savedEmail', 'rememberMe']);
+  async saveCredentials(email, password, rememberMe) {
+    if (!rememberMe) {
+      await removeStorageKeys([
+        STORAGE_KEYS.SAVED_EMAIL,
+        STORAGE_KEYS.SAVED_PASSWORD,
+        STORAGE_KEYS.REMEMBER_ME,
+      ]);
+      return;
+    }
+
+    await Promise.all([
+      writeStringStorage(STORAGE_KEYS.SAVED_EMAIL, String(email || '').trim()),
+      writeStringStorage(STORAGE_KEYS.SAVED_PASSWORD, String(password || '').trim()),
+      writeStringStorage(STORAGE_KEYS.REMEMBER_ME, 'true'),
+    ]);
   }
 
   async loadSavedCredentials() {
-    return { savedEmail: null, savedRememberMe: null };
+    const [savedEmail, savedPassword, savedRememberMe] = await Promise.all([
+      readStringStorage(STORAGE_KEYS.SAVED_EMAIL, ''),
+      readStringStorage(STORAGE_KEYS.SAVED_PASSWORD, ''),
+      readStringStorage(STORAGE_KEYS.REMEMBER_ME, ''),
+    ]);
+
+    return {
+      savedEmail,
+      savedPassword,
+      savedRememberMe,
+    };
   }
 
   async getUserData() {
-    const userData = await AsyncStorage.getItem('userData');
-    return userData ? JSON.parse(userData) : null;
+    return readJsonStorage(STORAGE_KEYS.USER_DATA, null);
+  }
+
+  async logout() {
+    let remoteSignOutError = null;
+
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabaseClient();
+
+      if (supabase?.auth?.signOut) {
+        try {
+          const { error } = await supabase.auth.signOut();
+          if (error) {
+            remoteSignOutError = error;
+          }
+        } catch (error) {
+          remoteSignOutError = error;
+        }
+      }
+    }
+
+    await removeStorageKeys([STORAGE_KEYS.USER_DATA]);
+
+    if (remoteSignOutError) {
+      console.warn('[AuthService] Logout remoto falhou, mas a sessão local foi encerrada.', remoteSignOutError?.message || remoteSignOutError);
+    }
+
+    return { success: true };
   }
 
   async register(name, email, password) {
@@ -202,7 +258,7 @@ class AuthService {
         : null;
 
       if (user) {
-        await AsyncStorage.setItem('userData', JSON.stringify(user));
+        await writeJsonStorage(STORAGE_KEYS.USER_DATA, user);
       }
 
       return {

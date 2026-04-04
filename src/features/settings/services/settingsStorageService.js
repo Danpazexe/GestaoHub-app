@@ -8,9 +8,17 @@ import {
 } from '../../../services/appStorageService';
 
 export const loadSettingsData = async () => {
-  const settings = await readJsonStorage(STORAGE_KEYS.USER_SETTINGS, {});
+  const [settings, biometricEnabled] = await Promise.all([
+    readJsonStorage(STORAGE_KEYS.USER_SETTINGS, {}),
+    readStringStorage(STORAGE_KEYS.BIOMETRIC_ENABLED, ''),
+  ]);
+  const hasStoredBiometricPreference =
+    biometricEnabled === 'true' || biometricEnabled === 'false';
+
   return {
-    biometric: Boolean(settings?.biometric),
+    biometric: hasStoredBiometricPreference
+      ? biometricEnabled === 'true'
+      : Boolean(settings?.biometric),
     autoBackup: Boolean(settings?.autoBackup),
     darkMode: Boolean(settings?.darkMode),
   };
@@ -41,7 +49,16 @@ export const loadSavedAuthPreferences = async () => {
 };
 
 export const saveBiometricEnabled = async (enabled) => {
-  await writeStringStorage(STORAGE_KEYS.BIOMETRIC_ENABLED, enabled ? 'true' : 'false');
+  const current = await readJsonStorage(STORAGE_KEYS.USER_SETTINGS, {});
+  const nextEnabled = Boolean(enabled);
+
+  await Promise.all([
+    writeStringStorage(STORAGE_KEYS.BIOMETRIC_ENABLED, nextEnabled ? 'true' : 'false'),
+    writeJsonStorage(STORAGE_KEYS.USER_SETTINGS, {
+      ...current,
+      biometric: nextEnabled,
+    }),
+  ]);
 };
 
 export const resetAllLocalData = async () => {

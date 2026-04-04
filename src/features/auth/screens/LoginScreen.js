@@ -7,28 +7,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  ScrollView,
   ActivityIndicator,
   Animated,
   Keyboard,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import LinearGradient from 'react-native-linear-gradient';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../../services/authService';
 import { CORESLOGIN } from '../../../components/coresAuth';
 
-const { width, height } = Dimensions.get('window');
-
 const COLORS = CORESLOGIN;
 
-const LoginScreen = ({ navigation, isDarkMode }) => {
-  const insets = useSafeAreaInsets();
-  const [mounted, setMounted] = useState(true);
+const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -37,7 +28,6 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [pressedButton, setPressedButton] = useState(false);
-  const devCredentials = authService.getDevUserCredentials();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -84,10 +74,11 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const loadSavedCredentials = async () => {
     try {
-      const { savedEmail, savedRememberMe } = await authService.loadSavedCredentials();
+      const { savedEmail, savedPassword, savedRememberMe } = await authService.loadSavedCredentials();
 
-      if (savedEmail && savedRememberMe === 'true') {
+      if (savedRememberMe === 'true') {
         setEmail(savedEmail);
+        setPassword(savedPassword);
         setRememberMe(true);
       }
     } catch (error) {
@@ -95,9 +86,13 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     }
   };
 
-  const saveCredentials = async () => {
+  const saveCredentials = async (targetEmail, targetPassword, shouldRememberCredentials) => {
     try {
-      await authService.saveCredentials(email, rememberMe);
+      await authService.saveCredentials(
+        targetEmail,
+        targetPassword,
+        shouldRememberCredentials,
+      );
     } catch (error) {
       console.error('Erro ao salvar credenciais:', error);
     }
@@ -108,13 +103,18 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
     if (!validateFields(targetEmail, targetPassword)) return;
 
+    const shouldRememberCredentials = rememberMe;
     setIsLoading(true);
 
     try {
       const response = await authService.login(targetEmail, targetPassword);
 
       if (response.success || response.status === 200) {
-        await handleSuccessfulLogin();
+        await handleSuccessfulLogin(
+          targetEmail,
+          targetPassword,
+          shouldRememberCredentials,
+        );
       }
     } catch (error) {
       handleLoginError(error);
@@ -125,15 +125,6 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const handleLogin = async () => {
     await performLogin(email, password);
-  };
-
-  const handleDevLogin = async () => {
-    if (!devCredentials) return;
-    setEmail(devCredentials.email);
-    setPassword(devCredentials.password);
-    setEmailError("");
-    setPasswordError("");
-    await performLogin(devCredentials.email, devCredentials.password);
   };
 
   const validateFields = (email, password) => {
@@ -148,8 +139,12 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     return true;
   };
 
-  const handleSuccessfulLogin = async () => {
-    await saveCredentials();
+  const handleSuccessfulLogin = async (
+    targetEmail,
+    targetPassword,
+    shouldRememberCredentials,
+  ) => {
+    await saveCredentials(targetEmail, targetPassword, shouldRememberCredentials);
     const userData = await authService.getUserData();
     Toast.show({
       type: 'success',
@@ -173,8 +168,13 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     return emailRegex.test(email);
   };
 
-  const handleRememberMeToggle = () => {
-    setRememberMe(!rememberMe);
+  const handleRememberMeToggle = async () => {
+    const nextRememberMe = !rememberMe;
+    setRememberMe(nextRememberMe);
+
+    if (!nextRememberMe) {
+      await saveCredentials(email, password, false);
+    }
   };
 
   const shakeForm = () => {
@@ -370,25 +370,6 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
               )}
             </TouchableOpacity>
 
-            {devCredentials ? (
-              <View style={styles.devCard}>
-                <View style={styles.devHeader}>
-                  <MaterialIcons name="developer-mode" size={18} color={COLORS.destaqueDourado} />
-                  <Text style={styles.devTitle}>Usuário dev</Text>
-                </View>
-                <Text style={styles.devText}>E-mail: {devCredentials.email}</Text>
-                <Text style={styles.devText}>Senha: {devCredentials.password}</Text>
-                <TouchableOpacity
-                  style={styles.devButton}
-                  onPress={handleDevLogin}
-                  disabled={isLoading}
-                >
-                  <MaterialIcons name="bolt" size={18} color={COLORS.branco} />
-                  <Text style={styles.devButtonText}>Entrar com usuário dev</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-
             {/* Link para Registro */}
             <TouchableOpacity
               style={styles.registerLink}
@@ -441,30 +422,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
   },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
   formContainer: {
     backgroundColor: COLORS.cartao,
     borderRadius: 24,
-    padding: 24,
+    padding: 22,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 20,
     elevation: 8,
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: 6,
+    marginBottom: 12,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
     borderColor: COLORS.borda,
   },
   inputWrapper: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -497,11 +472,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 6,
   },
+  optionsContainer: {
+    marginBottom: 2,
+  },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   checkbox: {
     width: 22,
@@ -524,7 +502,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: COLORS.textoPrincipal,
-    marginBottom: 24,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
@@ -540,49 +518,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-  devCard: {
-    borderWidth: 1,
-    borderColor: 'rgba(180, 83, 9, 0.22)',
-    backgroundColor: 'rgba(244, 204, 132, 0.12)',
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 18,
-  },
-  devHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  devTitle: {
-    marginLeft: 8,
-    color: COLORS.destaqueDourado,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  devText: {
-    color: COLORS.textoPrincipal,
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  devButton: {
-    marginTop: 10,
-    minHeight: 44,
-    borderRadius: 14,
-    backgroundColor: COLORS.destaqueDourado,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  devButtonText: {
-    color: COLORS.branco,
-    fontSize: 14,
-    fontWeight: '800',
-  },
   registerLink: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
   registerLinkText: {
     fontSize: 15,
@@ -591,11 +530,6 @@ const styles = StyleSheet.create({
   registerLinkTextBold: {
     color: COLORS.destaqueDourado,
     fontWeight: '700',
-  },
-  decorativeLine: {
-    height: 1,
-    backgroundColor: 'rgba(64, 68, 76, 0.18)',
-    marginVertical: 5,
   },
 });
 

@@ -6,6 +6,7 @@ import ReactNativeBiometrics from 'react-native-biometrics';
 import Toast from 'react-native-toast-message';
 import { CORESSETTINGS } from '../../../components/coresAuth';
 import ScreenLayout, { createScreenHeaderTemplate, createHeaderTitleTemplate } from '../../../components/ScreenLayout';
+import authService from '../../../services/authService';
 import {
   loadSavedAuthPreferences,
   loadSettingsData,
@@ -108,6 +109,44 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
   const toggleAutoBackup = () => {
     setAutoBackupEnabled(!isAutoBackupEnabled);
     saveSettings('autoBackup', !isAutoBackupEnabled);
+  };
+
+  const confirmLogout = () => {
+    Alert.alert(
+      'Sair da conta',
+      'Deseja encerrar a sessão atual e voltar para a tela de login?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: handleLogout,
+        },
+      ],
+    );
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+
+      Toast.show({
+        type: 'success',
+        text1: 'Logout realizado',
+        text2: 'Sessão encerrada com sucesso',
+      });
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'LoginScreen' }],
+      });
+    } catch (error) {
+      console.error('Erro ao realizar logout:', error);
+      Alert.alert('Erro', 'Não foi possível encerrar a sessão');
+    }
   };
 
   const handleResetData = async () => {
@@ -256,6 +295,14 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, navigation }) => {
         />
 
         <TouchableOpacity
+          style={[styles.button, isDarkMode ? styles.logoutButtonDark : styles.logoutButtonLight]}
+          onPress={confirmLogout}
+        >
+          <MaterialCommunityIcons name="logout" size={24} color="#FFFFFF" />
+          <Text style={styles.buttonText}>Sair da conta</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.button, isDarkMode ? styles.darkButton : styles.lightButton]}
           onPress={() => setIsModalVisible(true)}
         >
@@ -382,6 +429,12 @@ const styles = StyleSheet.create({
   },
   darkButton: {
     backgroundColor: '#1F2937',
+  },
+  logoutButtonLight: {
+    backgroundColor: '#b45309',
+  },
+  logoutButtonDark: {
+    backgroundColor: '#9a3412',
   },
   buttonText: {
     color: '#fff',
