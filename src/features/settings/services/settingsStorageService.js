@@ -24,6 +24,16 @@ export const loadSettingsData = async () => {
   };
 };
 
+export const loadThemePreference = async () => {
+  const settings = await readJsonStorage(STORAGE_KEYS.USER_SETTINGS, {});
+
+  if (typeof settings?.darkMode === 'boolean') {
+    return settings.darkMode;
+  }
+
+  return null;
+};
+
 export const saveSettingsValue = async (key, value) => {
   const current = await readJsonStorage(STORAGE_KEYS.USER_SETTINGS, {});
   const next = {

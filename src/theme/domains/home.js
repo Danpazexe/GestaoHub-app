@@ -40,6 +40,7 @@ export const functionalityTheme = {
     validade: '#2563eb',
     conferencia: '#0f766e',
     avaria: '#b45309',
+    utilitarios: '#3c446c',
   },
   actions: {
     'validade-lista': '#2563eb',
@@ -55,5 +56,8 @@ export const functionalityTheme = {
     'avaria-consultar': '#334155',
     'avaria-historico': '#4c1d95',
     'avaria-dashboard': '#c2410c',
+    'utilitarios-excel': '#0ea5e9',
+    'utilitarios-pdf': '#d7263d',
+    'utilitarios-sql': '#2563eb',
   },
 };

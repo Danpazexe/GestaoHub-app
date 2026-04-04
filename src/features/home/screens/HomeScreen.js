@@ -112,6 +112,36 @@ const HomeScreen = ({ isDarkMode }) => {
         { id: 'avaria-dashboard', title: 'Dashboard de Avaria', icon: 'bar-chart', color: FUNC_COLORS.actions['avaria-dashboard'], screen: 'AvariaDashboardScreen' },
       ],
     },
+    {
+      id: 'utilitarios',
+      title: 'UTILITÁRIOS',
+      subtitle: 'Exportação, PDF e banco local',
+      icon: 'build',
+      color: FUNC_COLORS.modules.utilitarios,
+      actions: [
+        {
+          id: 'utilitarios-excel',
+          title: 'Exportar/Importar Excel',
+          icon: 'table-chart',
+          screen: 'ExcelScreen',
+          color: FUNC_COLORS.actions['utilitarios-excel'],
+        },
+        {
+          id: 'utilitarios-pdf',
+          title: 'Exportar relatórios PDF',
+          icon: 'picture-as-pdf',
+          screen: 'PdfScreen',
+          color: FUNC_COLORS.actions['utilitarios-pdf'],
+        },
+        {
+          id: 'utilitarios-sql',
+          title: 'Gerenciar banco de dados',
+          icon: 'storage',
+          screen: 'SqlScreen',
+          color: FUNC_COLORS.actions['utilitarios-sql'],
+        },
+      ],
+    },
   ];
 
   useEffect(() => {

@@ -44,6 +44,7 @@ import ProfileScreen from './src/features/profile/screens/ProfileScreen';
 import ConferenciaTratativasRecebimentoScreen from './src/features/recebimentoTratativas/screens/ConferenciaTratativasRecebimentoScreen';
 import EspelhoRecebimentoScreen from './src/features/recebimentoTratativas/screens/EspelhoRecebimentoScreen';
 import SettingsScreen from './src/features/settings/screens/SettingsScreen';
+import { loadThemePreference } from './src/features/settings/services/settingsStorageService';
 import AddProductScreen from './src/features/validade/screens/AddProductScreen';
 import DashboardScreen from './src/features/validade/screens/DashboardScreen';
 import ExcelScreen from './src/features/validade/screens/ExcelScreen';
@@ -145,6 +146,7 @@ const configurePushNotifications = async () => {
 
 export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(Appearance.getColorScheme() === 'dark');
+  const [hasManualThemePreference, setHasManualThemePreference] = useState(false);
   const [lastBackPress, setLastBackPress] = useState(0);
   const [statusBarBackground, setStatusBarBackground] = useState('#f7f7f8');
   const [currentRoute, setCurrentRoute] = useState({ name: 'EntryScreen', params: undefined });
@@ -168,6 +170,31 @@ export default function App() {
   useEffect(() => {
     configurePushNotifications();
     checkNotificationPermissions();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateThemePreference = async () => {
+      try {
+        const storedThemePreference = await loadThemePreference();
+
+        if (!isMounted || typeof storedThemePreference !== 'boolean') {
+          return;
+        }
+
+        setIsDarkMode(storedThemePreference);
+        setHasManualThemePreference(true);
+      } catch (error) {
+        console.error('Erro ao carregar preferência de tema:', error);
+      }
+    };
+
+    hydrateThemePreference();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const checkNotificationPermissions = async () => {
@@ -221,11 +248,15 @@ export default function App() {
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (hasManualThemePreference) {
+        return;
+      }
+
       setIsDarkMode(colorScheme === 'dark');
     });
 
     return () => subscription?.remove();
-  }, []);
+  }, [hasManualThemePreference]);
 
   useEffect(() => {
     if (Platform.OS !== 'android' || isScannerRoute) {
@@ -414,7 +445,20 @@ export default function App() {
               </Stack.Screen>
 
               <Stack.Screen name="SettingsScreen">
-                {props => <SettingsScreen {...props} isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
+                {props => (
+                  <SettingsScreen
+                    {...props}
+                    isDarkMode={isDarkMode}
+                    setIsDarkMode={(nextValue) => {
+                      setHasManualThemePreference(true);
+                      setIsDarkMode(Boolean(nextValue));
+                    }}
+                    resetThemePreference={() => {
+                      setHasManualThemePreference(false);
+                      setIsDarkMode(Appearance.getColorScheme() === 'dark');
+                    }}
+                  />
+                )}
               </Stack.Screen>
 
               <Stack.Screen name="TratarScreen">
