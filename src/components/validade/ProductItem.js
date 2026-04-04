@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, Modal, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import * as Animatable from 'react-native-animatable';
 import { CORESPRODUCTITEM } from '../coresAuth';
 import { getSignedProductImageUrl } from '../../services/supabaseStorageService';
 import ReactNativeBlobUtil from 'react-native-blob-util';
@@ -9,9 +10,19 @@ const COLORS = CORESPRODUCTITEM;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MODAL_IMAGE_WIDTH = Math.floor(SCREEN_WIDTH * 0.9);
 const MODAL_IMAGE_HEIGHT = Math.floor(SCREEN_HEIGHT * 0.72);
+const BADGE_ENTRY_ANIMATION = {
+  0: {
+    opacity: 0,
+    transform: [{ translateY: -4 }, { scale: 0.92 }],
+  },
+  1: {
+    opacity: 1,
+    transform: [{ translateY: 0 }, { scale: 1 }],
+  },
+};
 
 // Componente para exibir detalhes sobre um produto
-const ProductItem = ({ product, isDarkMode }) => {
+const ProductItem = ({ product, isDarkMode, shouldAnimateEntry = false }) => {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [imageLoadFailed, setImageLoadFailed] = React.useState(false);
   const [resolvedImageUrl, setResolvedImageUrl] = React.useState('');
@@ -288,21 +299,45 @@ const ProductItem = ({ product, isDarkMode }) => {
       {/* Card do Produto */}
       <View style={[styles.container, isDarkMode && styles.darkContainer]}>
         {/* Status de Validade - Badge dentro do card */}
-        <View style={[
-          styles.statusBadge,
-          {
-            backgroundColor: expirationInfo.backgroundColor,
-          }
-        ]}>
-          <Text style={[
-            styles.badgeText,
-            { color: expirationInfo.color }
+        {shouldAnimateEntry ? (
+          <Animatable.View
+            animation={BADGE_ENTRY_ANIMATION}
+            duration={280}
+            delay={140}
+            useNativeDriver
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: expirationInfo.backgroundColor,
+              }
+            ]}
+          >
+            <Text style={[
+              styles.badgeText,
+              { color: expirationInfo.color }
+            ]}>
+              {expirationInfo.status === 'Produto Vencido' ? 'VENCIDO' :
+                expirationInfo.status === 'Vencendo Hoje' ? 'VENCE HOJE' :
+                  expirationInfo.status}
+            </Text>
+          </Animatable.View>
+        ) : (
+          <View style={[
+            styles.statusBadge,
+            {
+              backgroundColor: expirationInfo.backgroundColor,
+            }
           ]}>
-            {expirationInfo.status === 'Produto Vencido' ? 'VENCIDO' :
-              expirationInfo.status === 'Vencendo Hoje' ? 'VENCE HOJE' :
-                expirationInfo.status}
-          </Text>
-        </View>
+            <Text style={[
+              styles.badgeText,
+              { color: expirationInfo.color }
+            ]}>
+              {expirationInfo.status === 'Produto Vencido' ? 'VENCIDO' :
+                expirationInfo.status === 'Vencendo Hoje' ? 'VENCE HOJE' :
+                  expirationInfo.status}
+            </Text>
+          </View>
+        )}
         {/* Detalhes do Produto */}
         <View style={styles.productDetails}>
           {/* Informações do Produto */}
@@ -373,7 +408,8 @@ const ProductItem = ({ product, isDarkMode }) => {
 const styles = StyleSheet.create({
   wrapper: {
     position: 'relative',
-    marginVertical: 4,
+    marginHorizontal: 3,
+    marginVertical: 2,
   },
 
   container: {

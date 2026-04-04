@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, StyleSheet, Alert, TextInput, ActivityIndicator, Image, TouchableOpacity, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Animatable from 'react-native-animatable';
 import ProductItem from '../../../components/validade/ProductItem';
 import TreatmentModal from '../../../components/validade/TreatmentModal';
 import DeleteConfirmationModal from '../../../components/validade/DeleteConfirmationModal';
@@ -26,6 +27,16 @@ import {
 } from '../../../services/validadeSupabaseService';
 
 const COLORS = CORESLIST;
+const LIST_ITEM_ENTRY_ANIMATION = {
+  0: {
+    opacity: 0,
+    transform: [{ translateY: 16 }, { scale: 0.97 }],
+  },
+  1: {
+    opacity: 1,
+    transform: [{ translateY: 0 }, { scale: 1 }],
+  },
+};
 
 const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -88,6 +99,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const inFlightRemoteFetchRef = useRef(null);
   const isCheckingRemoteRef = useRef(false);
   const isSyncingRemoteRef = useRef(false);
+  const animatedCardIdsRef = useRef(new Set());
 
   useEffect(() => {
     localProductsRef.current = products;
@@ -608,35 +620,52 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     }
   };
 
-  const renderProductItem = ({ item }) => {
+  const renderProductItem = ({ item, index }) => {
     const diasrestantes = calculatediasrestantes(item.validade);
+    const animationKey = item.id?.toString() || item.codprod?.toString() || index.toString();
+    const shouldAnimateEntry = !animatedCardIdsRef.current.has(animationKey);
+
+    if (shouldAnimateEntry) {
+      animatedCardIdsRef.current.add(animationKey);
+    }
+
     if (!swipeRefs.current[item.id]) {
       swipeRefs.current[item.id] = React.createRef();
     }
+
     return (
-      <SwipeableListItem
-        ref={swipeRefs.current[item.id]}
-        item={item}
-        onTreat={() => {
-          setSelectedProduct(item);
-          setTreatmentQuantity(String(item.quantidade || ''));
-          setTreatmentModalVisible(true);
-        }}
-        onEdit={handleEditProduct}
-        onDelete={handleDeleteProduct}
-        isDarkMode={isDarkMode}
-        onSwipeableOpen={() => handleSwipeableOpen(swipeRefs.current[item.id].current)}
-        onRequestClose={handleCloseSwipe}
+      <Animatable.View
+        animation={shouldAnimateEntry ? LIST_ITEM_ENTRY_ANIMATION : undefined}
+        duration={shouldAnimateEntry ? 460 : 0}
+        delay={shouldAnimateEntry ? Math.min(index, 6) * 70 : 0}
+        easing="ease-out"
+        useNativeDriver
       >
-        <ProductItem
-          product={{
-            ...item,
-            validade: new Date(item.validade).toLocaleDateString('pt-BR'),
-            diasrestantes,
+        <SwipeableListItem
+          ref={swipeRefs.current[item.id]}
+          item={item}
+          onTreat={() => {
+            setSelectedProduct(item);
+            setTreatmentQuantity(String(item.quantidade || ''));
+            setTreatmentModalVisible(true);
           }}
+          onEdit={handleEditProduct}
+          onDelete={handleDeleteProduct}
           isDarkMode={isDarkMode}
-        />
-      </SwipeableListItem>
+          onSwipeableOpen={() => handleSwipeableOpen(swipeRefs.current[item.id].current)}
+          onRequestClose={handleCloseSwipe}
+        >
+          <ProductItem
+            product={{
+              ...item,
+              validade: new Date(item.validade).toLocaleDateString('pt-BR'),
+              diasrestantes,
+            }}
+            isDarkMode={isDarkMode}
+            shouldAnimateEntry={shouldAnimateEntry}
+          />
+        </SwipeableListItem>
+      </Animatable.View>
     );
   };
 
@@ -991,21 +1020,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
-  // ==================== Estilos da Lista de Produtos ====================
-  productItem: {
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    marginVertical: 4,
-    marginHorizontal: 2,
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  darkProductItem: {
-    backgroundColor: COLORS.cardDark,
-  },
   emptyList: {
     flex: 1,
     justifyContent: 'center',
