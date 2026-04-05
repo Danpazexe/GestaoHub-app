@@ -1,9 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Pressable, ScrollView, Platform } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import * as Animatable from 'react-native-animatable';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { readStoredUserSummary } from '../../../services/userSessionStorageService';
+import {
+  cardEntrance,
+  fadeInUpSoft,
+  getStaggerDelay,
+} from '../../../components/animations/entrancePresets';
 import { functionalityTheme, homeTheme } from '../../../theme/domains/home';
 
 const COLORS = homeTheme;
@@ -44,8 +50,10 @@ const HomeScreen = ({ isDarkMode }) => {
   const navigation = useNavigation();
   const [pressedCard, setPressedCard] = useState(null);
   const [userName, setUserName] = useState('Usuário');
+  const [animationCycle, setAnimationCycle] = useState(0);
   const logoTapCountRef = useRef(0);
   const logoTapTimerRef = useRef(null);
+  const hasFocusedOnceRef = useRef(false);
 
   const modules = [
     {
@@ -164,6 +172,18 @@ const HomeScreen = ({ isDarkMode }) => {
       }
     };
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        setAnimationCycle((previousCycle) => previousCycle + 1);
+        return undefined;
+      }
+
+      hasFocusedOnceRef.current = true;
+      return undefined;
+    }, [])
+  );
 
   const handleLogoPress = () => {
     if (!__DEV__) {
@@ -384,49 +404,66 @@ const HomeScreen = ({ isDarkMode }) => {
       <SafeAreaView style={styles.content} edges={['top', 'left', 'right']}>
         <View style={styles.backgroundGlowTop} />
         <View style={styles.backgroundGlowBottom} />
-        <View style={styles.header}>
-          <View style={styles.topRow}>
-            <TouchableOpacity
-              style={styles.logoButton}
-              onPress={handleLogoPress}
-              activeOpacity={0.85}
-            >
-              <Image source={require('../../../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
-            </TouchableOpacity>
-            <View style={styles.headerButtons}>
+        <Animatable.View
+          key={`home-header-${animationCycle}`}
+          animation={fadeInUpSoft}
+          duration={360}
+          easing="ease-out"
+          useNativeDriver
+        >
+          <View style={styles.header}>
+            <View style={styles.topRow}>
               <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => navigation.navigate('ProfileScreen')}
+                style={styles.logoButton}
+                onPress={handleLogoPress}
+                activeOpacity={0.85}
               >
-                <MaterialIcons
-                  name="account-circle"
-                  size={26}
-                  color={COLORS.destaqueAzul}
-                />
+                <Image source={require('../../../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => navigation.navigate('SettingsScreen')}
-              >
-                <MaterialIcons
-                  name="settings"
-                  size={24}
-                  color={COLORS.destaqueVerde}
-                />
-              </TouchableOpacity>
+              <View style={styles.headerButtons}>
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={() => navigation.navigate('ProfileScreen')}
+                >
+                  <MaterialIcons
+                    name="account-circle"
+                    size={26}
+                    color={COLORS.destaqueAzul}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={() => navigation.navigate('SettingsScreen')}
+                >
+                  <MaterialIcons
+                    name="settings"
+                    size={24}
+                    color={COLORS.destaqueVerde}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.greetingText} numberOfLines={1}>
+                Olá, {userName || 'Usuário'}
+              </Text>
             </View>
           </View>
-          <View style={styles.headerText}>
-            <Text style={styles.greetingText} numberOfLines={1}>
-              Olá, {userName || 'Usuário'}
-            </Text>
-          </View>
-        </View>
+        </Animatable.View>
 
         <View style={styles.menuContainer}>
-          <Text style={styles.sectionTitle}>Funcionalidades</Text>
+          <Animatable.View
+            key={`home-section-title-${animationCycle}`}
+            animation={fadeInUpSoft}
+            duration={360}
+            delay={90}
+            easing="ease-out"
+            useNativeDriver
+          >
+            <Text style={styles.sectionTitle}>Funcionalidades</Text>
+          </Animatable.View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
-            {modules.map((module) => {
+            {modules.map((module, index) => {
               const moduleColor = module.color || COLORS.destaqueAzul;
               const onModuleColor = isDarkColor(moduleColor) ? '#ffffff' : '#1f2937';
               const tintedBackground = withAlpha(moduleColor, isDarkMode ? 0.18 : 0.09);
@@ -436,34 +473,42 @@ const HomeScreen = ({ isDarkMode }) => {
               const chevronColor = isDarkMode ? '#e7ecff' : moduleColor;
 
               return (
-                <Pressable
-                  key={module.id}
-                  onPressIn={() => setPressedCard(module.id)}
-                  onPressOut={() => setPressedCard(null)}
-                  onPress={() => navigation.navigate('ModuleFunctionsScreen', { module })}
-                  style={({ pressed }) => [styles.menuCardWrapper, pressed && styles.pressedCard]}
+                <Animatable.View
+                  key={`home-card-${module.id}-${animationCycle}`}
+                  animation={cardEntrance}
+                  duration={460}
+                  delay={getStaggerDelay(index, { baseDelay: 150, step: 70, maxIndex: 6 })}
+                  easing="ease-out"
+                  useNativeDriver
                 >
-                  <View
-                    style={[
-                      styles.menuButton,
-                      { borderColor },
-                      pressedCard === module.id && { opacity: 0.95 },
-                    ]}
+                  <Pressable
+                    onPressIn={() => setPressedCard(module.id)}
+                    onPressOut={() => setPressedCard(null)}
+                    onPress={() => navigation.navigate('ModuleFunctionsScreen', { module })}
+                    style={({ pressed }) => [styles.menuCardWrapper, pressed && styles.pressedCard]}
                   >
-                    <View style={[styles.menuButtonTint, { backgroundColor: tintedBackground }]} />
-                    <View style={[styles.menuButtonAccent, { backgroundColor: moduleColor }]} />
-                    <View style={[styles.menuButtonIconCircle, { backgroundColor: iconBg }]}>
-                      <MaterialIcons name={module.icon || 'chevron-right'} size={22} color={onModuleColor} />
+                    <View
+                      style={[
+                        styles.menuButton,
+                        { borderColor },
+                        pressedCard === module.id && { opacity: 0.95 },
+                      ]}
+                    >
+                      <View style={[styles.menuButtonTint, { backgroundColor: tintedBackground }]} />
+                      <View style={[styles.menuButtonAccent, { backgroundColor: moduleColor }]} />
+                      <View style={[styles.menuButtonIconCircle, { backgroundColor: iconBg }]}>
+                        <MaterialIcons name={module.icon || 'chevron-right'} size={22} color={onModuleColor} />
+                      </View>
+                      <View style={styles.menuButtonText}>
+                        <Text style={styles.menuButtonTitle} numberOfLines={1}>{module.title}</Text>
+                        <Text style={styles.menuButtonSubtitle} numberOfLines={1}>{module.subtitle}</Text>
+                      </View>
+                      <View style={[styles.chevronBadge, { backgroundColor: chevronBg }]}>
+                        <MaterialIcons name="chevron-right" size={22} color={chevronColor} />
+                      </View>
                     </View>
-                    <View style={styles.menuButtonText}>
-                      <Text style={styles.menuButtonTitle} numberOfLines={1}>{module.title}</Text>
-                      <Text style={styles.menuButtonSubtitle} numberOfLines={1}>{module.subtitle}</Text>
-                    </View>
-                    <View style={[styles.chevronBadge, { backgroundColor: chevronBg }]}>
-                      <MaterialIcons name="chevron-right" size={22} color={chevronColor} />
-                    </View>
-                  </View>
-                </Pressable>
+                  </Pressable>
+                </Animatable.View>
               );
             })}
           </ScrollView>

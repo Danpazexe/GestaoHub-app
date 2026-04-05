@@ -15,6 +15,10 @@ import ScreenLayout, {
   createHeaderTitleTemplate,
   createHeaderActionsTemplate,
 } from '../../../components/ScreenLayout';
+import {
+  cardEntrance,
+  getStaggerDelay,
+} from '../../../components/animations/entrancePresets';
 import { CORESLIST } from '../../../components/coresAuth';
 import {
   loadValidadeProducts,
@@ -27,16 +31,6 @@ import {
 } from '../../../services/validadeSupabaseService';
 
 const COLORS = CORESLIST;
-const LIST_ITEM_ENTRY_ANIMATION = {
-  0: {
-    opacity: 0,
-    transform: [{ translateY: 16 }, { scale: 0.97 }],
-  },
-  1: {
-    opacity: 1,
-    transform: [{ translateY: 0 }, { scale: 1 }],
-  },
-};
 
 const useProducts = () => {
   const [products, setProducts] = useState([]);
@@ -635,9 +629,9 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
 
     return (
       <Animatable.View
-        animation={shouldAnimateEntry ? LIST_ITEM_ENTRY_ANIMATION : undefined}
+        animation={shouldAnimateEntry ? cardEntrance : undefined}
         duration={shouldAnimateEntry ? 460 : 0}
-        delay={shouldAnimateEntry ? Math.min(index, 6) * 70 : 0}
+        delay={shouldAnimateEntry ? getStaggerDelay(index) : 0}
         easing="ease-out"
         useNativeDriver
       >
