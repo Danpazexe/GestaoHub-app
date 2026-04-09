@@ -6,10 +6,17 @@
 - resposta remota vazia é válida e deve sobrescrever cache antigo.
 - falha remota não bloqueia operação local; o app continua com fallback.
 
+## Configurações
+- a configuração de localização logística usa cache local em `userSettings`.
+- quando houver sessão remota disponível, o app sincroniza essa configuração em `user_settings.extra.logisticsLocationConfig`.
+- leitura usa cache local primeiro e depois tenta atualizar pelo remoto.
+- falha remota na configuração não impede o uso local.
+
 ## Validade
 - `loadValidadeProducts` tenta Supabase primeiro e cai no cache local.
 - `persistValidadeProducts` salva o cache e tenta sincronizar o conjunto no remoto.
 - exclusão remota continua explícita quando o produto é removido da lista.
+- produtos podem carregar `location` como objeto logístico persistido localmente e no remoto.
 
 ## Tratativas de recebimento
 - o cache local é obrigatório.

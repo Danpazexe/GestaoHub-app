@@ -14,12 +14,19 @@
 ### Cache `products`
 - contém produtos ativos, tratados e itens derivados por split.
 - campos mais usados:
-  `id`, `codprod`, `descricao`, `codauxiliar`, `lote`, `validade`, `quantidade`, `diasrestantes`, `status`, `treatmentType`, `treatmentDate`, `imageUrl`, `imagePath`.
+  `id`, `codprod`, `descricao`, `codauxiliar`, `lote`, `validade`, `quantidade`, `diasrestantes`, `status`, `treatmentType`, `treatmentDate`, `imageUrl`, `imagePath`, `location`.
+
+### `product.location`
+- objeto opcional de localização logística por produto.
+- chaves suportadas:
+  `corredor`, `prateleira`, `nivel`, `aereo`, `picking`, `gondola`, `observacao`.
+- o app preserva valores já salvos mesmo quando algum campo deixa de ficar visível na configuração.
 
 ### Tabela `validade_products`
 - backend principal da lista de validade.
 - continua sendo a entidade operacional do estoque/lista.
 - itens tratados permanecem no mesmo conjunto para sustentar dashboard, histórico e exportações legadas.
+- passa a aceitar `location` como `jsonb`, espelhando o contrato local do produto.
 
 ## Conferência
 
@@ -48,6 +55,11 @@
 ## Perfil e configurações
 - perfil local usa chaves dedicadas, mas já é acessado via serviço.
 - configurações ficam agrupadas em `userSettings`.
+- `userSettings.logisticsLocationConfig` guarda a configuração da localização logística.
+- o contrato canônico da configuração é:
+  `corredor`, `prateleira`, `nivel`, `aereo`, `picking`, `gondola`, `observacao`.
+- cada chave usa:
+  `{ enabled: boolean, required: boolean }`.
 
 ## Regras de compatibilidade
 - campos antigos podem continuar existindo no banco/cache se a UI nova já trabalhar com um contrato mais estruturado.

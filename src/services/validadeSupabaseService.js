@@ -1,7 +1,47 @@
 import { getSupabaseClient } from './supabaseClient';
 import { getSignedProductImageUrl } from './supabaseStorageService';
+import { sanitizeLogisticsLocation } from '../features/validade/constants/logisticsLocation';
 
 const TABLE = 'validade_products';
+let hasRemoteLocationColumnSupport = true;
+
+const isMissingRemoteLocationColumnError = (error) => {
+  const message = String(error?.message || '');
+  const details = String(error?.details || '');
+  const hint = String(error?.hint || '');
+  const combined = `${message} ${details} ${hint}`;
+
+  return (
+    error?.code === 'PGRST204'
+    && combined.includes("'location' column")
+    && combined.includes(`'${TABLE}'`)
+  );
+};
+
+const buildValidadeProductPayload = ({ product, userId, includeLocation = true }) => {
+  const payload = {
+    id: String(product.id || Date.now().toString()),
+    user_id: userId,
+    codprod: product.codprod || null,
+    descricao: product.descricao || '',
+    codauxiliar: product.codauxiliar || null,
+    lote: product.lote || null,
+    validade: product.validade || null,
+    quantidade: Number(product.quantidade || 0),
+    diasrestantes: Number.isFinite(product.diasrestantes) ? product.diasrestantes : null,
+    image_path: product.imagePath || product.imageUrl || null,
+    status: product.status || 'active',
+    treatment_type: product.treatmentType || null,
+    treatment_quantity: product.treatmentQuantity || null,
+    treatment_date: product.treatmentDate || null,
+  };
+
+  if (includeLocation) {
+    payload.location = sanitizeLogisticsLocation(product.location);
+  }
+
+  return payload;
+};
 
 export const getCurrentUserId = async () => {
   const supabase = getSupabaseClient();
@@ -45,6 +85,7 @@ export const listValidadeProducts = async () => {
       diasrestantes: item.diasrestantes,
       imageUrl: signedUrl || (isRemoteUrl ? imagePathValue : null),
       imagePath: isStoragePath ? imagePathValue : null,
+      location: sanitizeLogisticsLocation(item.location),
       status: item.status,
       treatmentType: item.treatment_type,
       treatmentQuantity: item.treatment_quantity,
@@ -60,34 +101,30 @@ export const upsertValidadeProduct = async (product) => {
   if (!supabase) throw new Error('Cliente Supabase indisponível');
   const userId = await getCurrentUserId();
 
-  const payload = {
-    id: String(product.id || Date.now().toString()),
-    user_id: userId,
-    codprod: product.codprod || null,
-    descricao: product.descricao || '',
-    codauxiliar: product.codauxiliar || null,
-    lote: product.lote || null,
-    validade: product.validade || null,
-    quantidade: Number(product.quantidade || 0),
-    diasrestantes: Number.isFinite(product.diasrestantes) ? product.diasrestantes : null,
-    image_path: product.imagePath || product.imageUrl || null,
-    status: product.status || 'active',
-    treatment_type: product.treatmentType || null,
-    treatment_quantity: product.treatmentQuantity || null,
-    treatment_date: product.treatmentDate || null,
+  const attemptUpsert = async (includeLocation) => {
+    const payload = buildValidadeProductPayload({ product, userId, includeLocation });
+    return supabase
+      .from(TABLE)
+      .upsert([payload], { onConflict: 'user_id,id' })
+      .select('*')
+      .single();
   };
 
-  const { data, error } = await supabase
-    .from(TABLE)
-    .upsert([payload], { onConflict: 'user_id,id' })
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Falha ao salvar produto');
+  const { data, error } = await attemptUpsert(hasRemoteLocationColumnSupport);
+  if (!error) {
+    return data;
   }
 
-  return data;
+  if (hasRemoteLocationColumnSupport && isMissingRemoteLocationColumnError(error)) {
+    hasRemoteLocationColumnSupport = false;
+    const fallbackResult = await attemptUpsert(false);
+    if (fallbackResult.error) {
+      throw new Error(fallbackResult.error.message || 'Falha ao salvar produto');
+    }
+    return fallbackResult.data;
+  }
+
+  throw new Error(error.message || 'Falha ao salvar produto');
 };
 
 export const removeValidadeProduct = async (id) => {

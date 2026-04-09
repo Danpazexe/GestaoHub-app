@@ -349,6 +349,17 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, resetThemePreference, navig
           />
         </SectionCard>
 
+        <SectionHeader title="Operação" />
+        <SectionCard>
+          <NavigationItem
+            icon="map-marker-path"
+            title="Endereços logísticos"
+            onPress={() => navigation.navigate('EnderecosScreen')}
+            iconColor="#2563EB"
+            isLast
+          />
+        </SectionCard>
+
         <SectionHeader title="Segurança" />
         <SectionCard>
           <SettingItem

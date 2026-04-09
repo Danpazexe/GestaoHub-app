@@ -13,7 +13,11 @@ const MODAL_IMAGE_WIDTH = Math.floor(SCREEN_WIDTH * 0.9);
 const MODAL_IMAGE_HEIGHT = Math.floor(SCREEN_HEIGHT * 0.72);
 
 // Componente para exibir detalhes sobre um produto
-const ProductItem = ({ product, isDarkMode, shouldAnimateEntry = false }) => {
+const ProductItem = ({
+  product,
+  isDarkMode,
+  shouldAnimateEntry = false,
+}) => {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [imageLoadFailed, setImageLoadFailed] = React.useState(false);
   const [resolvedImageUrl, setResolvedImageUrl] = React.useState('');
@@ -329,67 +333,75 @@ const ProductItem = ({ product, isDarkMode, shouldAnimateEntry = false }) => {
             </Text>
           </View>
         )}
-        {/* Detalhes do Produto */}
-        <View style={styles.productDetails}>
-          {/* Informações do Produto */}
-          <Text style={[styles.productName, isDarkMode && styles.darkProductName]} numberOfLines={2}>
-            {product.descricao}
-          </Text>
-          {/* Detalhes do Produto em Grid */}
-          <View style={styles.infoGrid}>
-            <View style={styles.infoRow}>
-              <MaterialIcons name="code" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
-              <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Código:</Text>
-              <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codprod}</Text>
-            </View>
+        <View style={styles.contentRow}>
+          {/* Detalhes do Produto */}
+          <View style={styles.productDetails}>
+            {/* Informações do Produto */}
+            <Text style={[styles.productName, isDarkMode && styles.darkProductName]} numberOfLines={2}>
+              {product.descricao}
+            </Text>
+            {/* Detalhes do Produto em Grid */}
+            <View style={styles.infoGrid}>
+              <View style={styles.infoRow}>
+                <MaterialIcons name="code" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
+                <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Código:</Text>
+                <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codprod}</Text>
+              </View>
 
-            <View style={styles.infoRow}>
-              <MaterialIcons name="format-list-numbered" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
-              <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Qtd:</Text>
-              <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.quantidade}</Text>
-            </View>
+              <View style={styles.infoRow}>
+                <MaterialIcons name="format-list-numbered" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
+                <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Qtd:</Text>
+                <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.quantidade}</Text>
+              </View>
 
-            <View style={styles.infoRow}>
-              <MaterialIcons name="qr-code" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
-              <Text style={[styles.label, isDarkMode && styles.darkLabel]}>EAN:</Text>
-              <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codauxiliar}</Text>
-            </View>
+              <View style={styles.infoRow}>
+                <MaterialIcons name="qr-code" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
+                <Text style={[styles.label, isDarkMode && styles.darkLabel]}>EAN:</Text>
+                <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.codauxiliar}</Text>
+              </View>
 
-            <View style={styles.infoRow}>
-              <MaterialIcons name="label" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
-              <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Lote:</Text>
-              <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.lote}</Text>
-            </View>
+              <View style={styles.infoRow}>
+                <MaterialIcons name="label" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
+                <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Lote:</Text>
+                <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.lote}</Text>
+              </View>
 
-            <View style={styles.infoRow}>
-              <MaterialIcons name="event" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
-              <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Validade:</Text>
-              <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.validade}</Text>
+              <View style={styles.infoRow}>
+                <MaterialIcons name="event" size={17} color={isDarkMode ? COLORS.iconDark : COLORS.icon} style={styles.icon} />
+                <Text style={[styles.label, isDarkMode && styles.darkLabel]}>Validade:</Text>
+                <Text style={[styles.value, isDarkMode && styles.darkValue]}>{product.validade}</Text>
+              </View>
             </View>
           </View>
-        </View>
-        {/* Imagem do Produto */}
-        <View style={styles.imageWrapper}>
-          {isResolvingImage ? (
-            <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
-              <ActivityIndicator size="small" color={isDarkMode ? COLORS.labelDark : COLORS.label} />
-            </View>
-          ) : canRenderImage ? (
-            <TouchableOpacity
-              onPress={() => setModalVisible(true)}
-            >
-              <Image
-                source={{ uri: resolvedImageUrl }}
-                style={styles.image}
-                resizeMode="cover"
-                onError={handleImageRenderError}
-              />
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
-              <MaterialIcons name="no-photography" size={38} color={isDarkMode ? COLORS.labelDark : COLORS.label} />
-            </View>
-          )}
+          {/* Imagem do Produto */}
+          <View style={styles.imageWrapper}>
+            {isResolvingImage ? (
+              <View style={[styles.imageShell, isDarkMode && styles.darkImageShell]}>
+                <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
+                  <ActivityIndicator size="small" color={isDarkMode ? COLORS.labelDark : COLORS.label} />
+                </View>
+              </View>
+            ) : canRenderImage ? (
+              <TouchableOpacity
+                style={[styles.imageShell, isDarkMode && styles.darkImageShell]}
+                onPress={() => setModalVisible(true)}
+                activeOpacity={0.88}
+              >
+                <Image
+                  source={{ uri: resolvedImageUrl }}
+                  style={styles.image}
+                  resizeMode="cover"
+                  onError={handleImageRenderError}
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.imageShell, isDarkMode && styles.darkImageShell]}>
+                <View style={[styles.image, styles.placeholderImage, isDarkMode && styles.placeholderImageDark]}>
+                  <MaterialIcons name="no-photography" size={38} color={isDarkMode ? COLORS.labelDark : COLORS.label} />
+                </View>
+              </View>
+            )}
+          </View>
         </View>
       </View>
     </View>
@@ -404,20 +416,26 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flexDirection: 'row',
     padding: 12,
-    alignItems: 'center',
     backgroundColor: COLORS.card,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(46, 53, 84, 0.08)',
     elevation: 3,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     position: 'relative',
   },
   darkContainer: {
     backgroundColor: COLORS.cardDark,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    minHeight: 120,
   },
 
   productDetails: {
@@ -428,8 +446,8 @@ const styles = StyleSheet.create({
 
   productName: {
     fontSize: 17,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '800',
+    marginBottom: 8,
     color: COLORS.title,
     lineHeight: 20,
   },
@@ -445,7 +463,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 1,
+    marginBottom: 3,
   },
 
   icon: {
@@ -466,12 +484,11 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 14,
     color: COLORS.value,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   darkValue: {
     color: COLORS.valueDark,
   },
-
   statusBadge: {
     position: 'absolute',
     top: 8,
@@ -496,9 +513,31 @@ const styles = StyleSheet.create({
   },
 
   imageWrapper: {
-    marginLeft: 10,
+    width: 96,
+    marginLeft: 12,
+    marginTop: 34,
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  imageShell: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(46, 53, 84, 0.08)',
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  darkImageShell: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   image: {
     width: 80,

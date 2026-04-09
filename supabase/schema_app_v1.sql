@@ -96,6 +96,7 @@ create table if not exists public.validade_products (
   quantidade integer not null default 0,
   diasrestantes integer,
   image_path text,
+  location jsonb not null default '{}'::jsonb,
   status text not null default 'active', -- active | treated | resolved
   treatment_type text,                   -- sold | exchanged | returned | expired | unknown
   treatment_quantity integer,
@@ -110,6 +111,9 @@ create index if not exists idx_validade_products_user on public.validade_product
 create index if not exists idx_validade_products_codprod on public.validade_products(user_id, codprod);
 create index if not exists idx_validade_products_codauxiliar on public.validade_products(user_id, codauxiliar);
 create index if not exists idx_validade_products_status on public.validade_products(user_id, status);
+
+alter table if exists public.validade_products
+add column if not exists location jsonb not null default '{}'::jsonb;
 
 drop trigger if exists trg_validade_products_updated_at on public.validade_products;
 create trigger trg_validade_products_updated_at

@@ -5,6 +5,7 @@ import * as Animatable from 'react-native-animatable';
 import ProductItem from '../../../components/validade/ProductItem';
 import TreatmentModal from '../../../components/validade/TreatmentModal';
 import DeleteConfirmationModal from '../../../components/validade/DeleteConfirmationModal';
+import LogisticsInfoModal from '../../../components/validade/LogisticsInfoModal';
 import debounce from 'lodash.debounce';
 import { LayoutAnimation } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -20,11 +21,17 @@ import {
   getStaggerDelay,
 } from '../../../components/animations/entrancePresets';
 import { CORESLIST } from '../../../components/coresAuth';
+import useLogisticsLocationConfig from '../../settings/hooks/useLogisticsLocationConfig';
 import {
   loadValidadeProducts,
+  mergeRemoteProductsWithCachedLocation,
   persistValidadeProducts,
   replaceValidadeProductsCache,
 } from '../services/validadeProductsService';
+import {
+  getLogisticsLocationInfoItems,
+  sanitizeLogisticsLocation,
+} from '../constants/logisticsLocation';
 import {
   listValidadeProducts,
   removeValidadeProduct,
@@ -73,6 +80,7 @@ const useProducts = () => {
 
 const ListScreen = ({ route, navigation, isDarkMode }) => {
   const { products, setProducts, loadProducts, saveProducts, loading } = useProducts();
+  const { config: logisticsLocationConfig } = useLogisticsLocationConfig();
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState('descricao');
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -83,6 +91,8 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const [sortOrder, setSortOrder] = useState({ field: 'validade', direction: 'asc' });
   const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [locationInfoVisible, setLocationInfoVisible] = useState(false);
+  const [productForLocationInfo, setProductForLocationInfo] = useState(null);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [isSyncingRemote, setIsSyncingRemote] = useState(false);
   const openSwipeRef = useRef(null);
@@ -128,6 +138,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       treatmentQuantity: Number(product?.treatmentQuantity || 0),
       treatmentDate: String(product?.treatmentDate || ''),
       imagePath: String(product?.imagePath || ''),
+      location: sanitizeLogisticsLocation(product?.location),
     })
   ), []);
 
@@ -154,6 +165,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     }
 
     inFlightRemoteFetchRef.current = listValidadeProducts()
+      .then((remoteProducts) => mergeRemoteProductsWithCachedLocation(remoteProducts, localProductsRef.current))
       .finally(() => {
         inFlightRemoteFetchRef.current = null;
       });
@@ -332,7 +344,10 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       {
         key: 'add-product',
         iconName: 'add',
-        onPress: () => navigation.navigate('AddProductScreen'),
+        onPress: () => navigation.push('AddProductScreen', {
+          screenMode: 'create',
+          resetFormToken: Date.now(),
+        }),
         iconColor: COLORS.white,
         iconSize: 20,
       },
@@ -370,6 +385,16 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     setProductToDelete(product);
     setDeleteConfirmationVisible(true);
   };
+
+  const handleOpenLocationInfo = useCallback((product) => {
+    setProductForLocationInfo(product);
+    setLocationInfoVisible(true);
+  }, []);
+
+  const handleCloseLocationInfo = useCallback(() => {
+    setLocationInfoVisible(false);
+    setProductForLocationInfo(null);
+  }, []);
 
   const confirmDelete = async () => {
     if (productToDelete) {
@@ -618,6 +643,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     const diasrestantes = calculatediasrestantes(item.validade);
     const animationKey = item.id?.toString() || item.codprod?.toString() || index.toString();
     const shouldAnimateEntry = !animatedCardIdsRef.current.has(animationKey);
+    const hasLocationInfo = getLogisticsLocationInfoItems(item?.location, logisticsLocationConfig).length > 0;
 
     if (shouldAnimateEntry) {
       animatedCardIdsRef.current.add(animationKey);
@@ -638,6 +664,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         <SwipeableListItem
           ref={swipeRefs.current[item.id]}
           item={item}
+          onLocation={handleOpenLocationInfo}
           onTreat={() => {
             setSelectedProduct(item);
             setTreatmentQuantity(String(item.quantidade || ''));
@@ -645,6 +672,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           }}
           onEdit={handleEditProduct}
           onDelete={handleDeleteProduct}
+          showLocationAction={hasLocationInfo}
           isDarkMode={isDarkMode}
           onSwipeableOpen={() => handleSwipeableOpen(swipeRefs.current[item.id].current)}
           onRequestClose={handleCloseSwipe}
@@ -906,6 +934,13 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         onConfirm={confirmDelete}
         product={productToDelete}
         isDarkMode={isDarkMode}
+      />
+      <LogisticsInfoModal
+        visible={locationInfoVisible}
+        onClose={handleCloseLocationInfo}
+        product={productForLocationInfo}
+        isDarkMode={isDarkMode}
+        locationConfig={logisticsLocationConfig}
       />
     </ScreenLayout>
   );

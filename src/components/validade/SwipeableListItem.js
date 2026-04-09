@@ -1,35 +1,17 @@
-import React, { useRef, useImperativeHandle, forwardRef, useState } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef, useState, useMemo } from 'react';
 import { View, Animated, TouchableOpacity, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const BUTTON_WIDTH = 80;
-const BUTTONS = [
-  {
-    key: 'treat',
-    label: 'Tratar',
-    icon: 'assignment-turned-in',
-    color: '#27ae60',
-  },
-  {
-    key: 'edit',
-    label: 'Editar',
-    icon: 'edit-note',
-    color: '#1976D2',
-  },
-  {
-    key: 'delete',
-    label: 'Excluir',
-    icon: 'delete-sweep',
-    color: '#e53935',
-  },
-];
+const BUTTON_WIDTH = 76;
 
 const SwipeableListItem = forwardRef(({
   item,
+  onLocation,
   onTreat,
   onEdit,
   onDelete,
+  showLocationAction = false,
   isDarkMode,
   children,
   onSwipeableOpen,
@@ -37,6 +19,42 @@ const SwipeableListItem = forwardRef(({
 }, ref) => {
   const swipeableRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  const actionButtons = useMemo(() => {
+    const buttons = [];
+
+    if (showLocationAction) {
+      buttons.push({
+        key: 'location',
+        label: 'Local',
+        icon: 'map-marker-path',
+        color: '#7838e8',
+      });
+    }
+
+    buttons.push(
+      {
+        key: 'treat',
+        label: 'Tratar',
+        icon: 'archive-check-outline',
+        color: '#27ae60',
+      },
+      {
+        key: 'edit',
+        label: 'Editar',
+        icon: 'archive-edit-outline',
+        color: '#1976D2',
+      },
+      {
+        key: 'delete',
+        label: 'Excluir',
+        icon: 'archive-remove-outline',
+        color: '#e53935',
+      },
+    );
+
+    return buttons;
+  }, [showLocationAction]);
 
   useImperativeHandle(ref, () => ({
     close: () => {
@@ -49,7 +67,7 @@ const SwipeableListItem = forwardRef(({
   const renderRightActions = (progress, dragX) => {
     return (
       <View style={styles.actionsRow}>
-        {BUTTONS.map((btn, idx) => {
+        {actionButtons.map((btn, idx) => {
           const inputRange = [0, 0.5 + idx * 0.1, 1];
           const scale = progress.interpolate({
             inputRange,
@@ -62,6 +80,7 @@ const SwipeableListItem = forwardRef(({
             extrapolate: 'clamp',
           });
           let onPress;
+          if (btn.key === 'location') onPress = () => onLocation?.(item);
           if (btn.key === 'treat') onPress = () => onTreat(item);
           if (btn.key === 'edit') onPress = () => onEdit(item);
           if (btn.key === 'delete') onPress = () => onDelete(item);
@@ -76,12 +95,17 @@ const SwipeableListItem = forwardRef(({
             >
               <TouchableOpacity
                 style={styles.actionTouchable}
-                onPress={onPress}
+                onPress={() => {
+                  swipeableRef.current?.close();
+                  setTimeout(() => {
+                    onPress?.();
+                  }, 120);
+                }}
                 activeOpacity={0.8}
               >
-                <MaterialIcons
+                <MaterialCommunityIcons
                   name={btn.icon}
-                  size={btn.key === 'edit' ? 32 : btn.key === 'delete' ? 36 : 28}
+                  size={36}
                   color="#FFF"
                   style={styles.actionIcon}
                 />
@@ -164,16 +188,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   actionIcon: {
-    marginBottom: 2,
+    marginBottom: 6,
     alignSelf: 'center',
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
     letterSpacing: 0.5,
-    marginTop: 2,
+    marginTop: 1,
   },
   buttonSeparator: {
     marginLeft: 6,

@@ -43,6 +43,7 @@ import NotificationScreen from './src/features/notifications/screens/Notificatio
 import ProfileScreen from './src/features/profile/screens/ProfileScreen';
 import ConferenciaTratativasRecebimentoScreen from './src/features/recebimentoTratativas/screens/ConferenciaTratativasRecebimentoScreen';
 import EspelhoRecebimentoScreen from './src/features/recebimentoTratativas/screens/EspelhoRecebimentoScreen';
+import EnderecosScreen from './src/features/settings/screens/EnderecosScreen';
 import SettingsScreen from './src/features/settings/screens/SettingsScreen';
 import { loadThemePreference } from './src/features/settings/services/settingsStorageService';
 import AddProductScreen from './src/features/validade/screens/AddProductScreen';
@@ -459,6 +460,10 @@ export default function App() {
                     }}
                   />
                 )}
+              </Stack.Screen>
+
+              <Stack.Screen name="EnderecosScreen">
+                {props => <EnderecosScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
               <Stack.Screen name="TratarScreen">

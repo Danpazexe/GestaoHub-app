@@ -23,6 +23,13 @@ import { getCurrentUserId, upsertValidadeProduct } from '../../../services/valid
 import { getSignedProductImageUrl, uploadProductImageToSupabase } from '../../../services/supabaseStorageService';
 import { addProductTheme } from '../../../theme/domains/validade';
 import { useLookupSqlPreference } from '../hooks/useLookupSqlPreference';
+import useLogisticsLocationConfig from '../../settings/hooks/useLogisticsLocationConfig';
+import {
+  createEmptyLogisticsLocationState,
+  getEnabledLogisticsLocationFields,
+  hydrateLogisticsLocation,
+  sanitizeLogisticsLocation,
+} from '../constants/logisticsLocation';
 
 const COLORS = addProductTheme;
 const IMAGE_UPLOAD_QUALITY = 0.4;
@@ -42,6 +49,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [showErrors, setShowErrors] = useState(false);
   const [isSavePressed, setIsSavePressed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [locationForm, setLocationForm] = useState(createEmptyLogisticsLocationState);
 
   const scrollRef = useRef(null);
   const [recentProducts, setRecentProducts] = useState([]);
@@ -59,6 +67,11 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [activeSearchField, setActiveSearchField] = useState(null); // 'productName', 'codprod', 'codauxiliar'
   const searchTimeout = useRef(null);
+  const {
+    config: logisticsLocationConfig,
+    isLoaded: isLogisticsLocationConfigLoaded,
+  } = useLogisticsLocationConfig();
+  const visibleLocationFields = getEnabledLogisticsLocationFields(logisticsLocationConfig);
 
   const performSearch = async (query, field) => {
     // Atualiza o estado do campo primeiro
@@ -142,9 +155,40 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
 
   useEffect(() => {
+    if (route.params?.product) return;
+    if (route.params?.screenMode !== 'create') return;
+
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    setProductName('');
+    setBatch('');
+    setQuantity('');
+    setcodprod('');
+    setEan('');
+    setExpirationDate(new Date());
+    setShowDatePicker(false);
+    setIsEditing(false);
+    setProductId(null);
+    setShowErrors(false);
+    setIsSavePressed(false);
+    setIsSaving(false);
+    setLocationForm(createEmptyLogisticsLocationState());
+    setRecentProducts([]);
+    setProductImage(null);
+    setProductImagePath(null);
+    setShowImageOptions(false);
+    setMenuVisible(false);
+    setHistoryDialogVisible(false);
+    setSearchResults([]);
+    setActiveSearchField(null);
+  }, [route.params?.product, route.params?.resetFormToken, route.params?.screenMode]);
+
+  useEffect(() => {
     if (!route.params?.product) return;
 
-    const { id, descricao, lote, quantidade, codprod, codauxiliar, validade, imageUrl, imagePath, foto } = route.params.product;
+    const { id, descricao, lote, quantidade, codprod, codauxiliar, validade, imageUrl, imagePath, foto, location } = route.params.product;
     setProductId(id);
     setProductName(descricao);
     setBatch(lote);
@@ -154,6 +198,10 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setExpirationDate(new Date(validade));
     setProductImage(imageUrl || foto || null);
     setProductImagePath(imagePath || null);
+    setLocationForm(hydrateLogisticsLocation(location));
+    setShowErrors(false);
+    setSearchResults([]);
+    setActiveSearchField(null);
     setIsEditing(true);
   }, [route.params?.product]);
 
@@ -230,11 +278,27 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     setIsSaving(true);
     setShowErrors(true);
 
+    if (!isLogisticsLocationConfigLoaded) {
+      Toast.show({
+        type: 'info',
+        text1: 'Carregando configurações',
+        text2: 'Aguarde a configuração logística ser carregada.',
+        visibilityTime: 2500,
+      });
+      setIsSaving(false);
+      return;
+    }
+
     const hasEmptyFields = ['productName', 'lote', 'quantidade', 'codprod', 'codauxiliar', 'validade'].some(field =>
       checkEmptyFields(field)
     );
+    const sanitizedLocation = sanitizeLogisticsLocation(locationForm);
+    const hasMissingLocationFields = visibleLocationFields.some((field) => (
+      Boolean(logisticsLocationConfig?.[field.key]?.required)
+      && !sanitizedLocation[field.key]
+    ));
 
-    if (hasEmptyFields) {
+    if (hasEmptyFields || hasMissingLocationFields) {
       Toast.show({
         type: 'error',
         text1: 'Campos Obrigatórios',
@@ -264,6 +328,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
         diasrestantes,
         imageUrl: productImage,
         imagePath: productImagePath,
+        location: sanitizedLocation,
       };
 
       let productToPersist = product;
@@ -469,6 +534,59 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     }
   };
 
+  const isLocationFieldRequired = (fieldKey) => (
+    Boolean(logisticsLocationConfig?.[fieldKey]?.enabled && logisticsLocationConfig?.[fieldKey]?.required)
+  );
+
+  const isLocationFieldEmpty = (fieldKey) => !String(locationForm?.[fieldKey] ?? '').trim();
+
+  const updateLocationField = (fieldKey, value) => {
+    setLocationForm((previousForm) => ({
+      ...previousForm,
+      [fieldKey]: value,
+    }));
+  };
+
+  const renderLocationField = (field, { isCompact = false } = {}) => {
+    const isObservationField = field.key === 'observacao';
+    const isRequired = isLocationFieldRequired(field.key);
+    const hasError = showErrors && isRequired && isLocationFieldEmpty(field.key);
+
+    return (
+      <View
+        key={field.key}
+        style={[
+          styles.fieldContainer,
+          isCompact && styles.locationGridItem,
+        ]}
+      >
+        <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
+          {field.label}{isRequired ? ' *' : ''}
+        </Text>
+        <View
+          style={[
+            styles.inputContainer,
+            isObservationField && styles.multilineInputContainer,
+            hasError && styles.emptyField,
+          ]}
+        >
+          <TextInput
+            placeholder={field.placeholder}
+            value={locationForm[field.key]}
+            onChangeText={(value) => updateLocationField(field.key, value)}
+            style={[styles.input, isObservationField && styles.multilineInput]}
+            placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
+            multiline={isObservationField}
+            textAlignVertical={isObservationField ? 'top' : 'center'}
+          />
+        </View>
+        {hasError ? (
+          <Text style={styles.requiredText}>Campo obrigatório.</Text>
+        ) : null}
+      </View>
+    );
+  };
+
   const handleSelectRecentProduct = async (product) => {
     setProductName(String(product?.descricao ?? ''));
     setBatch(String(product?.lote ?? ''));
@@ -484,6 +602,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     const resolvedImage = product?.previewImageUrl || await resolveProductImageUrl(product);
     setProductImage(resolvedImage || null);
     setProductImagePath(product?.imagePath || null);
+    setLocationForm(hydrateLogisticsLocation(product?.location));
     setHistoryDialogVisible(false);
     setSearchResults([]);
     setActiveSearchField(null);
@@ -585,6 +704,17 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     default: {},
   });
 
+  const compactLocationFields = visibleLocationFields.filter((field) => field.key !== 'observacao');
+  const observationLocationField = visibleLocationFields.find((field) => field.key === 'observacao');
+  const locationFieldRows = compactLocationFields.reduce((rows, field, index) => {
+    if (index % 2 === 0) {
+      rows.push([field]);
+      return rows;
+    }
+
+    rows[rows.length - 1].push(field);
+    return rows;
+  }, []);
   const styles = createStyles(isDarkMode, concentratedShadow, subtleConcentratedShadow);
 
   return (
@@ -688,7 +818,30 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
             <DateTimePicker value={validade} mode="date" display="spinner" onChange={onChangeDate} minimumDate={new Date()} locale="pt-BR" />
           )}
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct} disabled={isSaving}>
+          {visibleLocationFields.length > 0 ? (
+            <View style={styles.locationSection}>
+              <View style={styles.locationSectionHeader}>
+                <MaterialCommunityIcons name="map-marker-path" size={20} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} />
+                <Text style={[styles.locationSectionTitle, isDarkMode ? styles.darkText : styles.lightText]}>
+                  Localização Logística
+                </Text>
+              </View>
+              <Text style={[styles.locationSectionSubtitle, isDarkMode ? styles.darkText : styles.lightText]}>
+                Os campos abaixo seguem a configuração definida em Ajustes.
+              </Text>
+
+              {locationFieldRows.map((row, rowIndex) => (
+                <View key={`location-row-${rowIndex}`} style={styles.locationGridRow}>
+                  {row.map((field) => renderLocationField(field, { isCompact: true }))}
+                  {row.length === 1 ? <View style={styles.locationGridSpacer} /> : null}
+                </View>
+              ))}
+
+              {observationLocationField ? renderLocationField(observationLocationField) : null}
+            </View>
+          ) : null}
+
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveProduct} disabled={isSaving || !isLogisticsLocationConfigLoaded}>
             {isSaving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.saveButtonText}>{isEditing ? 'Atualizar' : 'Salvar'}</Text>}
           </TouchableOpacity>
         </ScrollView>
@@ -816,6 +969,43 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       marginBottom: 12,
       position: 'relative',
     },
+    locationSection: {
+      marginTop: 8,
+      marginBottom: 4,
+      padding: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: isDarkMode ? COLORS.borderDark : COLORS.border,
+      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : '#f8fbff',
+    },
+    locationSectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    locationSectionTitle: {
+      marginLeft: 8,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    locationSectionSubtitle: {
+      fontSize: 12,
+      lineHeight: 18,
+      opacity: 0.76,
+      marginBottom: 12,
+    },
+    locationGridRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 10,
+    },
+    locationGridItem: {
+      flex: 1,
+      minWidth: 0,
+    },
+    locationGridSpacer: {
+      flex: 1,
+    },
     rowContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -836,12 +1026,20 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       padding: 4,
       elevation: 1,
     },
+    multilineInputContainer: {
+      alignItems: 'flex-start',
+    },
     input: {
       flex: 1,
       height: 40,
       paddingHorizontal: 12,
       fontSize: 14,
       color: isDarkMode ? COLORS.white : COLORS.text,
+    },
+    multilineInput: {
+      minHeight: 84,
+      paddingTop: 10,
+      paddingBottom: 10,
     },
     eanContainer: {
       flexDirection: 'row',
