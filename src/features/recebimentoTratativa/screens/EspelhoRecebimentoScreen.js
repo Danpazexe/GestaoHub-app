@@ -89,6 +89,7 @@ const REQUIRED_FIELD_LABELS = {
 
 const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   const caseId = route.params?.caseId ? String(route.params.caseId) : null;
+  const openedFromPrefill = Boolean(route.params?.prefill) && !caseId;
   const searchTimeout = useRef(null);
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -114,6 +115,15 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     const received = Number(form.received_quantity || 0);
     return Math.max(expected - received, 0);
   }, [form]);
+  const quantityWithProblem = useMemo(() => {
+    if (!form) return 0;
+    return Number(form.affected_quantity || 0);
+  }, [form]);
+  const syncMeta = useMemo(() => (
+    form?.pending_remote_sync
+      ? { label: 'Pendente de sync', color: '#b45309', background: '#fff4cf' }
+      : { label: 'Local sincronizado', color: '#0f766e', background: '#dcfce7' }
+  ), [form?.pending_remote_sync]);
 
   const loadPayload = useCallback(async () => {
     setLoading(true);
@@ -127,7 +137,7 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
         return;
       }
 
-      setForm(buildStandaloneCaseDraft());
+      setForm(buildStandaloneCaseDraft(route.params?.prefill || {}));
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -138,7 +148,7 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     } finally {
       setLoading(false);
     }
-  }, [caseId, navigation]);
+  }, [caseId, navigation, route.params?.prefill]);
 
   useEffect(() => {
     loadPayload();
@@ -684,6 +694,76 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       contentStyle={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: isDarkMode ? '#192235' : '#fff7f3',
+              borderColor: isDarkMode ? TRATATIVA_THEME.borderDark : '#ffd9cc',
+            },
+          ]}
+        >
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroTitleBlock}>
+              <Text style={[styles.heroEyebrow, { color: isDarkMode ? TRATATIVA_THEME.textMutedDark : TRATATIVA_THEME.textMuted }]}>
+                ESPÉLHO DE RECEBIMENTO
+              </Text>
+              <Text style={[styles.heroTitle, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
+                {form.doc_number || form.origin_invoice_number || 'Novo registro'}
+              </Text>
+              <Text style={[styles.heroSubtitle, { color: isDarkMode ? TRATATIVA_THEME.textMutedDark : TRATATIVA_THEME.textMuted }]}>
+                {form.product_snapshot?.descricao || 'Mercadoria sem descrição'} • {form.product_snapshot?.fornecedor || 'Fornecedor não informado'}
+              </Text>
+            </View>
+
+            <View style={[styles.heroStatusPill, { backgroundColor: statusMeta.background }]}>
+              <Text style={[styles.heroStatusPillText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroTagsRow}>
+            <View style={[styles.heroTag, { backgroundColor: `${occurrenceMeta.color}18` }]}>
+              <MaterialIcons name={occurrenceMeta.icon} size={16} color={occurrenceMeta.color} />
+              <Text style={[styles.heroTagText, { color: occurrenceMeta.color }]}>{occurrenceMeta.label}</Text>
+            </View>
+            <View style={[styles.heroTag, { backgroundColor: `${actionMeta.color}18` }]}>
+              <MaterialIcons name={actionMeta.icon} size={16} color={actionMeta.color} />
+              <Text style={[styles.heroTagText, { color: actionMeta.color }]}>{actionMeta.label}</Text>
+            </View>
+            <View style={[styles.heroTag, { backgroundColor: syncMeta.background }]}>
+              <MaterialIcons name={form.pending_remote_sync ? 'sync-problem' : 'cloud-done'} size={16} color={syncMeta.color} />
+              <Text style={[styles.heroTagText, { color: syncMeta.color }]}>{syncMeta.label}</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroMetricsRow}>
+            <View style={[styles.heroMetricCard, { backgroundColor: isDarkMode ? '#243146' : '#ffffff' }]}>
+              <Text style={styles.heroMetricLabel}>Recebida</Text>
+              <Text style={[styles.heroMetricValue, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
+                {Number(form.received_quantity || 0)}
+              </Text>
+            </View>
+            <View style={[styles.heroMetricCard, { backgroundColor: isDarkMode ? '#243146' : '#ffffff' }]}>
+              <Text style={styles.heroMetricLabel}>{isShortage ? 'Esperada' : 'Com problema'}</Text>
+              <Text style={[styles.heroMetricValue, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
+                {isShortage ? Number(form.expected_quantity || 0) : quantityWithProblem}
+              </Text>
+            </View>
+            <View style={[styles.heroMetricCard, { backgroundColor: isDarkMode ? '#243146' : '#ffffff' }]}>
+              <Text style={styles.heroMetricLabel}>{isShortage ? 'Faltante' : 'Afetada'}</Text>
+              <Text style={[styles.heroMetricValue, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
+                {isShortage ? missingQuantity : quantityWithProblem}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={[styles.heroFootnote, { color: isDarkMode ? TRATATIVA_THEME.textMutedDark : TRATATIVA_THEME.textMuted }]}>
+            {openedFromPrefill
+              ? 'Este espelho foi pré-preenchido a partir de uma divergência da conferência.'
+              : 'Use este espelho para registrar evidência, desfecho e cronograma da ocorrência.'}
+          </Text>
+        </View>
+
         <TratativaSectionCard
           title="Resumo da ocorrência"
           subtitle="Documento, status e notas fiscais do processo de recebimento."
@@ -1121,6 +1201,92 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 28,
+  },
+  heroCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  heroTitleBlock: {
+    flex: 1,
+  },
+  heroEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  heroSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  heroStatusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  heroStatusPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  heroTagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 14,
+  },
+  heroTag: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroTagText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  heroMetricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  heroMetricCard: {
+    flex: 1,
+    borderRadius: 18,
+    padding: 14,
+  },
+  heroMetricLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    color: '#98a2b3',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  heroMetricValue: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  heroFootnote: {
+    marginTop: 14,
+    fontSize: 12,
+    lineHeight: 18,
   },
   summaryTop: {
     flexDirection: 'row',

@@ -21,3 +21,15 @@ export const clampInt = (value, min, max) => {
   return Math.min(max, Math.max(min, num));
 };
 
+export const buildConferenceEvent = ({
+  type,
+  actor = '',
+  payload = {},
+  createdAt = new Date().toISOString(),
+} = {}) => ({
+  id: `conf-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  type: String(type || 'unknown'),
+  actor: String(actor || '').trim(),
+  createdAt,
+  payload,
+});

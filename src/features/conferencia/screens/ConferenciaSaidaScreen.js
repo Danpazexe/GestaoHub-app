@@ -1,15 +1,64 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import HapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import ScreenLayout, { createHeaderTitleTemplate, createScreenHeaderTemplate } from '../../../components/ScreenLayout';
+import ScreenLayout, {
+  createHeaderTitleTemplate,
+  createScreenHeaderTemplate,
+} from '../../../components/ScreenLayout';
+import ConferenciaItemRow from '../components/ConferenciaItemRow';
 import { finalizeConferenciaSaida } from '../services/conferenciaRecordsService';
 import { readStoredUserName } from '../../../services/userSessionStorageService';
-import { computeProgress, computeTotals, normalizeKey, pluralize } from '../services/conferenciaCore';
+import {
+  buildConferenceEvent,
+  computeProgress,
+  computeTotals,
+  normalizeKey,
+  pluralize,
+} from '../services/conferenciaCore';
 import { buildExpectedItemsSaida } from '../mocks/conferenciaMock';
 import { useConferenciaSaidaDrafts } from '../hooks/useConferenciaSaidaDrafts';
 import { conferenciaSaidaTheme } from '../../../theme/domains/conferencia';
 
+// ─── Compact summary bar (same pattern as Recebimento) ────────────────────────
+const CompactSummaryBar = ({ orderCode, progress, pendingCount, doneCount, divergenceCount, colors, styles }) => (
+  <View style={styles.compactBar}>
+    <View style={styles.compactBarLeft}>
+      <Text style={styles.compactInvoice} numberOfLines={1}>Pedido {orderCode}</Text>
+      <View style={styles.progressTrackInline}>
+        <View style={[styles.progressFillInline, { width: `${progress}%` }]} />
+      </View>
+    </View>
+    <View style={styles.compactPills}>
+      <View style={[styles.miniPill, { backgroundColor: colors.goldSoft, borderColor: 'rgba(245,158,11,0.22)' }]}>
+        <Text style={[styles.miniPillText, { color: colors.warning }]}>{pendingCount}</Text>
+        <MaterialIcons name="schedule" size={11} color={colors.warning} />
+      </View>
+      <View style={[styles.miniPill, { backgroundColor: colors.successSoft, borderColor: 'rgba(16,185,129,0.22)' }]}>
+        <Text style={[styles.miniPillText, { color: colors.success }]}>{doneCount}</Text>
+        <MaterialIcons name="check-circle-outline" size={11} color={colors.success} />
+      </View>
+      {divergenceCount > 0 && (
+        <View style={[styles.miniPill, { backgroundColor: colors.dangerSoft, borderColor: 'rgba(220,38,38,0.22)' }]}>
+          <Text style={[styles.miniPillText, { color: colors.danger }]}>{divergenceCount}</Text>
+          <MaterialIcons name="error-outline" size={11} color={colors.danger} />
+        </View>
+      )}
+    </View>
+  </View>
+);
+
+// ─── Section divider ──────────────────────────────────────────────────────────
+const SectionDivider = ({ label, count, accent, styles }) => (
+  <View style={[styles.sectionDivider, { borderLeftColor: accent }]}>
+    <Text style={[styles.sectionDividerText, { color: accent }]}>{label}</Text>
+    <View style={[styles.sectionDividerBadge, { backgroundColor: accent + '22' }]}>
+      <Text style={[styles.sectionDividerCount, { color: accent }]}>{count}</Text>
+    </View>
+  </View>
+);
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
   const [orderCode, setOrderCode] = useState('');
   const [separador, setSeparador] = useState('');
@@ -25,42 +74,43 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
   const colors = useMemo(() => {
     const base = conferenciaSaidaTheme;
     const dark = !!isDarkMode;
-
-    const background = dark ? '#1f2438' : base.background || '#eef2ff';
-    const surface = dark ? '#262d47' : '#ffffff';
-    const surface2 = dark ? '#2b3350' : '#f7f7f8';
-    const text = dark ? '#f3f5ff' : '#2f333a';
-    const textMuted = dark ? '#aab1cf' : 'rgba(64, 68, 76, 0.78)';
-    const border = dark ? '#3a4265' : 'rgba(64, 68, 76, 0.18)';
-    const divider = dark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(64, 68, 76, 0.14)';
-    const inputBg = dark ? '#202846' : '#ffffff';
-    const chipBg = dark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(67, 56, 202, 0.08)';
-
     return {
       primary: base.primary,
       secondary: base.secondary,
       accentText: base.text,
-      background,
-      surface,
-      surface2,
-      text,
-      textMuted,
-      border,
-      divider,
-      inputBg,
-      chipBg,
+      background: dark ? '#1f2438' : base.background || '#eef2ff',
+      surface: dark ? '#262d47' : '#ffffff',
+      surface2: dark ? '#2b3350' : '#f7f7f8',
+      text: dark ? '#f3f5ff' : '#2f333a',
+      textMuted: dark ? '#aab1cf' : 'rgba(64,68,76,0.78)',
+      border: dark ? '#3a4265' : 'rgba(64,68,76,0.18)',
+      divider: dark ? 'rgba(255,255,255,0.10)' : 'rgba(64,68,76,0.14)',
+      inputBg: dark ? '#202846' : '#ffffff',
+      chipBg: dark ? 'rgba(255,255,255,0.06)' : 'rgba(67,56,202,0.08)',
       onPrimary: '#ffffff',
       shadow: '#000000',
       success: '#059669',
-      successSoft: dark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.12)',
+      successSoft: dark ? 'rgba(16,185,129,0.16)' : 'rgba(16,185,129,0.12)',
       danger: '#dc2626',
-      dangerSoft: dark ? 'rgba(220, 38, 38, 0.16)' : 'rgba(220, 38, 38, 0.10)',
+      dangerSoft: dark ? 'rgba(220,38,38,0.16)' : 'rgba(220,38,38,0.10)',
       warning: '#f59e0b',
+      goldSoft: dark ? 'rgba(251,191,36,0.18)' : 'rgba(245,158,11,0.14)',
+      pendingAccent: dark ? '#fb923c' : '#ea580c',
+      doneAccent: dark ? '#34d399' : '#059669',
     };
   }, [isDarkMode]);
-  const styles = getStyles(colors);
-  const normalizeOrder = normalizeKey;
+
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const draftApi = useConferenciaSaidaDrafts();
+
+  // Focus recovery on screen focus during active conference
+  useEffect(() => {
+    if (!started) return;
+    const unsub = navigation.addListener('focus', () => {
+      setTimeout(() => codeInputRef.current?.focus?.(), 150);
+    });
+    return unsub;
+  }, [navigation, started]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -72,27 +122,21 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
       }),
       headerTitle: () =>
         createHeaderTitleTemplate({
-          title: 'Conferência de saída',
-          subtitle: 'Conferência cega por pedido',
+          title: started && orderCode ? orderCode : 'Conferência de saída',
+          subtitle: started ? 'Conferência cega em andamento' : 'Conferência cega por pedido',
           iconName: 'local-shipping',
           tintColor: '#ffffff',
         }),
     });
-  }, [navigation, isDarkMode, colors.primary]);
+  }, [navigation, isDarkMode, colors.primary, started, orderCode]);
 
   useEffect(() => {
     const loadLoggedUser = async () => {
       try {
         const name = await readStoredUserName('');
-        if (name) {
-          setSeparador(name);
-          setEmbalador(name);
-        }
-      } catch {
-        // ignore
-      }
+        if (name) { setSeparador(name); setEmbalador(name); }
+      } catch { /* ignore */ }
     };
-
     loadLoggedUser();
   }, []);
 
@@ -100,8 +144,7 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
     if (!route.params?.scannedCode || !started) return;
     const scanned = String(route.params.scannedCode).trim();
     const qty = Math.max(1, Number(route.params.scannedQty) || 1);
-    navigation.setParams({ scannedCode: undefined });
-    navigation.setParams({ scannedQty: undefined });
+    navigation.setParams({ scannedCode: undefined, scannedQty: undefined });
     beginScanFlow(scanned, qty);
   }, [route.params?.scannedCode, route.params?.scannedQty, started]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -114,15 +157,17 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
 
   useEffect(() => {
     draftApi.loadDrafts();
-    const unsubscribe = navigation.addListener('focus', draftApi.loadDrafts);
-    return unsubscribe;
+    const unsub = navigation.addListener('focus', draftApi.loadDrafts);
+    return unsub;
   }, [navigation, draftApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totals = useMemo(() => computeTotals(items), [items]);
+  const progress = useMemo(() => computeProgress(totals), [totals]);
+
   const itemsToCheck = useMemo(() => {
     const key = String(lastScanned || '').trim();
     return items
-      .filter((item) => item.checkedQty < item.expectedQty)
+      .filter((i) => i.checkedQty < i.expectedQty)
       .slice()
       .sort((a, b) => {
         const aHit = key && (a.code === key || a.ean === key) ? 1 : 0;
@@ -134,15 +179,18 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
         return String(a.description).localeCompare(String(b.description));
       });
   }, [items, lastScanned]);
-  const itemsChecked = useMemo(() => items.filter((item) => item.checkedQty >= item.expectedQty), [items]);
-  const progress = useMemo(() => computeProgress(totals), [totals]);
 
-  const startConference = async () => {
+  const itemsChecked = useMemo(
+    () => items.filter((i) => i.checkedQty >= i.expectedQty),
+    [items],
+  );
+
+  const startConference = useCallback(async () => {
     if (!orderCode.trim()) {
       Alert.alert('Pedido obrigatório', 'Informe o número do pedido.');
       return;
     }
-    const orderKey = normalizeOrder(orderCode);
+    const orderKey = normalizeKey(orderCode);
     try {
       const draft = await draftApi.findByKey(orderKey);
       if (draft) {
@@ -153,25 +201,23 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
         setStarted(true);
         return;
       }
-    } catch {
-      // continue with new conference
-    }
+    } catch { /* new */ }
     const expectedItems = await buildExpectedItemsSaida(orderCode.trim(), 20);
     setItems(expectedItems);
     setStarted(true);
-  };
+  }, [orderCode, separador, embalador, draftApi]);
 
-  const resumeDraft = (draft) => {
+  const resumeDraft = useCallback((draft) => {
     setOrderCode(draft.orderCode || '');
     setSeparador(draft.separador || separador);
     setEmbalador(draft.embalador || embalador);
     setItems(Array.isArray(draft.items) ? draft.items : []);
     setStarted(true);
-  };
+  }, [separador, embalador]);
 
-  const openScanner = () => {
+  const openScanner = useCallback(() => {
     if (!started) {
-      Alert.alert('Inicie primeiro', 'Inicie a conferência do pedido antes de bipar.');
+      Alert.alert('Inicie primeiro', 'Inicie a conferência antes de bipar.');
       return;
     }
     navigation.navigate('BarcodeScannerScreen', {
@@ -179,23 +225,23 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
       paramName: 'scannedCode',
       extraParams: { scannedQty: manualQty },
     });
-  };
+  }, [started, navigation, manualQty]);
 
-  const findItemForScan = (value) => {
+  const findItemForScan = useCallback((value) => {
     const key = String(value || '').trim();
     if (!key) return null;
     for (const it of items) {
-      // Prioriza embalagem (CX/FD) antes do item base, para puxar fator automaticamente.
       const opts = Array.isArray(it.packagingOptions) ? it.packagingOptions : [];
-      const hit = opts.find((opt) => (opt?.ean && key === opt.ean) || (opt?.dun && key === opt.dun));
+      const hit = opts.find((o) => (o?.ean && key === o.ean) || (o?.dun && key === o.dun));
       if (hit) return { item: it, opt: hit };
-
-      if (key === it.code || (it.ean && key === it.ean) || (it.dun && key === it.dun)) return { item: it, opt: null };
+      if (key === it.code || (it.ean && key === it.ean) || (it.dun && key === it.dun)) {
+        return { item: it, opt: null };
+      }
     }
     return null;
-  };
+  }, [items]);
 
-  const beginScanFlow = (value, qty = 1) => {
+  const beginScanFlow = useCallback((value, qty = 1) => {
     const amount = Math.max(1, Number(qty) || 1);
     const match = findItemForScan(value);
     if (!match?.item) {
@@ -203,13 +249,11 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
       Alert.alert('Código fora do pedido', `Código ${value} não pertence a este pedido.`);
       return;
     }
-
     const remaining = (Number(match.item.expectedQty) || 0) - (Number(match.item.checkedQty) || 0);
     if (remaining <= 0) {
       Alert.alert('Item já completo', 'Quantidade desse item já foi totalmente conferida.');
       return;
     }
-
     navigation.navigate('ConferenciaScanScreen', {
       context: 'saida',
       targetScreen: 'ConferenciaSaidaScreen',
@@ -227,9 +271,9 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
         lastMeta: match.item.lastMeta,
       },
     });
-  };
+  }, [findItemForScan, navigation]);
 
-  const applyScanPayload = (payload) => {
+  const applyScanPayload = useCallback((payload) => {
     let overflow = false;
     let full = false;
     const nowIso = new Date().toISOString();
@@ -238,30 +282,20 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
     const qty = Math.max(1, Number(payload?.qty) || 1);
     const factor = Math.max(1, Number(payload?.factor) || 1);
     const packaging = payload?.packaging || null;
-    const lote = payload?.lote;
-    const validade = payload?.validade;
-    const embalagem = payload?.embalagem;
     const itemId = String(payload?.itemId || '');
 
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== itemId) return it;
         const remaining = (Number(it.expectedQty) || 0) - (Number(it.checkedQty) || 0);
-        if (remaining <= 0) {
-          full = true;
-          return it;
-        }
-        if (effectiveQty > remaining) {
-          overflow = true;
-          return it;
-        }
-
+        if (remaining <= 0) { full = true; return it; }
+        if (effectiveQty > remaining) { overflow = true; return it; }
         const meta = {
           at: nowIso,
           scannedValue,
-          lote: String(lote || '').trim(),
-          validade: String(validade || '').trim(),
-          embalagem: String(embalagem || '').trim(),
+          lote: String(payload?.lote || '').trim(),
+          validade: String(payload?.validade || '').trim(),
+          embalagem: String(payload?.embalagem || '').trim(),
           packagingId: packaging?.id || 'un',
           packagingLabel: packaging?.label || 'UN',
           packagingFactor: Number(factor) || 1,
@@ -270,20 +304,14 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
           ean: packaging?.ean || it.ean || '',
           dun: packaging?.dun || it.dun || '',
         };
-
         const nextReads = Array.isArray(it.reads) ? [...it.reads, meta].slice(-50) : [meta];
-        return {
-          ...it,
-          checkedQty: (Number(it.checkedQty) || 0) + effectiveQty,
-          lastMeta: meta,
-          reads: nextReads,
-        };
+        return { ...it, checkedQty: (Number(it.checkedQty) || 0) + effectiveQty, lastMeta: meta, reads: nextReads };
       }),
     );
 
     if (overflow) {
       HapticFeedback.trigger('notificationError', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
-      Alert.alert('Quantidade inválida', 'A quantidade informada excede o saldo disponível para esse item.');
+      Alert.alert('Quantidade inválida', 'A quantidade informada excede o saldo disponível.');
       return;
     }
     if (full) {
@@ -295,50 +323,37 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
     setLastScanned(scannedValue);
     setLastScannedAt(Date.now());
     setManualCode('');
-    codeInputRef.current?.focus?.();
-  };
+    setTimeout(() => codeInputRef.current?.focus?.(), 80);
+  }, []);
 
-  const updateItemReadCount = (itemId, nextCount) => {
+  const updateItemReadCount = useCallback((itemId, nextCount) => {
     const next = Math.max(0, Number(nextCount) || 0);
-    setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, checkedQty: next } : item)));
-  };
+    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, checkedQty: next } : i));
+  }, []);
 
-  const handleItemLongPress = (item) => {
+  const handleItemLongPress = useCallback((item) => {
     const canUndo = (item.checkedQty || 0) > 0;
-    const canReset = (item.checkedQty || 0) > 0;
-
     Alert.alert(
       'Ajustar leitura',
       `${item.code}${item.ean ? ` / ${item.ean}` : ''}\n${item.description}`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        canUndo
-          ? {
-            text: 'Desfazer 1',
-            onPress: () => updateItemReadCount(item.id, (item.checkedQty || 0) - 1),
-          }
-          : null,
-        canReset
-          ? {
-            text: 'Zerar leituras',
-            style: 'destructive',
-            onPress: () => updateItemReadCount(item.id, 0),
-          }
-          : null,
+        canUndo ? { text: 'Desfazer 1', onPress: () => updateItemReadCount(item.id, (item.checkedQty || 0) - 1) } : null,
+        canUndo ? { text: 'Zerar leituras', style: 'destructive', onPress: () => updateItemReadCount(item.id, 0) } : null,
       ].filter(Boolean),
     );
-  };
+  }, [updateItemReadCount]);
 
-  const handleCodeSubmit = () => {
+  const handleCodeSubmit = useCallback(() => {
     const code = manualCode.trim();
     const qty = Math.max(1, Number(manualQty) || 1);
     if (!code) return;
     setManualCode('');
-    codeInputRef.current?.focus?.();
     beginScanFlow(code, qty);
-  };
+    setTimeout(() => codeInputRef.current?.focus?.(), 120);
+  }, [manualCode, manualQty, beginScanFlow]);
 
-  const persistConference = async () => {
+  const persistConference = useCallback(async () => {
     if (!started || items.length === 0) return;
     const nowTotals = computeTotals(items);
     const payload = {
@@ -348,48 +363,54 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
       orderCode: orderCode.trim(),
       separador: separador.trim(),
       embalador: embalador.trim(),
+      sync_status: 'local_only',
+      pending_remote_sync: false,
       items,
       totals: nowTotals,
+      timeline: [
+        buildConferenceEvent({
+          type: 'conference_finished',
+          actor: embalador.trim() || separador.trim(),
+          payload: { orderCode: orderCode.trim(), divergences: nowTotals.divergences, items: items.length },
+        }),
+      ],
     };
-
     try {
       const divergences = items
-        .filter((item) => item.checkedQty !== item.expectedQty)
-        .map((item) => ({
-          id: `div-sai-${payload.id}-${item.id}`,
+        .filter((i) => i.checkedQty !== i.expectedQty)
+        .map((i) => ({
+          id: `div-sai-${payload.id}-${i.id}`,
           source: 'saida',
           status: 'pendente',
           createdAt: payload.createdAt,
           orderCode: payload.orderCode,
-          code: item.code,
-          description: item.description,
-          expectedQty: item.expectedQty,
-          checkedQty: item.checkedQty,
-          diff: item.checkedQty - item.expectedQty,
+          code: i.code,
+          description: i.description,
+          expectedQty: i.expectedQty,
+          checkedQty: i.checkedQty,
+          diff: i.checkedQty - i.expectedQty,
+          sync_status: 'local_only',
+          reads: i.reads || [],
+          lastMeta: i.lastMeta || null,
         }));
-
       await finalizeConferenciaSaida(payload, divergences);
-
       await draftApi.removeByKey(payload.orderCode);
-
-      Alert.alert(
-        'Conferência finalizada',
-        `Pendentes: ${nowTotals.pendingItems}. Divergências: ${nowTotals.divergences}.`,
-      );
+      Alert.alert('Conferência finalizada', `Pendentes: ${nowTotals.pendingItems}. Divergências: ${nowTotals.divergences}.`);
       setStarted(false);
       setItems([]);
+      setLastScanned('');
     } catch {
       Alert.alert('Erro', 'Não foi possível salvar a conferência.');
     }
-  };
+  }, [started, items, orderCode, separador, embalador, draftApi]);
 
-  const saveConference = () => {
+  const saveConference = useCallback(() => {
     const nowTotals = computeTotals(items);
     if (nowTotals.divergences > 0) {
-      const itemLabel = pluralize(nowTotals.divergences, 'item', 'itens');
+      const label = pluralize(nowTotals.divergences, 'item', 'itens');
       Alert.alert(
         'Fechar com divergência?',
-        `Existem ${nowTotals.divergences} ${itemLabel} com divergência. Deseja realmente finalizar assim?`,
+        `Existem ${nowTotals.divergences} ${label} com divergência. Deseja finalizar assim?`,
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Finalizar', style: 'destructive', onPress: persistConference },
@@ -397,9 +418,8 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
       );
       return;
     }
-
     persistConference();
-  };
+  }, [items, persistConference]);
 
   useEffect(() => {
     if (!started || !orderCode.trim()) return;
@@ -412,443 +432,379 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
     });
   }, [started, orderCode, separador, embalador, items, draftApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const listData = useMemo(() => {
-    if (!started) return [];
-    return ['toCheck', 'checked'];
-  }, [started]);
-
-  const header = useMemo(() => {
-    if (!started) {
-      return (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Dados da separação</Text>
-          {draftApi.drafts.length > 0 ? (
-            <>
-              <Text style={styles.inputLabel}>Conferências em andamento</Text>
-              <View style={styles.draftRow}>
-                {draftApi.drafts.slice(0, 3).map((draft) => (
-                  <Pressable
-                    key={draft.orderCode}
-                    style={styles.draftChip}
-                    onPress={() => resumeDraft(draft)}
-                  >
-                    <MaterialIcons name="restore" size={14} color={colors.primary} />
-                    <Text style={styles.draftChipText}>{draft.orderCode}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          ) : null}
-          <Text style={styles.inputLabel}>Número do pedido</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Número do pedido"
-            placeholderTextColor={colors.textMuted}
-            value={orderCode}
-            onChangeText={setOrderCode}
-          />
-          <Text style={styles.inputLabel}>Separador</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Separador"
-            placeholderTextColor={colors.textMuted}
-            value={separador}
-            editable={false}
-          />
-          <Text style={styles.inputLabel}>Embalador</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Embalador"
-            placeholderTextColor={colors.textMuted}
-            value={embalador}
-            editable={false}
-          />
-          <Pressable style={styles.primaryButton} onPress={startConference}>
-            <MaterialIcons name="play-circle" size={20} color={colors.onPrimary} />
-            <Text style={styles.primaryButtonText}>Iniciar conferência</Text>
-          </Pressable>
-        </View>
-      );
-    }
-
+  // ─── Not started view ──────────────────────────────────────────────────────
+  if (!started) {
     return (
-      <>
-        <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View>
-              <Text style={styles.statusTitle}>Conferência em andamento</Text>
-              <Text style={styles.statusSubtitle}>Pedido {orderCode}</Text>
-            </View>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>{progress}%</Text>
-            </View>
-          </View>
-          <Text style={styles.statusMeta}>Separador: {separador}</Text>
-          <Text style={styles.statusMeta}>Embalador: {embalador}</Text>
-          {lastScanned ? <Text style={styles.statusMeta}>Última leitura: {lastScanned}</Text> : null}
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
-        </View>
+      <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
+        <FlatList
+          data={[]}
+          keyExtractor={(k) => k}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          ListHeaderComponent={
+            <View style={styles.card}>
+              <View style={styles.sectionTopRow}>
+                <View style={[styles.sectionIconWrap, { backgroundColor: colors.primary }]}>
+                  <MaterialIcons name="local-shipping" size={18} color="#ffffff" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>Dados da separação</Text>
+                  <Text style={styles.searchSubtitle}>Informe o pedido para iniciar a conferência cega.</Text>
+                </View>
+              </View>
 
-        <Pressable style={styles.scanButton} onPress={openScanner}>
-          <MaterialIcons name="qr-code-scanner" size={20} color={colors.onPrimary} />
-          <Text style={styles.scanButtonText}>Abrir câmera para bipagem</Text>
-        </Pressable>
+              {draftApi.drafts.length > 0 && (
+                <>
+                  <Text style={styles.inputLabel}>Em andamento</Text>
+                  <View style={styles.draftRow}>
+                    {draftApi.drafts.slice(0, 3).map((draft) => (
+                      <Pressable key={draft.orderCode} style={styles.draftChip} onPress={() => resumeDraft(draft)}>
+                        <MaterialIcons name="restore" size={14} color={colors.primary} />
+                        <Text style={styles.draftChipText}>{draft.orderCode}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
+              )}
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Código de Barra ou Código do Produto</Text>
-          <View style={styles.codeInputRow}>
-            <TextInput
-              ref={codeInputRef}
-              style={[styles.input, styles.codeInput]}
-              placeholder="Digite o código e pressione Enter"
-              placeholderTextColor={colors.textMuted}
-              value={manualCode}
-              onChangeText={setManualCode}
-              onSubmitEditing={handleCodeSubmit}
-              returnKeyType="done"
-              blurOnSubmit={false}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TextInput
-              style={[styles.input, styles.qtyInput]}
-              placeholder="Qtde"
-              placeholderTextColor={colors.textMuted}
-              value={manualQty}
-              onChangeText={(value) => setManualQty(value.replace(/[^0-9]/g, ''))}
-              keyboardType="numeric"
-              onSubmitEditing={handleCodeSubmit}
-              returnKeyType="done"
-            />
-          </View>
-          <Text style={styles.helperText}>Dica: pressione Enter para lançar a leitura.</Text>
-        </View>
-      </>
+              <Text style={styles.inputLabel}>Número do pedido</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Número do pedido"
+                placeholderTextColor={colors.textMuted}
+                value={orderCode}
+                onChangeText={setOrderCode}
+              />
+              <Text style={styles.inputLabel}>Separador</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                placeholder="Separador"
+                placeholderTextColor={colors.textMuted}
+                value={separador}
+                editable={false}
+              />
+              <Text style={styles.inputLabel}>Embalador</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]}
+                placeholder="Embalador"
+                placeholderTextColor={colors.textMuted}
+                value={embalador}
+                editable={false}
+              />
+              <Pressable style={styles.primaryButton} onPress={startConference}>
+                <MaterialIcons name="play-circle" size={20} color="#ffffff" />
+                <Text style={styles.primaryButtonText}>Iniciar conferência</Text>
+              </Pressable>
+            </View>
+          }
+          renderItem={() => null}
+        />
+      </ScreenLayout>
     );
-  }, [
-    started,
-    styles,
-    draftApi.drafts,
-    colors.primary,
-    colors.textMuted,
-    colors.onPrimary,
-    orderCode,
-    separador,
-    embalador,
-    startConference,
-    progress,
-    openScanner,
-    manualCode,
-    manualQty,
-    handleCodeSubmit,
-    resumeDraft,
-    lastScanned,
-  ]);
+  }
+
+  // ─── Active conference view ────────────────────────────────────────────────
+  const listData = ['scan', 'toCheck', 'checked'];
 
   return (
-    <ScreenLayout
-      isDarkMode={isDarkMode}
-      lightBackground={colors.background}
-      darkBackground={colors.background}
-      contentStyle={styles.content}
-    >
+    <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
+      <CompactSummaryBar
+        orderCode={orderCode}
+        progress={progress}
+        pendingCount={itemsToCheck.length}
+        doneCount={itemsChecked.length}
+        divergenceCount={totals.divergences}
+        colors={colors}
+        styles={styles}
+      />
+
       <FlatList
         data={listData}
-        keyExtractor={(key) => String(key)}
-        ListHeaderComponent={header}
+        keyExtractor={(k) => k}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => {
+          // ── Scan card ──
+          if (item === 'scan') {
+            return (
+              <View style={styles.scanCard}>
+                <View style={styles.scanCardHeader}>
+                  <View style={[styles.sectionIconWrap, { backgroundColor: colors.primary, width: 30, height: 30, borderRadius: 10 }]}>
+                    <MaterialIcons name="qr-code-scanner" size={15} color="#ffffff" />
+                  </View>
+                  <Text style={styles.scanCardTitle}>Leitura</Text>
+                  {lastScanned ? (
+                    <Text style={styles.lastScannedBadge} numberOfLines={1}>↩ {lastScanned}</Text>
+                  ) : null}
+                </View>
+                <View style={styles.codeInputRow}>
+                  <TextInput
+                    ref={codeInputRef}
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    placeholder="Código — pressione Enter"
+                    placeholderTextColor={colors.textMuted}
+                    value={manualCode}
+                    onChangeText={setManualCode}
+                    onSubmitEditing={handleCodeSubmit}
+                    returnKeyType="done"
+                    blurOnSubmit={false}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.qtyInput, { marginBottom: 0 }]}
+                    placeholder="Qtd"
+                    placeholderTextColor={colors.textMuted}
+                    value={manualQty}
+                    onChangeText={(v) => setManualQty(v.replace(/[^0-9]/g, ''))}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    onSubmitEditing={handleCodeSubmit}
+                  />
+                  <Pressable style={styles.scanIconButton} onPress={openScanner} accessibilityLabel="Abrir câmera">
+                    <MaterialIcons name="photo-camera" size={20} color="#ffffff" />
+                  </Pressable>
+                </View>
+              </View>
+            );
+          }
+
+          // ── Pending items ──
           if (item === 'toCheck') {
             return (
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>Itens a Conferir</Text>
+                <SectionDivider
+                  label="A conferir"
+                  count={itemsToCheck.length}
+                  accent={colors.pendingAccent}
+                  styles={styles}
+                />
                 {itemsToCheck.length === 0 ? (
-                  <Text style={styles.emptyText}>Nenhum item pendente.</Text>
+                  <View style={styles.emptyState}>
+                    <MaterialIcons name="check-circle" size={32} color={colors.success} />
+                    <Text style={[styles.emptyText, { marginTop: 8 }]}>Todos os itens conferidos!</Text>
+                  </View>
                 ) : (
-                  itemsToCheck.map((row) => {
-                    const isHot = lastScanned && (row.code === lastScanned || row.ean === lastScanned) && (Date.now() - lastScannedAt) < 2500;
-                    const done = row.checkedQty >= row.expectedQty && row.checkedQty > 0;
-                    return (
-                      <Pressable
-                        key={row.id}
-                        onLongPress={() => handleItemLongPress(row)}
-                        style={[styles.itemRow, isHot && styles.itemRowHot]}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.itemCode}>{row.code}{row.ean ? ` / ${row.ean}` : ''}</Text>
-                          <Text style={styles.itemDesc} numberOfLines={1}>{row.description}</Text>
-                        </View>
-                        <Text style={[styles.itemQty, { color: done ? colors.success : colors.text }]}>
-                          Lido: {row.checkedQty}
-                        </Text>
-                      </Pressable>
-                    );
-                  })
+                  itemsToCheck.map((row, idx) => (
+                    <ConferenciaItemRow
+                      key={row.id}
+                      row={row}
+                      colors={colors}
+                      lastScanned={lastScanned}
+                      lastScannedAt={lastScannedAt}
+                      onLongPress={handleItemLongPress}
+                      doneColor={colors.success}
+                      isLast={idx === itemsToCheck.length - 1}
+                    />
+                  ))
                 )}
               </View>
             );
           }
 
+          // ── Checked items ──
           return (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Itens Conferidos</Text>
+              <SectionDivider
+                label="Conferidos"
+                count={itemsChecked.length}
+                accent={colors.doneAccent}
+                styles={styles}
+              />
               {itemsChecked.length === 0 ? (
-                <Text style={styles.emptyText}>Nenhum item totalmente conferido.</Text>
+                <Text style={styles.emptyText}>Nenhum item conferido ainda.</Text>
               ) : (
-                itemsChecked.map((row) => {
-                  const isHot = lastScanned && (row.code === lastScanned || row.ean === lastScanned) && (Date.now() - lastScannedAt) < 2500;
-                  return (
-                    <Pressable
-                      key={row.id}
-                      onLongPress={() => handleItemLongPress(row)}
-                      style={[styles.itemRow, isHot && styles.itemRowHot]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.itemCode}>{row.code}{row.ean ? ` / ${row.ean}` : ''}</Text>
-                        <Text style={styles.itemDesc} numberOfLines={1}>{row.description}</Text>
-                      </View>
-                      <Text style={[styles.itemQty, { color: colors.success }]}>Lido: {row.checkedQty}</Text>
-                    </Pressable>
-                  );
-                })
+                itemsChecked.map((row, idx) => (
+                  <ConferenciaItemRow
+                    key={row.id}
+                    row={row}
+                    colors={colors}
+                    lastScanned={lastScanned}
+                    lastScannedAt={lastScannedAt}
+                    onLongPress={handleItemLongPress}
+                    doneColor={colors.success}
+                    isLast={idx === itemsChecked.length - 1}
+                  />
+                ))
               )}
-
-              <Pressable style={styles.finishButton} onPress={saveConference}>
-                <MaterialIcons name="check-circle" size={20} color={colors.onPrimary} />
-                <Text style={styles.finishButtonText}>Finalizar conferência</Text>
-              </Pressable>
+              {(itemsChecked.length > 0 || itemsToCheck.length === 0) && (
+                <Pressable style={styles.finishButton} onPress={saveConference}>
+                  <MaterialIcons name="check-circle" size={20} color="#ffffff" />
+                  <Text style={styles.finishButtonText}>Finalizar conferência</Text>
+                </Pressable>
+              )}
             </View>
           );
         }}
       />
-
     </ScreenLayout>
   );
 };
 
 const getStyles = (colors) =>
   StyleSheet.create({
-    content: {
-      flex: 1,
-      paddingHorizontal: 16,
-      paddingTop: 12,
-    },
-    scrollContent: {
-      paddingBottom: 28,
-    },
-    card: {
+    content: { flex: 1, paddingHorizontal: 16, paddingTop: 10 },
+    scrollContent: { paddingBottom: 32 },
+
+    // ── Compact bar ──
+    compactBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
       backgroundColor: colors.surface,
-      borderRadius: 14,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      marginBottom: 10,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.07,
+      shadowRadius: 10,
+      elevation: 2,
+    },
+    compactBarLeft: { flex: 1, marginRight: 10, gap: 5 },
+    compactInvoice: { color: colors.text, fontSize: 13, fontWeight: '900' },
+    progressTrackInline: {
+      height: 4,
+      borderRadius: 999,
+      backgroundColor: colors.surface2,
+      overflow: 'hidden',
+    },
+    progressFillInline: {
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: 999,
+    },
+    compactPills: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+    miniPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderWidth: 1,
+    },
+    miniPillText: { fontSize: 12, fontWeight: '900' },
+
+    // ── Scan card ──
+    scanCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
       borderWidth: 1,
       borderColor: colors.border,
       padding: 14,
       marginBottom: 12,
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 5 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 3,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.07,
+      shadowRadius: 14,
+      elevation: 2,
     },
-    statusCard: {
-      backgroundColor: colors.surface,
+    scanCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+    scanCardTitle: { color: colors.text, fontSize: 14, fontWeight: '900', flex: 1 },
+    lastScannedBadge: { color: colors.textMuted, fontSize: 11, fontWeight: '700', maxWidth: 140 },
+    codeInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    scanIconButton: {
+      width: 48,
+      height: 48,
       borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 14,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    qtyInput: { width: 58, textAlign: 'center' },
+
+    // ── Section divider ──
+    sectionDivider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderLeftWidth: 3,
+      paddingLeft: 10,
       marginBottom: 12,
     },
-    statusHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    statusTitle: {
-      color: colors.text,
-      fontSize: 15,
-      fontWeight: '900',
-    },
-    statusSubtitle: {
-      marginTop: 2,
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    statusMeta: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '700',
-      marginBottom: 2,
-    },
-    statusBadge: {
-      backgroundColor: colors.primary,
-      borderRadius: 999,
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-    },
-    statusBadgeText: {
-      color: colors.onPrimary,
-      fontSize: 12,
-      fontWeight: '900',
-    },
-    progressTrack: {
-      marginTop: 8,
-      height: 8,
-      borderRadius: 999,
-      backgroundColor: colors.surface2,
-      overflow: 'hidden',
+    sectionDividerText: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, flex: 1 },
+    sectionDividerBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+    sectionDividerCount: { fontSize: 12, fontWeight: '900' },
+
+    // ── Cards ──
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 22,
       borderWidth: 1,
       borderColor: colors.border,
+      padding: 16,
+      marginBottom: 14,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 18,
+      elevation: 3,
     },
-    progressFill: {
-      height: '100%',
-      backgroundColor: colors.primary,
-      borderRadius: 999,
-    },
-    draftRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 10,
-      flexWrap: 'wrap',
-    },
-    draftChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.chipBg,
-      borderRadius: 8,
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-    },
-    draftChipText: {
-      color: colors.text,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    cardTitle: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.text,
-      marginBottom: 10,
-    },
-    inputLabel: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
-      marginBottom: 6,
-    },
+    sectionTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
+    sectionIconWrap: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    cardTitle: { fontSize: 17, fontWeight: '900', color: colors.text, marginBottom: 6 },
+    searchSubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 18, fontWeight: '700', marginBottom: 10 },
+    inputLabel: { fontSize: 11, fontWeight: '800', color: colors.textMuted, marginBottom: 5 },
     input: {
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.inputBg,
       color: colors.text,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderRadius: 14,
+      paddingHorizontal: 13,
+      paddingVertical: 12,
       marginBottom: 10,
-      fontSize: 14,
-      fontWeight: '600',
+      fontSize: 15,
+      fontWeight: '700',
     },
-    codeInputRow: {
+    inputDisabled: { opacity: 0.6 },
+    draftRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
+    draftChip: {
       flexDirection: 'row',
-      gap: 8,
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.chipBg,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
     },
-    codeInput: {
-      flex: 0.85,
-    },
-    qtyInput: {
-      flex: 0.15,
-      textAlign: 'center',
-      minWidth: 62,
-    },
-    helperText: {
-      marginTop: -2,
-      color: colors.textMuted,
-      fontSize: 11,
-      fontWeight: '600',
-    },
+    draftChipText: { color: colors.text, fontSize: 12, fontWeight: '800' },
     primaryButton: {
-      borderRadius: 10,
+      borderRadius: 14,
       backgroundColor: colors.primary,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      paddingVertical: 11,
+      paddingVertical: 14,
+      marginTop: 4,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.14,
+      shadowRadius: 16,
+      elevation: 4,
     },
-    primaryButtonText: {
-      color: colors.onPrimary,
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    scanButton: {
-      borderRadius: 10,
-      backgroundColor: colors.primary,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingVertical: 13,
-      marginBottom: 12,
-    },
-    scanButtonText: {
-      color: colors.onPrimary,
-      fontWeight: '800',
-      fontSize: 14,
-    },
-    itemRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderBottomWidth: 1,
-      borderBottomColor: colors.divider,
-      paddingVertical: 9,
-    },
-    itemRowHot: {
-      backgroundColor: colors.successSoft,
-      borderRadius: 10,
-      paddingHorizontal: 8,
-      marginHorizontal: -8,
-    },
-    itemCode: {
-      color: colors.text,
-      fontWeight: '800',
-      fontSize: 12,
-    },
-    itemDesc: {
-      marginTop: 2,
-      color: colors.textMuted,
-      fontWeight: '600',
-      fontSize: 12,
-    },
-    emptyText: {
-      color: colors.textMuted,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    itemQty: {
-      fontSize: 14,
-      fontWeight: '900',
-    },
+    primaryButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
+    emptyText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+    emptyState: { alignItems: 'center', paddingVertical: 20 },
     finishButton: {
-      borderRadius: 12,
+      borderRadius: 14,
       backgroundColor: colors.success,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      paddingVertical: 12,
-      marginTop: 10,
+      paddingVertical: 14,
+      marginTop: 14,
     },
-    finishButtonText: {
-      color: colors.onPrimary,
-      fontSize: 14,
-      fontWeight: '900',
-    },
+    finishButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
   });
 
 export default ConferenciaSaidaScreen;

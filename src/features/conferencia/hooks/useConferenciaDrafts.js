@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   readConferenciaCollection,
   writeConferenciaCollection,
@@ -92,11 +92,17 @@ export const useConferenciaDrafts = ({
     };
   }, []);
 
-  return {
+  return useMemo(() => ({
     drafts,
     loadDrafts,
     upsertDraftDebounced,
     removeByKey,
     findByKey,
-  };
+  }), [
+    drafts,
+    loadDrafts,
+    upsertDraftDebounced,
+    removeByKey,
+    findByKey,
+  ]);
 };

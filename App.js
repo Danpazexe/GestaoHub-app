@@ -41,8 +41,8 @@ import ConferenciaScanScreen from './src/features/conferencia/screens/Conferenci
 import ConferenciaSaidaScreen from './src/features/conferencia/screens/ConferenciaSaidaScreen';
 import NotificationScreen from './src/features/notifications/screens/NotificationScreen';
 import ProfileScreen from './src/features/profile/screens/ProfileScreen';
-import ConferenciaTratativasRecebimentoScreen from './src/features/recebimentoTratativas/screens/ConferenciaTratativasRecebimentoScreen';
-import EspelhoRecebimentoScreen from './src/features/recebimentoTratativas/screens/EspelhoRecebimentoScreen';
+import ConferenciaTratativasRecebimentoScreen from './src/features/recebimentoTratativa/screens/ConferenciaTratativasRecebimentoScreen';
+import EspelhoRecebimentoScreen from './src/features/recebimentoTratativa/screens/EspelhoRecebimentoScreen';
 import EnderecosScreen from './src/features/settings/screens/EnderecosScreen';
 import SettingsScreen from './src/features/settings/screens/SettingsScreen';
 import { loadThemePreference } from './src/features/settings/services/settingsStorageService';

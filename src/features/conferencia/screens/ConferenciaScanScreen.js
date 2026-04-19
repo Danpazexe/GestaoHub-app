@@ -196,6 +196,21 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.card}>
+          <View style={styles.scanSummaryRow}>
+            <View style={styles.scanSummaryPill}>
+              <Text style={styles.scanSummaryLabel}>Fator</Text>
+              <Text style={styles.scanSummaryValue}>x{factorInt}</Text>
+            </View>
+            <View style={styles.scanSummaryPill}>
+              <Text style={styles.scanSummaryLabel}>Qt digitada</Text>
+              <Text style={styles.scanSummaryValue}>{qtyInt}</Text>
+            </View>
+            <View style={[styles.scanSummaryPill, styles.scanSummaryPillAccent]}>
+              <Text style={[styles.scanSummaryLabel, styles.scanSummaryLabelAccent]}>Total</Text>
+              <Text style={[styles.scanSummaryValue, styles.scanSummaryValueAccent]}>{effectiveQty}</Text>
+            </View>
+          </View>
+
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{item?.description || 'Produto'}</Text>
@@ -361,6 +376,42 @@ const getStyles = (colors) =>
       justifyContent: 'space-between',
       gap: 10,
       marginBottom: 10,
+    },
+    scanSummaryRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 12,
+    },
+    scanSummaryPill: {
+      flex: 1,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 9,
+      backgroundColor: colors.surface2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    scanSummaryPillAccent: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    scanSummaryLabel: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    scanSummaryLabelAccent: {
+      color: 'rgba(255,255,255,0.8)',
+    },
+    scanSummaryValue: {
+      color: colors.text,
+      fontSize: 18,
+      fontWeight: '900',
+      marginTop: 4,
+    },
+    scanSummaryValueAccent: {
+      color: colors.onPrimary,
     },
     title: {
       color: colors.text,
