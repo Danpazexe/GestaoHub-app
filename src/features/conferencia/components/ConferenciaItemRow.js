@@ -79,6 +79,29 @@ const getStyles = (colors) =>
       fontSize: 11,
       fontWeight: '700',
     },
+    itemActionsRow: {
+      flexDirection: 'row',
+      gap: 6,
+      flexWrap: 'wrap',
+      marginTop: 8,
+      alignItems: 'center',
+    },
+    itemActionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface2,
+    },
+    itemActionText: {
+      color: colors.text,
+      fontSize: 11,
+      fontWeight: '800',
+    },
 
     // ── Right: qty block ──
     qtyBlock: {
@@ -105,6 +128,8 @@ export const ConferenciaItemRow = ({
   lastScanned,
   lastScannedAt,
   onLongPress,
+  onEdit,
+  onClear,
   doneColor,
   isLast = false,
 }) => {
@@ -145,6 +170,7 @@ export const ConferenciaItemRow = ({
   const pendingAccent = colors.pendingAccent || colors.warning || '#ea580c';
   const doneAccent = doneColor || colors.success;
   const accentColor = done ? doneAccent : pendingAccent;
+  const canAdjust = Number(row.checkedQty || 0) > 0;
 
   return (
     <Pressable onLongPress={() => onLongPress?.(row)}>
@@ -180,6 +206,18 @@ export const ConferenciaItemRow = ({
               {meta.validade ? (
                 <Text style={styles.itemMetaText}>Val: {meta.validade}</Text>
               ) : null}
+            </View>
+          ) : null}
+          {canAdjust ? (
+            <View style={styles.itemActionsRow}>
+              <Pressable style={styles.itemActionButton} onPress={() => onEdit?.(row)}>
+                <MaterialIcons name="edit" size={13} color={colors.primary} />
+                <Text style={styles.itemActionText}>Editar</Text>
+              </Pressable>
+              <Pressable style={styles.itemActionButton} onPress={() => onClear?.(row)}>
+                <MaterialIcons name="backspace" size={13} color={colors.danger} />
+                <Text style={styles.itemActionText}>Limpar</Text>
+              </Pressable>
             </View>
           ) : null}
         </View>

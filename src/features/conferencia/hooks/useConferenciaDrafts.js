@@ -14,6 +14,16 @@ export const useConferenciaDrafts = ({
   const [drafts, setDrafts] = useState([]);
   const timerRef = useRef(null);
 
+  const mergeDraftIntoList = useCallback((list, draft) => {
+    const safeList = Array.isArray(list) ? list : [];
+    const key = normalize(getKey(draft));
+    const index = safeList.findIndex((item) => normalize(getKey(item)) === key);
+    const next = [...safeList];
+    if (index >= 0) next[index] = draft;
+    else next.unshift(draft);
+    return next.slice(0, maxDrafts);
+  }, [getKey, maxDrafts, normalize]);
+
   const readDrafts = useCallback(async () => {
     return readConferenciaCollection(storageKey);
   }, [storageKey]);
@@ -43,19 +53,27 @@ export const useConferenciaDrafts = ({
       timerRef.current = setTimeout(async () => {
         try {
           const current = await readDrafts();
-          const list = Array.isArray(current) ? current : [];
-          const key = normalize(getKey(draft));
-          const index = list.findIndex((item) => normalize(getKey(item)) === key);
-          const next = [...list];
-          if (index >= 0) next[index] = draft;
-          else next.unshift(draft);
+          const next = mergeDraftIntoList(current, draft);
           await writeDrafts(next);
         } catch {
           // ignore
         }
       }, debounceMs);
     },
-    [debounceMs, getKey, normalize, readDrafts, writeDrafts],
+    [debounceMs, mergeDraftIntoList, readDrafts, writeDrafts],
+  );
+
+  const upsertDraftImmediate = useCallback(
+    async (draft) => {
+      if (!draft) return;
+      try {
+        const next = mergeDraftIntoList(drafts, draft);
+        await writeDrafts(next);
+      } catch {
+        // ignore
+      }
+    },
+    [drafts, mergeDraftIntoList, writeDrafts],
   );
 
   const removeByKey = useCallback(
@@ -75,15 +93,19 @@ export const useConferenciaDrafts = ({
 
   const findByKey = useCallback(
     async (keyValue) => {
+      const key = normalize(keyValue);
+      const localHit = (Array.isArray(drafts) ? drafts : []).find((item) => normalize(getKey(item)) === key);
+      if (localHit) {
+        return localHit;
+      }
       try {
         const list = await readDrafts();
-        const key = normalize(keyValue);
         return (Array.isArray(list) ? list : []).find((item) => normalize(getKey(item)) === key) || null;
       } catch {
         return null;
       }
     },
-    [getKey, normalize, readDrafts],
+    [drafts, getKey, normalize, readDrafts],
   );
 
   useEffect(() => {
@@ -96,12 +118,14 @@ export const useConferenciaDrafts = ({
     drafts,
     loadDrafts,
     upsertDraftDebounced,
+    upsertDraftImmediate,
     removeByKey,
     findByKey,
   }), [
     drafts,
     loadDrafts,
     upsertDraftDebounced,
+    upsertDraftImmediate,
     removeByKey,
     findByKey,
   ]);

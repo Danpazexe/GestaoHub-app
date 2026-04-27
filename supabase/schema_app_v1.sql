@@ -282,6 +282,87 @@ before update on public.conferencia_divergencias
 for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------
+-- Recebimento / Pedidos de compra
+-- ---------------------------------------------
+create table if not exists public.purchase_orders (
+  id uuid primary key default gen_random_uuid(),
+  created_by uuid not null references auth.users(id) on delete cascade,
+  order_number text not null unique,
+  source_type text not null default 'xml_nf', -- xml_nf | manual | avulso
+  supplier_name text not null,
+  supplier_code text,
+  supplier_document text,
+  invoice_number text,
+  invoice_key text,
+  issued_at timestamptz,
+  status text not null default 'pedido_criado', -- pedido_criado | entrada_pendente | entrada_realizada | bonus_gerado | devolucao_pendente | devolucao_emitida | auditado | encerrado | cancelado
+  entry_status text not null default 'pendente', -- pendente | parcial | realizada
+  bonus_status text not null default 'nao_gerado', -- nao_gerado | gerado
+  return_status text not null default 'sem_devolucao', -- sem_devolucao | pendente | emitida
+  audit_status text not null default 'pendente', -- pendente | revisado | aprovado
+  item_count integer not null default 0,
+  total_quantity numeric(14,3) not null default 0,
+  reprint_count integer not null default 0,
+  last_reprint_at timestamptz,
+  entry_at timestamptz,
+  bonus_generated_at timestamptz,
+  return_requested_at timestamptz,
+  return_completed_at timestamptz,
+  audited_at timestamptz,
+  closed_at timestamptz,
+  xml_payload jsonb not null default '{}'::jsonb,
+  extra jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.purchase_order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.purchase_orders(id) on delete cascade,
+  created_by uuid not null references auth.users(id) on delete cascade,
+  line_number integer,
+  code text,
+  ean text,
+  dun text,
+  description text not null,
+  unit text,
+  expected_qty numeric(14,3) not null default 0,
+  received_qty numeric(14,3) not null default 0,
+  divergence_qty numeric(14,3) not null default 0,
+  packaging_options jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.purchase_order_actions (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.purchase_orders(id) on delete cascade,
+  created_by uuid not null references auth.users(id) on delete cascade,
+  action_type text not null, -- pedido_criado | entrada_realizada | bonus_gerado | devolucao_pendente | devolucao_emitida | reimpressao | auditoria
+  action_label text,
+  notes text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_purchase_orders_created_by on public.purchase_orders(created_by);
+create index if not exists idx_purchase_orders_status on public.purchase_orders(status);
+create index if not exists idx_purchase_orders_invoice_number on public.purchase_orders(invoice_number);
+create index if not exists idx_purchase_orders_created_at on public.purchase_orders(created_at desc);
+create index if not exists idx_purchase_order_items_order on public.purchase_order_items(order_id);
+create index if not exists idx_purchase_order_actions_order on public.purchase_order_actions(order_id, created_at desc);
+
+drop trigger if exists trg_purchase_orders_updated_at on public.purchase_orders;
+create trigger trg_purchase_orders_updated_at
+before update on public.purchase_orders
+for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_purchase_order_items_updated_at on public.purchase_order_items;
+create trigger trg_purchase_order_items_updated_at
+before update on public.purchase_order_items
+for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------
 -- Storage bucket (imagens)
 -- ---------------------------------------------
 insert into storage.buckets (id, name, public)
@@ -300,6 +381,9 @@ alter table public.avaria_items enable row level security;
 alter table public.conferencia_recebimentos enable row level security;
 alter table public.conferencia_saidas enable row level security;
 alter table public.conferencia_divergencias enable row level security;
+alter table public.purchase_orders enable row level security;
+alter table public.purchase_order_items enable row level security;
+alter table public.purchase_order_actions enable row level security;
 
 drop policy if exists profiles_select_own on public.profiles;
 create policy profiles_select_own on public.profiles
@@ -348,6 +432,18 @@ for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists conferencia_divergencias_owner_all on public.conferencia_divergencias;
 create policy conferencia_divergencias_owner_all on public.conferencia_divergencias
 for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists purchase_orders_owner_all on public.purchase_orders;
+create policy purchase_orders_owner_all on public.purchase_orders
+for all using (auth.uid() = created_by) with check (auth.uid() = created_by);
+
+drop policy if exists purchase_order_items_owner_all on public.purchase_order_items;
+create policy purchase_order_items_owner_all on public.purchase_order_items
+for all using (auth.uid() = created_by) with check (auth.uid() = created_by);
+
+drop policy if exists purchase_order_actions_owner_all on public.purchase_order_actions;
+create policy purchase_order_actions_owner_all on public.purchase_order_actions
+for all using (auth.uid() = created_by) with check (auth.uid() = created_by);
 
 -- Storage policies (bucket product-images)
 drop policy if exists storage_read_own_product_images on storage.objects;

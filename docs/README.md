@@ -12,6 +12,16 @@ Esta pasta é a referência canônica do app mobile React Native deste repositó
 - `security-and-release.md`: assinatura release, revisão de RLS e endurecimento operacional.
 - `migration-backlog.md`: débitos estruturais e trilha de convergência.
 
+## Trilha do painel administrativo
+- `admin-panel-blueprint.md`: leitura do estado real do mobile versus o que o painel admin precisa.
+- `admin-web/README.md`: índice da documentação do painel web administrativo.
+- `admin-web/product-overview.md`: visão de produto, personas, stack e escopo do painel.
+- `admin-web/architecture.md`: arquitetura de pastas, módulos, layout e regras de implementação.
+- `admin-web/design-system.md`: tokens visuais, componentes-base, responsividade e acessibilidade.
+- `admin-web/feature-spec.md`: especificação funcional dos módulos existentes e dos novos módulos do painel.
+- `admin-web/components-hooks-services.md`: componentes novos, hooks customizados, contratos de API e utilitários.
+- `admin-web/delivery-checklist.md`: critérios de entrega, arquivos previstos, validação e comando de teste.
+
 ## Regra de governança
 - novas features entram por domínio, não como telas gigantes com regra de negócio espalhada.
 - telas novas ou migradas não persistem `AsyncStorage` diretamente quando já existir serviço dedicado.

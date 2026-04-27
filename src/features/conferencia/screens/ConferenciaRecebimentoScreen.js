@@ -30,38 +30,55 @@ import {
   listConferenciaRecebimentos,
 } from '../services/conferenciaRecordsService';
 import {
+  finishRemoteConferenciaBonus,
+  listRemoteConferenciaBonusQueue,
+  loadRemoteConferenciaBonusItems,
+  syncRemoteConferenciaBonusProgress,
+} from '../services/conferenciaBonusQueueService';
+import {
   buildConferenceEvent,
   computeTotals,
   normalizeKey,
   pluralize,
 } from '../services/conferenciaCore';
-import { buildExpectedItemsEntrada } from '../mocks/conferenciaMock';
 import { useConferenciaRecebimentoDrafts } from '../hooks/useConferenciaRecebimentoDrafts';
-import { buildBonusRecebimentoList } from '../mocks/conferenciaBonusMock';
+import { hasConferenceCatalog } from '../services/conferenciaCatalogService';
 import { conferenciaRecebimentoTheme } from '../../../theme/domains/conferencia';
 
 // ─── Highlight duration for scanned item (ms) ────────────────────────────────
 const HIGHLIGHT_DURATION = 2200;
+const HEADER_SUPPLIER_MAX = 34;
+const truncateText = (value, max = HEADER_SUPPLIER_MAX) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+};
 
 // ─── Compact summary bar shown during active conference ───────────────────────
 const CompactSummaryBar = ({ invoice, supplier, pendingCount, doneCount, divergenceCount, colors, styles }) => (
   <View style={styles.compactBar}>
     <View style={styles.compactBarLeft}>
-      <Text style={styles.compactInvoice} numberOfLines={1}>{invoice}</Text>
+      <View style={styles.compactHeaderRow}>
+        <Text style={styles.compactLabel}>NF</Text>
+        <Text style={styles.compactInvoice} numberOfLines={1}>{invoice || '-'}</Text>
+      </View>
       <Text style={styles.compactSupplier} numberOfLines={1}>{supplier}</Text>
     </View>
     <View style={styles.compactPills}>
       <View style={[styles.miniPill, { backgroundColor: colors.goldSoft, borderColor: 'rgba(245,158,11,0.22)' }]}>
         <Text style={[styles.miniPillText, { color: colors.warm }]}>{pendingCount}</Text>
+        <Text style={[styles.miniPillCaption, { color: colors.warm }]}>pend.</Text>
         <MaterialIcons name="schedule" size={11} color={colors.warm} />
       </View>
       <View style={[styles.miniPill, { backgroundColor: colors.successSoft, borderColor: 'rgba(16,185,129,0.22)' }]}>
         <Text style={[styles.miniPillText, { color: colors.success }]}>{doneCount}</Text>
+        <Text style={[styles.miniPillCaption, { color: colors.success }]}>ok</Text>
         <MaterialIcons name="check-circle-outline" size={11} color={colors.success} />
       </View>
       {divergenceCount > 0 && (
         <View style={[styles.miniPill, { backgroundColor: colors.dangerSoft, borderColor: 'rgba(220,38,38,0.22)' }]}>
           <Text style={[styles.miniPillText, { color: colors.danger }]}>{divergenceCount}</Text>
+          <Text style={[styles.miniPillCaption, { color: colors.danger }]}>div.</Text>
           <MaterialIcons name="error-outline" size={11} color={colors.danger} />
         </View>
       )}
@@ -145,6 +162,9 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   const [operatorName, setOperatorName] = useState('');
   const [finalizedReceipts, setFinalizedReceipts] = useState([]);
   const [bonusQuery, setBonusQuery] = useState('');
+  const [catalogAvailable, setCatalogAvailable] = useState(false);
+  const [remoteQueue, setRemoteQueue] = useState([]);
+  const [activeRemoteQueueId, setActiveRemoteQueueId] = useState(null);
   const codeInputRef = useRef(null);
 
   // Focus recovery — re-focus input whenever screen comes to foreground during active conference
@@ -197,6 +217,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     drafts,
     loadDrafts,
     upsertDraftDebounced,
+    upsertDraftImmediate,
     removeByKey,
     findByKey,
   } = useConferenciaRecebimentoDrafts();
@@ -211,9 +232,9 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       }),
       headerTitle: () =>
         createHeaderTitleTemplate({
-          title: supplier.trim() ? supplier.trim() : 'Recebimento',
-          subtitle: started && (invoice.trim() || supplier.trim())
-            ? `NF ${invoice.trim() || '-'} • ${supplier.trim() || '-'}`
+          title: started ? `NF ${invoice.trim() || '-'}` : 'Recebimento',
+          subtitle: started
+            ? truncateText(supplier.trim() || 'Fornecedor nao informado')
             : 'Bônus para conferir',
           iconName: 'inventory',
           tintColor: '#ffffff',
@@ -236,6 +257,15 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     applyScanPayload(payload);
   }, [route.params?.scanConfirm, navigation]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const loadRemoteQueue = useCallback(async () => {
+    try {
+      const queue = await listRemoteConferenciaBonusQueue();
+      setRemoteQueue(Array.isArray(queue) ? queue : []);
+    } catch {
+      setRemoteQueue([]);
+    }
+  }, []);
+
   // ── Operator load ──
   useEffect(() => {
     let active = true;
@@ -251,42 +281,130 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     listConferenciaRecebimentos()
       .then((list) => setFinalizedReceipts(Array.isArray(list) ? list : []))
       .catch(() => setFinalizedReceipts([]));
+    hasConferenceCatalog()
+      .then(setCatalogAvailable)
+      .catch(() => setCatalogAvailable(false));
+    loadRemoteQueue();
 
     const unsub = navigation.addListener('focus', () => {
       loadDrafts();
       listConferenciaRecebimentos()
         .then((list) => setFinalizedReceipts(Array.isArray(list) ? list : []))
         .catch(() => setFinalizedReceipts([]));
+      hasConferenceCatalog()
+        .then(setCatalogAvailable)
+        .catch(() => setCatalogAvailable(false));
+      loadRemoteQueue();
     });
     return unsub;
-  }, [navigation, loadDrafts]);
+  }, [navigation, loadDrafts, loadRemoteQueue]);
 
-  // ── Bonus list ──
-  const bonusesAll = useMemo(() => buildBonusRecebimentoList(), []);
-  const bonusesFiltered = useMemo(() => {
+  const queueItems = useMemo(() => {
+    const remoteByInvoice = new Map(
+      remoteQueue.map((item) => [normalizeInvoice(item?.invoice || ''), item]),
+    );
+
+    const remoteQueueItems = remoteQueue.map((item) => ({
+      ...item,
+      source: 'remote',
+    }));
+
+    const draftsQueue = drafts
+      .map((draft) => {
+        const invoiceKey = normalizeInvoice(draft?.invoice || '');
+        const remoteMatch = remoteByInvoice.get(invoiceKey);
+        const remoteQueueId = draft?.remoteQueueId || remoteMatch?.id || null;
+        const hasProgress = Array.isArray(draft?.items)
+          ? draft.items.some((entry) => Number(entry?.checkedQty || 0) > 0)
+          : false;
+
+        if (!invoiceKey || !remoteQueueId) {
+          return null;
+        }
+
+        return {
+          id: `draft-${invoiceKey}`,
+          remoteQueueId,
+          supplierCode: '',
+          supplierName: draft?.supplier || remoteMatch?.supplierName || 'Fornecedor nao informado',
+          invoice: draft?.invoice || '',
+          createdAt: draft?.updatedAt || draft?.createdAt || remoteMatch?.createdAt || new Date().toISOString(),
+          lines: Array.isArray(draft?.items) ? draft.items.length : Number(remoteMatch?.lines || 0),
+          status: hasProgress ? 'em_conferencia' : 'nao_iniciado',
+          source: 'draft',
+        };
+      })
+      .filter(Boolean);
+
+    const mergedMap = new Map();
+
+    [...draftsQueue, ...remoteQueueItems].forEach((item) => {
+      const key = normalizeInvoice(item?.invoice || '');
+      if (!key) return;
+      const existing = mergedMap.get(key);
+      if (!existing || (item.source === 'draft' && existing.source !== 'draft')) {
+        mergedMap.set(key, item);
+      }
+    });
+
+    return [...mergedMap.values()].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+    );
+  }, [drafts, normalizeInvoice, remoteQueue]);
+
+  const remoteLinkedDrafts = useMemo(
+    () => drafts.filter((draft) => Boolean(draft?.remoteQueueId)),
+    [drafts],
+  );
+
+  const queueFiltered = useMemo(() => {
     const q = String(bonusQuery || '').trim().toLowerCase();
-    if (!q) return bonusesAll;
-    return bonusesAll.filter((b) =>
+    if (!q) return queueItems;
+    return queueItems.filter((b) =>
       `${b.invoice} ${b.supplierName} ${b.supplierCode}`.toLowerCase().includes(q),
     );
-  }, [bonusesAll, bonusQuery]);
+  }, [queueItems, bonusQuery]);
 
   const queueSummary = useMemo(() => ({
-    totalBonuses: bonusesFiltered.length,
-    totalItems: bonusesFiltered.reduce((s, b) => s + (Number(b.lines) || 0), 0),
-    drafts: drafts.length,
-  }), [bonusesFiltered, drafts.length]);
+    totalBonuses: queueFiltered.length,
+    totalItems: queueFiltered.reduce((s, b) => s + (Number(b.lines) || 0), 0),
+    drafts: queueFiltered.filter((item) => item.source === 'draft').length,
+  }), [queueFiltered]);
   const draftStatusByInvoice = useMemo(() => {
     const map = new Map();
 
     drafts.forEach((draft) => {
       const key = normalizeInvoice(draft?.invoice || '');
       if (!key) return;
-      map.set(key, 'em_conferencia');
+      const hasProgress = Array.isArray(draft?.items)
+        ? draft.items.some((item) => Number(item?.checkedQty || 0) > 0)
+        : false;
+      map.set(key, hasProgress ? 'em_conferencia' : 'nao_iniciado');
     });
 
     return map;
   }, [drafts, normalizeInvoice]);
+
+  useEffect(() => {
+    const linkedDrafts = drafts.filter((draft) => draft?.remoteQueueId);
+    if (!linkedDrafts.length) {
+      return;
+    }
+
+    linkedDrafts.forEach((draft) => {
+      const checkedItems = Array.isArray(draft?.items)
+        ? draft.items.filter((item) => Number(item?.checkedQty || 0) > 0).length
+        : 0;
+      const checkedQty = Array.isArray(draft?.items)
+        ? draft.items.reduce((sum, item) => sum + Number(item?.checkedQty || 0), 0)
+        : 0;
+
+      syncRemoteConferenciaBonusProgress(draft.remoteQueueId, {
+        checkedItems,
+        checkedQty,
+      });
+    });
+  }, [drafts]);
   const finalizedStatusByInvoice = useMemo(() => {
     const map = new Map();
 
@@ -298,6 +416,15 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
 
     return map;
   }, [finalizedReceipts, normalizeInvoice]);
+
+  const buildDraftPayload = useCallback((itemsValue = items) => ({
+    invoice: invoice.trim(),
+    supplier: supplier.trim(),
+    conferente: conferente.trim(),
+    remoteQueueId: activeRemoteQueueId || null,
+    items: Array.isArray(itemsValue) ? itemsValue : [],
+    updatedAt: new Date().toISOString(),
+  }), [invoice, supplier, conferente, items, activeRemoteQueueId]);
 
   // ── Item lists ──
   const itemsToCheck = useMemo(() => {
@@ -347,12 +474,16 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     } catch { /* new conference */ }
     setSupplier(supplierValue);
     setInvoice(invoiceValue);
-    const expectedItems = await buildExpectedItemsEntrada(invoiceValue, 16);
-    setItems(expectedItems);
-    setStarted(true);
-  }, [supplier, invoice, findByKey, normalizeInvoice]);
+    Alert.alert(
+      'Sem carga real da NF',
+      catalogAvailable
+        ? 'Para iniciar nova conferencia de recebimento, conecte uma fonte real dos itens da NF.'
+        : 'Nao ha catalogo real carregado no app. Importe a base real e conecte a origem da NF.',
+    );
+  }, [supplier, invoice, findByKey, normalizeInvoice, catalogAvailable]);
 
   const resumeDraft = useCallback((draft) => {
+    setActiveRemoteQueueId(draft?.remoteQueueId || null);
     setSupplier(draft.supplier || '');
     setInvoice(draft.invoice || '');
     setConferente(draft.conferente || '');
@@ -363,11 +494,43 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   const handleQueueCardPress = useCallback((item) => {
     const key = normalizeInvoice(item?.invoice || '');
     const finalizedStatus = finalizedStatusByInvoice.get(key);
+    const draft = drafts.find((entry) => normalizeInvoice(entry?.invoice || '') === key);
+
+    if (draft) {
+      const remoteMatch = remoteQueue.find((entry) => normalizeInvoice(entry?.invoice || '') === key);
+      resumeDraft({
+        ...draft,
+        remoteQueueId: remoteMatch?.id || item?.remoteQueueId || null,
+      });
+      return;
+    }
+
+    if (item?.source === 'remote') {
+      loadRemoteConferenciaBonusItems(item.id)
+        .then(async (remoteItems) => {
+          if (!Array.isArray(remoteItems) || remoteItems.length === 0) {
+            Alert.alert('NF sem itens', 'O XML foi importado, mas nao gerou itens para conferencia.');
+            return;
+          }
+
+          setActiveRemoteQueueId(item.id);
+          setSupplier(item?.supplierName || '');
+          setInvoice(item?.invoice || '');
+          setConferente(operatorName || '');
+          setItems(remoteItems);
+          setStarted(true);
+          loadRemoteQueue();
+        })
+        .catch(() => {
+          Alert.alert('Erro', 'Nao foi possivel carregar os itens da NF importada.');
+        });
+      return;
+    }
 
     if (finalizedStatus === 'finalizada') {
       Alert.alert(
         'Conferência finalizada',
-        `A NF ${item?.invoice || '-'} já foi finalizada no app e permanece na fila até remoção pelo painel.`,
+        `A NF ${item?.invoice || '-'} ja foi finalizada no app.`,
       );
       return;
     }
@@ -376,7 +539,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       supplierOverride: item?.supplierName,
       invoiceOverride: item?.invoice,
     });
-  }, [finalizedStatusByInvoice, normalizeInvoice, startConference]);
+  }, [drafts, finalizedStatusByInvoice, normalizeInvoice, resumeDraft, startConference, operatorName, loadRemoteQueue]);
 
   const openScanner = useCallback(() => {
     if (!started) {
@@ -438,6 +601,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   const applyScanPayload = useCallback((payload) => {
     let overflow = false;
     let full = false;
+    let nextItemsSnapshot = null;
     const nowIso = new Date().toISOString();
     const scannedValue = String(payload?.scannedValue || '').trim();
     const effectiveQty = Math.max(1, Number(payload?.effectiveQty) || 1);
@@ -445,13 +609,11 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     const factor = Math.max(1, Number(payload?.factor) || 1);
     const packaging = payload?.packaging || null;
     const itemId = String(payload?.itemId || '');
+    const editMode = String(payload?.editMode || '').trim();
 
-    setItems((prev) =>
-      prev.map((it) => {
+    setItems((prev) => {
+      const nextItems = prev.map((it) => {
         if (it.id !== itemId) return it;
-        const remaining = (Number(it.expectedQty) || 0) - (Number(it.checkedQty) || 0);
-        if (remaining <= 0) { full = true; return it; }
-        if (effectiveQty > remaining) { overflow = true; return it; }
         const meta = {
           at: nowIso,
           scannedValue,
@@ -466,10 +628,29 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
           ean: packaging?.ean || it.ean || '',
           dun: packaging?.dun || it.dun || '',
         };
-        const nextReads = Array.isArray(it.reads) ? [...it.reads, meta].slice(-50) : [meta];
+        const currentReads = Array.isArray(it.reads) ? [...it.reads] : [];
+
+        if (editMode === 'last_read' && currentReads.length > 0) {
+          const lastRead = currentReads[currentReads.length - 1] || null;
+          const previousQty = Number(lastRead?.effectiveQty || 0);
+          const nextCheckedQty = (Number(it.checkedQty) || 0) - previousQty + effectiveQty;
+          if (nextCheckedQty < 0 || nextCheckedQty > (Number(it.expectedQty) || 0)) {
+            overflow = true;
+            return it;
+          }
+          currentReads[currentReads.length - 1] = meta;
+          return { ...it, checkedQty: nextCheckedQty, lastMeta: meta, reads: currentReads.slice(-50) };
+        }
+
+        const remaining = (Number(it.expectedQty) || 0) - (Number(it.checkedQty) || 0);
+        if (remaining <= 0) { full = true; return it; }
+        if (effectiveQty > remaining) { overflow = true; return it; }
+        const nextReads = [...currentReads, meta].slice(-50);
         return { ...it, checkedQty: (Number(it.checkedQty) || 0) + effectiveQty, lastMeta: meta, reads: nextReads };
-      }),
-    );
+      });
+      nextItemsSnapshot = nextItems;
+      return nextItems;
+    });
 
     if (overflow) {
       HapticFeedback.trigger('notificationError', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
@@ -485,14 +666,90 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     setLastScanned(scannedValue);
     setLastScannedAt(Date.now());
     setManualCode('');
+    if (started && invoice.trim() && nextItemsSnapshot) {
+      upsertDraftImmediate(buildDraftPayload(nextItemsSnapshot));
+    }
+    if (activeRemoteQueueId && nextItemsSnapshot) {
+      const checkedItems = nextItemsSnapshot.filter((item) => Number(item?.checkedQty || 0) > 0).length;
+      const checkedQty = nextItemsSnapshot.reduce((sum, item) => sum + Number(item?.checkedQty || 0), 0);
+      syncRemoteConferenciaBonusProgress(activeRemoteQueueId, {
+        checkedItems,
+        checkedQty,
+      });
+    }
     // Re-focus input after scan payload is applied
     setTimeout(() => codeInputRef.current?.focus?.(), 80);
-  }, []);
+  }, [activeRemoteQueueId, buildDraftPayload, invoice, started, upsertDraftImmediate]);
 
   const updateItemReadCount = useCallback((itemId, nextCount) => {
     const next = Math.max(0, Number(nextCount) || 0);
-    setItems((prev) => prev.map((item) => item.id === itemId ? { ...item, checkedQty: next } : item));
-  }, []);
+    setItems((prev) => {
+      const nextItems = prev.map((item) => item.id === itemId ? { ...item, checkedQty: next } : item);
+      if (started && invoice.trim()) {
+        upsertDraftImmediate(buildDraftPayload(nextItems));
+      }
+      if (activeRemoteQueueId) {
+        const checkedItems = nextItems.filter((item) => Number(item?.checkedQty || 0) > 0).length;
+        const checkedQty = nextItems.reduce((sum, item) => sum + Number(item?.checkedQty || 0), 0);
+        syncRemoteConferenciaBonusProgress(activeRemoteQueueId, {
+          checkedItems,
+          checkedQty,
+        });
+      }
+      return nextItems;
+    });
+  }, [activeRemoteQueueId, buildDraftPayload, invoice, started, upsertDraftImmediate]);
+
+  const clearItemReads = useCallback((itemId) => {
+    setItems((prev) => {
+      const nextItems = prev.map((item) => (
+        item.id === itemId
+          ? { ...item, checkedQty: 0, lastMeta: null, reads: [] }
+          : item
+      ));
+      if (started && invoice.trim()) {
+        upsertDraftImmediate(buildDraftPayload(nextItems));
+      }
+      if (activeRemoteQueueId) {
+        const checkedItems = nextItems.filter((item) => Number(item?.checkedQty || 0) > 0).length;
+        const checkedQty = nextItems.reduce((sum, item) => sum + Number(item?.checkedQty || 0), 0);
+        syncRemoteConferenciaBonusProgress(activeRemoteQueueId, {
+          checkedItems,
+          checkedQty,
+        });
+      }
+      return nextItems;
+    });
+  }, [activeRemoteQueueId, buildDraftPayload, invoice, started, upsertDraftImmediate]);
+
+  const openEditItem = useCallback((item) => {
+    if (!item?.id || Number(item.checkedQty || 0) <= 0) {
+      return;
+    }
+
+    const lastRead = Array.isArray(item.reads) && item.reads.length > 0
+      ? item.reads[item.reads.length - 1]
+      : null;
+
+    navigation.navigate('ConferenciaScanScreen', {
+      context: 'recebimento',
+      targetScreen: 'ConferenciaRecebimentoScreen',
+      itemId: item.id,
+      scannedValue: String(lastRead?.scannedValue || item.ean || item.code || '').trim(),
+      initialQty: Math.max(1, Number(lastRead?.qty) || 1),
+      initialPackagingId: lastRead?.packagingId || null,
+      item: {
+        id: item.id,
+        code: item.code,
+        description: item.description,
+        ean: item.ean,
+        dun: item.dun,
+        packagingOptions: item.packagingOptions,
+        lastMeta: item.lastMeta,
+      },
+      editMode: 'last_read',
+    });
+  }, [navigation]);
 
   const buildTratativaPrefill = useCallback((item) => {
     const latestRead = Array.isArray(item.reads) && item.reads.length > 0
@@ -549,6 +806,25 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     );
   }, [updateItemReadCount, buildTratativaPrefill, navigation]);
 
+  const handleItemEdit = useCallback((item) => {
+    openEditItem(item);
+  }, [openEditItem]);
+
+  const handleItemClear = useCallback((item) => {
+    if (!item?.id || Number(item.checkedQty || 0) <= 0) {
+      return;
+    }
+
+    Alert.alert(
+      'Limpar item conferido',
+      `Remover todas as leituras de ${item.description}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Limpar', style: 'destructive', onPress: () => clearItemReads(item.id) },
+      ],
+    );
+  }, [clearItemReads]);
+
   const handleCodeSubmit = useCallback(() => {
     const code = manualCode.trim();
     if (!code) return;
@@ -569,6 +845,8 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       supplier: supplier.trim(),
       invoice: invoice.trim(),
       conferente: conferente.trim() || operatorName,
+      remote_queue_id: activeRemoteQueueId || null,
+      source_type: activeRemoteQueueId ? 'remote_bonus' : 'local_only',
       sync_status: 'local_only',
       pending_remote_sync: false,
       items,
@@ -608,15 +886,20 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
           suggested_tratativa_prefill: buildTratativaPrefill(item),
         }));
       await finalizeConferenciaRecebimento(payload, divergences);
+      if (activeRemoteQueueId) {
+        await finishRemoteConferenciaBonus(activeRemoteQueueId);
+        await loadRemoteQueue();
+      }
       await removeByKey(payload.invoice);
       Alert.alert('Conferência finalizada', `Pendentes: ${nowTotals.pendingItems}. Divergências: ${nowTotals.divergences}.`);
       setStarted(false);
       setItems([]);
       setLastScanned('');
+      setActiveRemoteQueueId(null);
     } catch {
       Alert.alert('Erro', 'Não foi possível salvar a conferência.');
     }
-  }, [started, items, supplier, invoice, conferente, operatorName, buildTratativaPrefill, removeByKey]);
+  }, [started, items, supplier, invoice, conferente, operatorName, buildTratativaPrefill, removeByKey, activeRemoteQueueId, loadRemoteQueue]);
 
   const saveConference = useCallback(() => {
     const nowTotals = computeTotals(items);
@@ -642,10 +925,11 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       invoice: invoice.trim(),
       supplier: supplier.trim(),
       conferente: conferente.trim(),
+      remoteQueueId: activeRemoteQueueId || null,
       items,
       updatedAt: new Date().toISOString(),
     });
-  }, [started, invoice, supplier, conferente, items, upsertDraftDebounced]);
+  }, [started, invoice, supplier, conferente, items, activeRemoteQueueId, upsertDraftDebounced]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER — not-started (queue view)
@@ -653,17 +937,29 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   if (!started) {
     const queueHeader = (
       <>
-        {/* Queue search header */}
         <View style={styles.searchCard}>
           <View style={styles.sectionTopRow}>
             <View style={[styles.sectionIconWrap, { backgroundColor: colors.warm }]}>
               <MaterialIcons name="inventory-2" size={18} color="#ffffff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Fila disponível</Text>
-              <Text style={styles.searchSubtitle}>Procure por NF, fornecedor ou código.</Text>
+              <Text style={styles.cardTitle}>Fila do painel</Text>
             </View>
           </View>
+          {remoteLinkedDrafts.length > 0 && (
+            <View style={styles.draftRow}>
+              {remoteLinkedDrafts.slice(0, 3).map((draft) => (
+                <Pressable
+                  key={`${draft.remoteQueueId}-${draft.invoice}`}
+                  style={styles.draftChip}
+                  onPress={() => resumeDraft(draft)}
+                >
+                  <MaterialIcons name="restore" size={14} color={colors.primary} />
+                  <Text style={styles.draftChipText}>{draft.invoice}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
           <View style={styles.searchShell}>
             <MaterialIcons name="search" size={20} color={colors.textMuted} />
             <TextInput
@@ -684,7 +980,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     return (
       <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
         <FlatList
-          data={bonusesFiltered}
+          data={queueFiltered}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -695,13 +991,14 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
               colors={colors}
               status={finalizedStatusByInvoice.get(normalizeInvoice(item.invoice))
                 || draftStatusByInvoice.get(normalizeInvoice(item.invoice))
+                || item.status
                 || 'nao_iniciado'}
               onPress={() => handleQueueCardPress(item)}
             />
           )}
           ListEmptyComponent={
             <View style={styles.card}>
-              <Text style={styles.emptyText}>Nenhum bônus encontrado.</Text>
+              <Text style={styles.emptyText}>Nenhum bônus remoto disponível na fila.</Text>
             </View>
           }
         />
@@ -775,10 +1072,12 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
                       lastScanned={lastScanned}
                       lastScannedAt={lastScannedAt}
                       highlightDuration={HIGHLIGHT_DURATION}
-                      onLongPress={handleItemLongPress}
-                      doneColor={colors.success}
-                      variant="pending"
-                    />
+                    onLongPress={handleItemLongPress}
+                    onEdit={handleItemEdit}
+                    onClear={handleItemClear}
+                    doneColor={colors.success}
+                    variant="pending"
+                  />
                   ))
                 )}
               </View>
@@ -807,6 +1106,8 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
                     lastScannedAt={lastScannedAt}
                     highlightDuration={HIGHLIGHT_DURATION}
                     onLongPress={handleItemLongPress}
+                    onEdit={handleItemEdit}
+                    onClear={handleItemClear}
                     doneColor={colors.success}
                     variant="done"
                   />
@@ -852,7 +1153,15 @@ const getStyles = (colors) =>
       elevation: 2,
     },
     compactBarLeft: { flex: 1, marginRight: 10 },
-    compactInvoice: { color: colors.text, fontSize: 14, fontWeight: '900', lineHeight: 18 },
+    compactHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 1 },
+    compactLabel: {
+      color: colors.textMuted,
+      fontSize: 10,
+      fontWeight: '900',
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    compactInvoice: { color: colors.text, fontSize: 16, fontWeight: '900', lineHeight: 19, flexShrink: 1 },
     compactSupplier: { color: colors.textMuted, fontSize: 12, fontWeight: '700', lineHeight: 16 },
     compactPills: { flexDirection: 'row', gap: 6, alignItems: 'center' },
     miniPill: {
@@ -865,6 +1174,7 @@ const getStyles = (colors) =>
       borderWidth: 1,
     },
     miniPillText: { fontSize: 12, fontWeight: '900' },
+    miniPillCaption: { fontSize: 10, fontWeight: '800' },
 
     // ── Scan card ──
     scanCard: {
@@ -978,21 +1288,8 @@ const getStyles = (colors) =>
     statusPillPending: { backgroundColor: colors.goldSoft, borderColor: 'rgba(245,158,11,0.20)' },
     statusPillActive: { backgroundColor: 'rgba(14,165,233,0.10)', borderColor: 'rgba(14,165,233,0.18)' },
     statusPillText: { fontSize: 11, fontWeight: '900', color: colors.textMuted },
-    summaryMetricsRow: { marginTop: 12, flexDirection: 'row', gap: 10 },
-    summaryMetricCard: {
-      flex: 1,
-      borderRadius: 16,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      backgroundColor: colors.surface2,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    summaryMetricLabel: { color: colors.textMuted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-    summaryMetricValue: { marginTop: 4, color: colors.text, fontSize: 18, fontWeight: '900' },
-
     // ── Draft chips ──
-    draftRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    draftRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 10 },
     draftChip: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1032,21 +1329,21 @@ const getStyles = (colors) =>
       borderColor: colors.border,
       borderLeftWidth: 4,
       borderLeftColor: colors.warm,
-      padding: 16,
+      padding: 14,
       marginBottom: 14,
     },
     searchShell: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
       borderWidth: 1,
       borderColor: colors.border,
       backgroundColor: colors.inputBg,
-      borderRadius: 16,
-      paddingHorizontal: 14,
-      minHeight: 50,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      minHeight: 42,
     },
-    searchInput: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '700' },
+    searchInput: { flex: 1, color: colors.text, fontSize: 13, fontWeight: '700', paddingVertical: 0 },
     primaryButton: {
       borderRadius: 14,
       backgroundColor: colors.primary,

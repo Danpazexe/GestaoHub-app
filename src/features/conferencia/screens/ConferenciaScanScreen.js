@@ -85,6 +85,7 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
   const item = route.params?.item || null;
   const initialQty = Math.max(1, Number(route.params?.initialQty) || 1);
   const initialPackagingId = route.params?.initialPackagingId || null;
+  const editMode = String(route.params?.editMode || '').trim();
 
   const colors = useMemo(() => createColors({ context, isDarkMode }), [context, isDarkMode]);
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -174,6 +175,7 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
       factor: factorInt,
       effectiveQty,
       packaging: packaging || { id: 'un', label: 'UN', factor: 1 },
+      editMode,
     };
 
     navigation.navigate({

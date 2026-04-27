@@ -16,8 +16,8 @@ import {
   normalizeKey,
   pluralize,
 } from '../services/conferenciaCore';
-import { buildExpectedItemsSaida } from '../mocks/conferenciaMock';
 import { useConferenciaSaidaDrafts } from '../hooks/useConferenciaSaidaDrafts';
+import { hasConferenceCatalog } from '../services/conferenciaCatalogService';
 import { conferenciaSaidaTheme } from '../../../theme/domains/conferencia';
 
 // ─── Compact summary bar (same pattern as Recebimento) ────────────────────────
@@ -69,6 +69,7 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
   const [items, setItems] = useState([]);
   const [lastScanned, setLastScanned] = useState('');
   const [lastScannedAt, setLastScannedAt] = useState(0);
+  const [catalogAvailable, setCatalogAvailable] = useState(false);
   const codeInputRef = useRef(null);
 
   const colors = useMemo(() => {
@@ -157,7 +158,15 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
 
   useEffect(() => {
     draftApi.loadDrafts();
-    const unsub = navigation.addListener('focus', draftApi.loadDrafts);
+    hasConferenceCatalog()
+      .then(setCatalogAvailable)
+      .catch(() => setCatalogAvailable(false));
+    const unsub = navigation.addListener('focus', () => {
+      draftApi.loadDrafts();
+      hasConferenceCatalog()
+        .then(setCatalogAvailable)
+        .catch(() => setCatalogAvailable(false));
+    });
     return unsub;
   }, [navigation, draftApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -202,10 +211,13 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
         return;
       }
     } catch { /* new */ }
-    const expectedItems = await buildExpectedItemsSaida(orderCode.trim(), 20);
-    setItems(expectedItems);
-    setStarted(true);
-  }, [orderCode, separador, embalador, draftApi]);
+    Alert.alert(
+      'Sem carga real do pedido',
+      catalogAvailable
+        ? 'Para iniciar nova conferencia de saida, conecte uma fonte real dos itens do pedido.'
+        : 'Nao ha catalogo real carregado no app. Importe a base real e conecte a origem do pedido.',
+    );
+  }, [orderCode, separador, embalador, draftApi, catalogAvailable]);
 
   const resumeDraft = useCallback((draft) => {
     setOrderCode(draft.orderCode || '');
@@ -449,7 +461,9 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>Dados da separação</Text>
-                  <Text style={styles.searchSubtitle}>Informe o pedido para iniciar a conferência cega.</Text>
+                  <Text style={styles.searchSubtitle}>
+                    A conferencia usa apenas rascunhos reais ou integracao real do pedido.
+                  </Text>
                 </View>
               </View>
 
@@ -491,9 +505,14 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
                 value={embalador}
                 editable={false}
               />
+              <Text style={styles.helperText}>
+                {catalogAvailable
+                  ? 'Catalogo real carregado, mas ainda sem fonte real dos itens do pedido.'
+                  : 'Nenhum catalogo real carregado no app.'}
+              </Text>
               <Pressable style={styles.primaryButton} onPress={startConference}>
                 <MaterialIcons name="play-circle" size={20} color="#ffffff" />
-                <Text style={styles.primaryButtonText}>Iniciar conferência</Text>
+                <Text style={styles.primaryButtonText}>Iniciar com dados reais</Text>
               </Pressable>
             </View>
           }
@@ -763,6 +782,7 @@ const getStyles = (colors) =>
       fontWeight: '700',
     },
     inputDisabled: { opacity: 0.6 },
+    helperText: { color: colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 6 },
     draftRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
     draftChip: {
       flexDirection: 'row',
