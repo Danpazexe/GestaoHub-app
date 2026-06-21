@@ -6,6 +6,7 @@ import {
   writeJsonStorage,
   writeStringStorage,
 } from './appStorageService';
+import { endPresence } from './presenceService';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
 
 const DEV_USER = {
@@ -188,6 +189,13 @@ class AuthService {
 
   async logout() {
     let remoteSignOutError = null;
+
+    // Encerra a presença ANTES do signOut (depois a RLS bloqueia o update).
+    try {
+      await endPresence();
+    } catch (error) {
+      console.warn('[AuthService] Falha ao encerrar presença no logout.', error?.message || error);
+    }
 
     if (isSupabaseConfigured()) {
       const supabase = getSupabaseClient();

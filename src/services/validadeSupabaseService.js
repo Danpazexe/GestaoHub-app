@@ -46,11 +46,15 @@ const buildValidadeProductPayload = ({ product, userId, includeLocation = true }
 export const getCurrentUserId = async () => {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Cliente Supabase indisponível');
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user?.id) {
+  // getSession() é LOCAL (lê do AsyncStorage; só vai à rede para refresh de token expirado).
+  // getUser() faria um GET /user a cada chamada — em hot-paths (heartbeat, navegação,
+  // cada save) isso dobrava round-trips e, offline, derrubava o sync silenciosamente.
+  const { data, error } = await supabase.auth.getSession();
+  const userId = data?.session?.user?.id;
+  if (error || !userId) {
     throw new Error('Usuário não autenticado no Supabase');
   }
-  return data.user.id;
+  return userId;
 };
 
 export const listValidadeProducts = async () => {

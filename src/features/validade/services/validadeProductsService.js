@@ -85,7 +85,7 @@ export const replaceValidadeProductsCache = async (products = []) => {
 export const listTreatedValidadeProducts = async () => {
   const products = await readValidadeProductsCache();
   return products
-    .filter((item) => item?.status === 'treated')
+    .filter((item) => item?.status === 'treated' || item?.status === 'resolved')
     .sort((a, b) => new Date(b?.treatmentDate || 0) - new Date(a?.treatmentDate || 0));
 };
 
@@ -98,7 +98,7 @@ export const deleteValidadeProductRecord = async (productId) => {
 
 export const clearTreatedValidadeProducts = async () => {
   const products = await readValidadeProductsCache();
-  const filtered = products.filter((item) => item?.status !== 'treated');
+  const filtered = products.filter((item) => item?.status !== 'treated' && item?.status !== 'resolved');
   await writeValidadeProductsCache(filtered);
   return filtered;
 };

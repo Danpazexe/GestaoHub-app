@@ -139,7 +139,7 @@ export const buildStandaloneCaseDraft = (prefill = {}) =>
     ...prefill,
   });
 
-const upsertTratativaCaseRemote = async (caseItem) => {
+export const upsertTratativaCaseRemote = async (caseItem) => {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 

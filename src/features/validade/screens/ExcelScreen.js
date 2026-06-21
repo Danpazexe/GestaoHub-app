@@ -62,7 +62,7 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
   const loadProducts = useCallback(async () => {
     try {
       let parsedProducts = await readValidadeProductsCache();
-      parsedProducts = parsedProducts.filter((p) => !p.status || p.status !== 'treated');
+      parsedProducts = parsedProducts.filter((p) => !p.status || (p.status !== 'treated' && p.status !== 'resolved'));
       setProductsCount(parsedProducts.length);
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível carregar os produtos.');
@@ -108,7 +108,7 @@ const ExcelScreen = ({ navigation, isDarkMode }) => {
       let products = await readValidadeProductsCache();
 
       // Filtra apenas produtos ativos (não tratados/avariados)
-      products = products.filter(p => !p.status || p.status !== 'treated');
+      products = products.filter(p => !p.status || (p.status !== 'treated' && p.status !== 'resolved'));
 
       const workBook = XLSX.utils.book_new();
       const workSheet = XLSX.utils.json_to_sheet(products);

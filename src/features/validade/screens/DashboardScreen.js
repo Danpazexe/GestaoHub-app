@@ -125,7 +125,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
   const normalizedProducts = useMemo(
     () =>
       products.map((item, index) => {
-        const isTreated = item.status === 'treated';
+        const isTreated = item.status === 'treated' || item.status === 'resolved';
         const validadeDate = parseDateInput(item.validade);
         const treatmentDate = parseDateInput(item.treatmentDate);
         const daysRemaining = validadeDate ? getDaysFromToday(validadeDate) : null;

@@ -435,7 +435,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     const normalizedSearchText = searchText.toLowerCase().trim();
 
     // Primeiro, filtra os produtos não tratados
-    let filteredProducts = products.filter(product => !product.status || product.status !== 'treated');
+    let filteredProducts = products.filter(product => !product.status || (product.status !== 'treated' && product.status !== 'resolved'));
 
     // Filtro de produtos próximos ao vencimento (30 dias)
     if (showExpiring) {

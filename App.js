@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
-import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, TouchableOpacity, View, Easing } from 'react-native';
+import { StatusBar, Appearance, BackHandler, ToastAndroid, Platform, Alert, TouchableOpacity, View, Easing, AppState } from 'react-native';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import Toast from 'react-native-toast-message';
@@ -46,6 +46,8 @@ import EspelhoRecebimentoScreen from './src/features/recebimentoTratativa/screen
 import EnderecosScreen from './src/features/settings/screens/EnderecosScreen';
 import SettingsScreen from './src/features/settings/screens/SettingsScreen';
 import { loadThemePreference } from './src/features/settings/services/settingsStorageService';
+import { deriveModuleFromRoute, reportPresence, setPresenceStatus } from './src/services/presenceService';
+import { maybeRunInitialSyncBackfill } from './src/services/syncBackfillService';
 import AddProductScreen from './src/features/validade/screens/AddProductScreen';
 import DashboardScreen from './src/features/validade/screens/DashboardScreen';
 import ExcelScreen from './src/features/validade/screens/ExcelScreen';
@@ -172,6 +174,42 @@ export default function App() {
     configurePushNotifications();
     checkNotificationPermissions();
   }, []);
+
+  // Presença: cria/atualiza a sessão em user_presence (heartbeat + ciclo de vida do app).
+  // É no-op enquanto não houver usuário Supabase autenticado.
+  useEffect(() => {
+    const HEARTBEAT_MS = 45000;
+    const beat = () => reportPresence({ status: 'online' });
+    beat();
+    const timer = setInterval(beat, HEARTBEAT_MS);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        reportPresence({ status: 'online' });
+      } else if (state === 'background' || state === 'inactive') {
+        setPresenceStatus('idle');
+      }
+    });
+
+    return () => {
+      clearInterval(timer);
+      appStateSub?.remove?.();
+    };
+  }, []);
+
+  // Atualiza módulo/tela atual na presença a cada navegação e dispara o backfill
+  // inicial (uma vez) assim que o usuário estiver autenticado em uma tela interna.
+  useEffect(() => {
+    const routeName = currentRoute?.name;
+    reportPresence({
+      status: 'online',
+      module: deriveModuleFromRoute(routeName),
+      screen: routeName,
+    });
+
+    if (routeName && !['EntryScreen', 'LoginScreen', 'RegisterScreen'].includes(routeName)) {
+      maybeRunInitialSyncBackfill();
+    }
+  }, [currentRoute]);
 
   useEffect(() => {
     let isMounted = true;

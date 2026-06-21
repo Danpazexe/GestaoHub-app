@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    name: JS bundle (Metro / Android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      # Comando padrão do React Native: gera o bundle JS do app.
+      # Valida que TODO o JS resolve e compila (pega import quebrado / erro de sintaxe).
+      # Roda no Linux sem Android SDK — é só o bundle de JavaScript, não o build nativo.
+      - name: Metro bundle
+        run: >-
+          npx react-native bundle
+          --platform android
+          --dev false
+          --entry-file index.js
+          --bundle-output /tmp/app.android.bundle
+          --reset-cache
