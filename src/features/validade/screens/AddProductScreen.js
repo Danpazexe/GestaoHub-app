@@ -813,7 +813,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
             </Text>
             <View style={styles.eanContainer}>
               <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }, showErrors && checkEmptyFields('codauxiliar') && styles.emptyField]}>
-                <TextInput placeholder="Ex: 789..." value={codauxiliar} onChangeText={(t) => performSearch(t, 'codauxiliar')} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
+                <TextInput placeholder="Ex: 789..." value={codauxiliar} onChangeText={(t) => performSearch(t.replace(/\D/g, ''), 'codauxiliar')} keyboardType="numeric" maxLength={14} style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
                 {renderFieldStatus('codauxiliar')}
               </View>
               <TouchableOpacity style={styles.scanButton} onPress={handleScanBarcode} accessibilityRole="button" accessibilityLabel="Escanear código de barras">
@@ -821,6 +821,11 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
               </TouchableOpacity>
             </View>
             {renderSuggestions('codauxiliar')}
+            {codauxiliar.length > 0 && ![8, 12, 13, 14].includes(codauxiliar.length) ? (
+              <Text style={styles.eanHint}>
+                EAN/GTIN costuma ter 8, 12, 13 ou 14 dígitos — você digitou {codauxiliar.length}.
+              </Text>
+            ) : null}
           </View>
 
           {/* Data */}
@@ -1149,6 +1154,11 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
     requiredMark: {
       color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
       fontWeight: '800',
+    },
+    eanHint: {
+      fontSize: 12,
+      marginTop: 4,
+      color: isDarkMode ? '#fbbf24' : '#b45309',
     },
     emptyField: {
       borderColor: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
