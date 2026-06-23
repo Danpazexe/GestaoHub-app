@@ -7,6 +7,8 @@ import ScreenLayout, {
   createHeaderTitleTemplate,
 } from '../../../components/ScreenLayout';
 import NavCard from '../../../components/NavCard';
+import * as Animatable from 'react-native-animatable';
+import { cardEntrance, getStaggerDelay } from '../../../components/animations/entrancePresets';
 
 const HOME_COLORS = CORESHOME;
 const MODULE_COLORS = CORESMODULEFUNCTIONS;
@@ -117,16 +119,24 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
         >
-          {actions.map((action) => (
-            <NavCard
+          {actions.map((action, index) => (
+            <Animatable.View
               key={action.id}
-              title={action.title}
-              subtitle={action.subtitle}
-              icon={action.icon}
-              color={action.color || moduleColor}
-              isDarkMode={isDarkMode}
-              onPress={() => handleActionPress(action)}
-            />
+              animation={cardEntrance}
+              duration={460}
+              delay={getStaggerDelay(index, { baseDelay: 150, step: 70, maxIndex: 6 })}
+              easing="ease-out"
+              useNativeDriver
+            >
+              <NavCard
+                title={action.title}
+                subtitle={action.subtitle}
+                icon={action.icon}
+                color={action.color || moduleColor}
+                isDarkMode={isDarkMode}
+                onPress={() => handleActionPress(action)}
+              />
+            </Animatable.View>
           ))}
         </ScrollView>
       </View>
