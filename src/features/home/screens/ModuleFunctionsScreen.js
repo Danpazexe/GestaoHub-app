@@ -1,12 +1,12 @@
 import React, { useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, ToastAndroid, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Platform, ToastAndroid, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { CORESHOME, CORESMODULEFUNCTIONS } from '../../../components/coresAuth';
 import ScreenLayout, {
   createScreenHeaderTemplate,
   createHeaderTitleTemplate,
 } from '../../../components/ScreenLayout';
+import NavCard from '../../../components/NavCard';
 
 const HOME_COLORS = CORESHOME;
 const MODULE_COLORS = CORESMODULEFUNCTIONS;
@@ -44,7 +44,6 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
   const onModuleColor = isDarkColor(moduleColor) ? '#ffffff' : '#1f2937';
   const palette = {
     background: isDarkMode ? MODULE_COLORS.backgroundDark : MODULE_COLORS.background,
-    card: isDarkMode ? (MODULE_COLORS.cardDark || '#262d47') : (MODULE_COLORS.card || '#ffffff'),
     text: isDarkMode ? MODULE_COLORS.textDark : MODULE_COLORS.text,
     textMuted: isDarkMode ? MODULE_COLORS.textMutedDark : MODULE_COLORS.textMuted,
     emptySubtitle: isDarkMode ? MODULE_COLORS.emptySubtitleDark : MODULE_COLORS.textMuted,
@@ -118,37 +117,16 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
         >
-          {actions.map((action) => {
-            const actionColor = action.color || moduleColor;
-            const onActionColor = isDarkColor(actionColor) ? '#ffffff' : '#1f2937';
-            const tintedBackground = withAlpha(actionColor, isDarkMode ? 0.18 : 0.09);
-            const borderColor = withAlpha(actionColor, isDarkMode ? 0.46 : 0.24);
-            const iconBg = withAlpha(actionColor, isDarkMode ? 0.94 : 0.88);
-            const chevronBg = withAlpha(actionColor, isDarkMode ? 0.25 : 0.14);
-            const chevronColor = isDarkMode ? '#e7ecff' : actionColor;
-
-            return (
-              <Pressable
-                key={action.id}
-                onPress={() => handleActionPress(action)}
-                accessibilityRole="button"
-                accessibilityLabel={action.title}
-                style={({ pressed }) => [styles.actionCardWrapper, pressed && styles.pressedCard]}
-              >
-                <View style={[styles.actionCard, { borderColor }]}>
-                  <View style={[styles.actionTint, { backgroundColor: tintedBackground }]} />
-                  <View style={[styles.actionAccent, { backgroundColor: actionColor }]} />
-                  <View style={[styles.actionIconCircle, { backgroundColor: iconBg }]}>
-                    <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={onActionColor} />
-                  </View>
-                  <Text style={styles.actionTitle} numberOfLines={2}>{action.title}</Text>
-                  <View style={[styles.chevronBadge, { backgroundColor: chevronBg }]}>
-                    <MaterialIcons name="chevron-right" size={22} color={chevronColor} />
-                  </View>
-                </View>
-              </Pressable>
-            );
-          })}
+          {actions.map((action) => (
+            <NavCard
+              key={action.id}
+              title={action.title}
+              icon={action.icon}
+              color={action.color || moduleColor}
+              isDarkMode={isDarkMode}
+              onPress={() => handleActionPress(action)}
+            />
+          ))}
         </ScrollView>
       </View>
     </ScreenLayout>
@@ -156,19 +134,6 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
 };
 
 const getStyles = (palette) => {
-  const actionCardShadow = Platform.select({
-    ios: {
-      shadowColor: withAlpha(palette.text, 0.45),
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.54,
-      shadowRadius: 2,
-    },
-    android: {
-      elevation: 2,
-    },
-    default: {},
-  });
-
   return StyleSheet.create({
     content: {
       flex: 1,
@@ -182,61 +147,6 @@ const getStyles = (palette) => {
     listContent: {
       paddingTop: 6,
       paddingBottom: 24,
-    },
-    actionCardWrapper: {
-      marginBottom: 12,
-      borderRadius: 16,
-      ...actionCardShadow,
-    },
-    actionCard: {
-      position: 'relative',
-      overflow: 'hidden',
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 13,
-      paddingHorizontal: 14,
-      borderRadius: 16,
-      minHeight: 72,
-      borderWidth: 1,
-      backgroundColor: palette.card,
-    },
-    actionTint: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    actionAccent: {
-      width: 4,
-      alignSelf: 'stretch',
-      borderRadius: 4,
-      marginRight: 12,
-    },
-    actionIconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    actionTitle: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: '800',
-      color: palette.text,
-    },
-    chevronBadge: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    pressedCard: {
-      transform: [{ scale: 0.99 }],
-      opacity: 0.9,
     },
     emptyState: {
       flex: 1,
