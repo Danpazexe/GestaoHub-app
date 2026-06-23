@@ -9,6 +9,7 @@ import LogisticsInfoModal from '../../../components/validade/LogisticsInfoModal'
 import debounce from 'lodash.debounce';
 import { LayoutAnimation } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import haptics from '../../../utils/haptics';
 import Toast from 'react-native-toast-message';
 import SwipeableListItem from '../../../components/validade/SwipeableListItem';
 import ScreenLayout, {
@@ -83,6 +84,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const { products, setProducts, loadProducts, saveProducts, loading } = useProducts();
   const { config: logisticsLocationConfig } = useLogisticsLocationConfig();
   const [searchText, setSearchText] = useState('');
+  const [hasQuery, setHasQuery] = useState(false);
   const [filterType, setFilterType] = useState('descricao');
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [showExpiring, setShowExpiring] = useState(false);
@@ -98,6 +100,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   const [isSyncingRemote, setIsSyncingRemote] = useState(false);
   const openSwipeRef = useRef(null);
   const swipeRefs = useRef({});
+  const searchInputRef = useRef(null);
   const localProductsRef = useRef([]);
   const pendingRemoteSnapshotRef = useRef(null);
   const lastSyncDiffSignatureRef = useRef('');
@@ -481,7 +484,27 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       });
   }, [products, searchText, filterType, showExpiring]);
 
-  const debouncedSearch = debounce((text) => setSearchText(text), 300);
+  // Instância estável: sem isto o debounce era recriado a cada render e o
+  // .cancel() (usado ao limpar) não atingia o timer pendente.
+  const debouncedSearch = useMemo(() => debounce((text) => setSearchText(text), 300), []);
+
+  const handleSearchChange = (text) => {
+    const hasText = text.length > 0;
+    if (hasText !== hasQuery) setHasQuery(hasText);
+    debouncedSearch(text);
+  };
+
+  const handleClearSearch = () => {
+    haptics.selection();
+    debouncedSearch.cancel();
+    searchInputRef.current?.clear();
+    setHasQuery(false);
+    setSearchText('');
+  };
+
+  // Cancela o trailing pendente do debounce ao desmontar (evita setState
+  // após unmount se a tela sair dentro da janela de 300ms da última tecla).
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch]);
 
   const handleModalClose = useCallback(() => {
     setTreatmentModalVisible(false);
@@ -512,122 +535,67 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   };
 
   const toggleSort = (field) => {
+    haptics.selection();
     setSortOrder(prev => ({
       field,
       direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
 
-  const renderSortOptions = () => {
-    const dividerStyle = {
-      width: 1,
-      backgroundColor: isDarkMode ? COLORS.borderDark : COLORS.border,
-      marginHorizontal: 2,
-    };
+  const SORT_OPTIONS = [
+    { field: 'validade', label: 'Validade', icon: 'event' },
+    { field: 'quantidade', label: 'Qtd', icon: 'sort' },
+    { field: 'nome', label: 'Nome', icon: 'sort-by-alpha' },
+  ];
 
-    // Função auxiliar para retornar o ícone correto de ordenação
-    const getSortIcon = (field) => {
-      if (sortOrder.field === field) {
-        return sortOrder.direction === 'asc' ? 'arrow-upward' : 'arrow-downward';
-      }
-      return null;
-    };
+  const renderSortOptions = () => (
+    <View style={[styles.sortContainer, isDarkMode && styles.darkSortContainer]}>
+      {SORT_OPTIONS.map((opt) => {
+        const isActive = sortOrder.field === opt.field;
+        const inactiveColor = isDarkMode ? COLORS.textMutedDark : COLORS.textMuted;
+        const directionLabel = sortOrder.direction === 'asc' ? 'crescente' : 'decrescente';
 
-    return (
-      <View style={[styles.sortContainer, isDarkMode && styles.darkSortContainer]}>
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            sortOrder.field === 'validade' && styles.activeSortButton
-          ]}
-          onPress={() => toggleSort('validade')}
-        >
-          <MaterialIcons
-            name="event"
-            size={16}
-            color={sortOrder.field === 'validade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted}
-          />
-          <Text style={[
-            styles.sortButtonText,
-            isDarkMode && styles.darkSortButtonText,
-            sortOrder.field === 'validade' && styles.activeSortButtonText
-          ]}>
-            Validade
-            {sortOrder.field === 'validade' && (
+        return (
+          <TouchableOpacity
+            key={opt.field}
+            style={[
+              styles.sortButton,
+              isActive && styles.activeSortButton,
+              isActive && isDarkMode && styles.darkActiveSortButton,
+            ]}
+            onPress={() => toggleSort(opt.field)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={`Ordenar por ${opt.label}${isActive ? `, ${directionLabel}` : ''}`}
+          >
+            <MaterialIcons
+              name={opt.icon}
+              size={16}
+              color={isActive ? COLORS.white : inactiveColor}
+            />
+            <Text
+              style={[
+                styles.sortButtonText,
+                isDarkMode && styles.darkSortButtonText,
+                isActive && styles.activeSortButtonText,
+              ]}
+              numberOfLines={1}
+            >
+              {opt.label}
+            </Text>
+            {isActive ? (
               <MaterialIcons
-                name={getSortIcon('validade')}
-                size={12}
+                name={sortOrder.direction === 'asc' ? 'arrow-upward' : 'arrow-downward'}
+                size={13}
                 color={COLORS.white}
-                style={{ marginLeft: 2 }}
               />
-            )}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={dividerStyle} />
-
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            sortOrder.field === 'quantidade' && styles.activeSortButton
-          ]}
-          onPress={() => toggleSort('quantidade')}
-        >
-          <MaterialIcons
-            name="sort"
-            size={16}
-            color={sortOrder.field === 'quantidade' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted}
-          />
-          <Text style={[
-            styles.sortButtonText,
-            isDarkMode && styles.darkSortButtonText,
-            sortOrder.field === 'quantidade' && styles.activeSortButtonText
-          ]}>
-            Qtd
-            {sortOrder.field === 'quantidade' && (
-              <MaterialIcons
-                name={getSortIcon('quantidade')}
-                size={12}
-                color={COLORS.white}
-                style={{ marginLeft: 2 }}
-              />
-            )}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={dividerStyle} />
-
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            sortOrder.field === 'nome' && styles.activeSortButton
-          ]}
-          onPress={() => toggleSort('nome')}
-        >
-          <MaterialIcons
-            name="sort-by-alpha"
-            size={16}
-            color={sortOrder.field === 'nome' ? COLORS.white : isDarkMode ? COLORS.textDark : COLORS.textMuted}
-          />
-          <Text style={[
-            styles.sortButtonText,
-            isDarkMode && styles.darkSortButtonText,
-            sortOrder.field === 'nome' && styles.activeSortButtonText
-          ]}>
-            Nome
-            {sortOrder.field === 'nome' && (
-              <MaterialIcons
-                name={getSortIcon('nome')}
-                size={12}
-                color={COLORS.white}
-                style={{ marginLeft: 2 }}
-              />
-            )}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
+            ) : null}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   // Coordena "uma linha aberta por vez" rastreando o id (estável) da linha
   // aberta — não o objeto handle, cuja identidade muda entre renders e fazia
@@ -698,11 +666,13 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   };
 
   const toggleFilter = () => {
+    haptics.selection();
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsFilterVisible((prev) => !prev);
   };
 
   const setSelectedFilter = (filter) => {
+    haptics.selection();
     setFilterType(filter);
     setIsFilterVisible(false);
   };
@@ -724,24 +694,33 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     <TouchableOpacity
       style={[
         styles.filterOption,
-        isSelected && styles.filterOptionSelected,
         isDarkMode && styles.darkFilterOption,
-        isSelected && isDarkMode && styles.darkFilterOptionSelected
+        isSelected && (isDarkMode ? styles.darkFilterOptionSelected : styles.filterOptionSelected),
       ]}
       onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isSelected }}
+      accessibilityLabel={`Buscar por ${label}`}
     >
       <MaterialIcons
         name={icon}
         size={20}
-        color={isSelected ? COLORS.white : (isDarkMode ? COLORS.textDark : COLORS.textMuted)}
+        color={isSelected ? COLORS.white : (isDarkMode ? COLORS.textMutedDark : COLORS.textMuted)}
       />
-      <Text style={[
-        styles.filterOptionText,
-        isSelected && styles.filterOptionTextSelected,
-        isDarkMode && styles.darkFilterOptionText
-      ]}>
+      <Text
+        style={[
+          styles.filterOptionText,
+          isDarkMode && styles.darkFilterOptionText,
+          isSelected && styles.filterOptionTextSelected,
+        ]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
+      {isSelected ? (
+        <MaterialIcons name="check" size={20} color={COLORS.white} />
+      ) : null}
     </TouchableOpacity>
   );
 
@@ -751,16 +730,22 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
         <TouchableOpacity
           style={[styles.filterButton, isDarkMode && styles.darkFilterButton]}
           onPress={toggleFilter}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Mudar tipo de busca"
+          accessibilityHint="Alterna entre nome, código interno e código EAN"
         >
           <MaterialIcons
             name={filterType === 'descricao' ? 'text-fields' :
               filterType === 'codprod' ? 'code' : 'qr-code'}
-            size={24}
+            size={22}
             color={COLORS.white}
           />
+          <MaterialIcons name="expand-more" size={14} color={COLORS.white} style={styles.filterButtonChevron} />
         </TouchableOpacity>
 
         <TextInput
+          ref={searchInputRef}
           style={[styles.searchInput, isDarkMode && styles.darkSearchInput]}
           placeholder={
             filterType === 'descricao' ? 'Buscar por nome do produto...' :
@@ -768,9 +753,25 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
                 'Buscar por código EAN...'
           }
           placeholderTextColor={isDarkMode ? COLORS.textMutedDark : COLORS.placeholderLight}
-          onChangeText={debouncedSearch}
+          onChangeText={handleSearchChange}
           keyboardType={filterType !== 'descricao' ? 'numeric' : 'default'}
+          returnKeyType="search"
+          onSubmitEditing={() => debouncedSearch.flush()}
+          accessibilityLabel="Campo de busca"
         />
+
+        {hasQuery ? (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearSearch}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Limpar busca"
+            hitSlop={8}
+          >
+            <MaterialIcons name="close" size={18} color={isDarkMode ? COLORS.textMutedDark : COLORS.textMuted} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {isFilterVisible && (
@@ -977,7 +978,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.card,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -992,13 +993,23 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderDark,
   },
   filterButton: {
-    backgroundColor: COLORS.accent,
-    padding: 8,
-    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    padding: 9,
+    borderRadius: 10,
     marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterButtonChevron: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    opacity: 0.9,
   },
   darkFilterButton: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
   },
   searchInput: {
     flex: 1,
@@ -1006,6 +1017,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 15,
     color: COLORS.text,
+  },
+  clearButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
   darkSearchInput: {
     color: COLORS.textDark,
@@ -1041,22 +1060,27 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   filterOptionSelected: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.primary,
   },
   darkFilterOption: {
     borderColor: COLORS.borderDark,
   },
   darkFilterOptionSelected: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.primary,
   },
   darkFilterOptionText: {
-    color: COLORS.textDark,
+    color: COLORS.textMutedDark,
   },
   filterOptionText: {
+    flex: 1,
     marginLeft: 12,
     fontSize: 15,
     color: COLORS.textMuted,
     fontWeight: '500',
+  },
+  filterOptionTextSelected: {
+    color: COLORS.white,
+    fontWeight: '700',
   },
 
   emptyList: {
@@ -1131,11 +1155,11 @@ const styles = StyleSheet.create({
   // ==================== Estilos de Ordenação ====================
   sortContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     backgroundColor: COLORS.card,
-    borderRadius: 8,
+    borderRadius: 12,
     marginVertical: 6,
     padding: 4,
+    gap: 4,
     elevation: 2,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 1 },
@@ -1148,25 +1172,36 @@ const styles = StyleSheet.create({
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 6,
-    borderRadius: 6,
-    flex: 1,
     justifyContent: 'center',
+    gap: 3,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 9,
+    flex: 1,
   },
   activeSortButton: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  darkActiveSortButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   sortButtonText: {
-    marginLeft: 4,
     color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   darkSortButtonText: {
-    color: COLORS.textDark,
+    color: COLORS.textMutedDark,
   },
   activeSortButtonText: {
     color: COLORS.white,
+    fontWeight: '700',
   },
 
   // ==================== Estilos das Ações da Esquerda ====================
