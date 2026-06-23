@@ -16,6 +16,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import authService from '../../../services/authService';
 import { CORESLOGIN } from '../../../components/coresAuth';
+import KeyboardAwareScreen from '../../../components/KeyboardAwareScreen';
+import haptics from '../../../utils/haptics';
 
 const COLORS = CORESLOGIN;
 
@@ -74,11 +76,11 @@ const LoginScreen = ({ navigation }) => {
 
   const loadSavedCredentials = async () => {
     try {
-      const { savedEmail, savedPassword, savedRememberMe } = await authService.loadSavedCredentials();
+      const { savedEmail, savedRememberMe } = await authService.loadSavedCredentials();
 
       if (savedRememberMe === 'true') {
         setEmail(savedEmail);
-        setPassword(savedPassword);
+        // A senha não é mais pré-preenchida (não é guardada em texto puro).
         setRememberMe(true);
       }
     } catch (error) {
@@ -146,6 +148,7 @@ const LoginScreen = ({ navigation }) => {
   ) => {
     await saveCredentials(targetEmail, targetPassword, shouldRememberCredentials);
     const userData = await authService.getUserData();
+    haptics.success();
     Toast.show({
       type: 'success',
       text1: `Bem-vindo, ${userData?.name || 'Usuário'}!`,
@@ -155,6 +158,7 @@ const LoginScreen = ({ navigation }) => {
   };
 
   const handleLoginError = (error) => {
+    haptics.error();
     shakeForm();
     Toast.show({
       type: 'error',
@@ -204,6 +208,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]} edges={['top', 'left', 'right']}>
+      <KeyboardAwareScreen>
       <View style={styles.background}>
         <View style={styles.centeredContent}>
           <Animated.View style={styles.header}>
@@ -386,6 +391,7 @@ const LoginScreen = ({ navigation }) => {
           </Animated.View>
         </View>
       </View>
+      </KeyboardAwareScreen>
     </SafeAreaView>
   );
 };

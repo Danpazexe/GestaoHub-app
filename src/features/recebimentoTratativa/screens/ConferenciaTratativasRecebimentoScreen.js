@@ -18,6 +18,7 @@ import ScreenLayout, {
   createHeaderTitleTemplate,
   createScreenHeaderTemplate,
 } from '../../../components/ScreenLayout';
+import { EmptyState } from '../../../components/states';
 import {
   ACTION_OPTIONS,
   STATUS_OPTIONS,
@@ -100,6 +101,7 @@ const ConferenciaTratativasRecebimentoScreen = ({ navigation, isDarkMode }) => {
             {
               key: 'refresh',
               iconName: 'refresh',
+              accessibilityLabel: 'Atualizar',
               onPress: onRefresh,
               iconColor: TRATATIVA_THEME.white,
               iconSize: 20,
@@ -107,6 +109,7 @@ const ConferenciaTratativasRecebimentoScreen = ({ navigation, isDarkMode }) => {
             {
               key: 'new-case',
               iconName: 'add',
+              accessibilityLabel: 'Nova tratativa',
               onPress: openNewCase,
               iconColor: TRATATIVA_THEME.white,
               iconSize: 22,
@@ -371,17 +374,13 @@ const ConferenciaTratativasRecebimentoScreen = ({ navigation, isDarkMode }) => {
           loading ? (
             <ActivityIndicator size="large" color={TRATATIVA_THEME.primary} />
           ) : (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="assignment-late" size={44} color={TRATATIVA_THEME.textMuted} />
-              <Text style={[styles.emptyTitle, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>Nenhum espelho encontrado</Text>
-              <Text style={[styles.emptySubtitle, { color: isDarkMode ? TRATATIVA_THEME.textMutedDark : TRATATIVA_THEME.textMuted }]}>
-                Crie um espelho avulso para registrar avaria, falta, troca, devolução ou descarte no recebimento.
-              </Text>
-              <TouchableOpacity style={styles.emptyCta} onPress={openNewCase}>
-                <MaterialIcons name="add" size={18} color="#ffffff" />
-                <Text style={styles.emptyCtaText}>Novo espelho</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState
+              icon="assignment"
+              title="Nenhum espelho encontrado"
+              message="Crie um espelho avulso para registrar avaria, falta, troca, devolução ou descarte no recebimento."
+              ctaLabel="Nova tratativa"
+              onCtaPress={openNewCase}
+            />
           )
         }
       />
@@ -546,39 +545,6 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    fontWeight: '800',
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyTitle: {
-    marginTop: 12,
-    fontSize: 18,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  emptyCta: {
-    marginTop: 18,
-    minHeight: 48,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    backgroundColor: TRATATIVA_THEME.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  emptyCtaText: {
-    color: '#ffffff',
-    fontSize: 14,
     fontWeight: '800',
   },
 });

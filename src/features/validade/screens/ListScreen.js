@@ -21,6 +21,7 @@ import {
   getStaggerDelay,
 } from '../../../components/animations/entrancePresets';
 import { CORESLIST } from '../../../components/coresAuth';
+import { EmptyState } from '../../../components/states';
 import useLogisticsLocationConfig from '../../settings/hooks/useLogisticsLocationConfig';
 import {
   loadValidadeProducts,
@@ -326,6 +327,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       {
         key: 'toggle-expiring',
         iconName: 'warning',
+        accessibilityLabel: 'Mostrar apenas produtos vencendo',
         onPress: () => setShowExpiring(!showExpiring),
         isActive: showExpiring,
         activeBackgroundColor: COLORS.warningActiveBackground,
@@ -335,6 +337,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       {
         key: 'sync-products',
         iconName: 'sync',
+        accessibilityLabel: 'Sincronizar produtos',
         onPress: () => synchronizeNow(true),
         isActive: isSyncingRemote,
         activeBackgroundColor: COLORS.warningActiveBackground,
@@ -344,6 +347,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       {
         key: 'add-product',
         iconName: 'add',
+        accessibilityLabel: 'Adicionar produto',
         onPress: () => navigation.push('AddProductScreen', {
           screenMode: 'create',
           resetFormToken: Date.now(),
@@ -368,7 +372,7 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
       }),
       headerTitle: () =>
         createHeaderTitleTemplate({
-          title: 'Lista de Produtos',
+          title: 'Produtos',
           subtitle: 'Gerencie seu estoque',
           iconName: 'list-alt',
           tintColor: COLORS.white,
@@ -702,12 +706,16 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
   };
 
   const renderEmptyList = () => (
-    <View style={styles.emptyList}>
-      <Text style={[styles.emptyText, isDarkMode && styles.darkEmptyText]}>
-        Nenhum produto encontrado.{'\n'}
-        Adicione produtos para começar!
-      </Text>
-    </View>
+    <EmptyState
+      icon="inventory-2"
+      title="Nenhum produto encontrado"
+      message="Adicione o primeiro produto para começar a controlar a validade."
+      ctaLabel="Adicionar produto"
+      onCtaPress={() => navigation.push('AddProductScreen', {
+        screenMode: 'create',
+        resetFormToken: Date.now(),
+      })}
+    />
   );
 
   const FilterOption = ({ label, icon, isSelected, onPress }) => (

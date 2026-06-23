@@ -16,6 +16,7 @@ import ScreenLayout, {
   createScreenHeaderTemplate,
 } from '../../../components/ScreenLayout';
 import { CORESCONFERENCIADIVERG } from '../../../components/coresAuth';
+import { EmptyState } from '../../../components/states';
 import { listConferenciaDivergencias } from '../services/conferenciaRecordsService';
 
 const ConferenciaDivergenciasScreen = ({ navigation, isDarkMode }) => {
@@ -74,6 +75,7 @@ const ConferenciaDivergenciasScreen = ({ navigation, isDarkMode }) => {
           actions: [{
             key: 'refresh-divergencias',
             iconName: 'refresh',
+            accessibilityLabel: 'Atualizar',
             onPress: async () => {
               setRefreshing(true);
               await loadDivergencias();
@@ -274,15 +276,13 @@ const ConferenciaDivergenciasScreen = ({ navigation, isDarkMode }) => {
           );
         }}
         ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <MaterialIcons name="check-circle-outline" size={36} color={colors.success} />
-            <Text style={styles.emptyTitle}>Nenhuma divergência</Text>
-            <Text style={styles.emptySubtitle}>
-              {filter === 'todos'
-                ? 'Não há registros de divergências.'
-                : `Nenhuma divergência com status "${filter}".`}
-            </Text>
-          </View>
+          <EmptyState
+            icon="rule"
+            title="Nenhuma divergência"
+            message={filter === 'todos'
+              ? 'Não há registros de divergências.'
+              : `Nenhuma divergência com status "${filter}".`}
+          />
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -417,15 +417,6 @@ const getStyles = (colors) =>
       backgroundColor: colors.surface2,
     },
     actionButtonText: { fontSize: 12, fontWeight: '800' },
-
-    // ── Empty ──
-    emptyCard: {
-      alignItems: 'center',
-      paddingVertical: 40,
-      gap: 10,
-    },
-    emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
-    emptySubtitle: { color: colors.textMuted, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   });
 
 export default ConferenciaDivergenciasScreen;

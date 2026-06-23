@@ -14,7 +14,8 @@ const HeaderMenu = ({
     items = [],
     anchorIcon = "more-vert",
     anchorColor = "#FFFFFF",
-    anchorStyle = {}
+    anchorStyle = {},
+    accessibilityLabel = 'Abrir menu'
 }) => {
     return (
         <Menu
@@ -24,6 +25,10 @@ const HeaderMenu = ({
                 <TouchableOpacity
                     onPress={onOpen}
                     style={[styles.headerButton, anchorStyle]}
+                    accessibilityRole="button"
+                    accessibilityLabel={accessibilityLabel}
+                    accessibilityState={{ expanded: visible }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                     <MaterialIcons name={anchorIcon} size={24} color={anchorColor} />
                 </TouchableOpacity>
@@ -48,6 +53,7 @@ const HeaderMenu = ({
 
 const styles = StyleSheet.create({
     headerButton: {
+        // Compacto no visual; o alvo de toque de 44px vem do hitSlop.
         padding: 6,
         borderRadius: 8,
         backgroundColor: 'rgba(255, 255, 255, 0.22)',

@@ -70,6 +70,7 @@ const NotificationScreen = ({ navigation, isDarkMode }) => {
             {
               key: 'toggle-advanced',
               iconName: 'cog-outline',
+              accessibilityLabel: 'Configurações de notificação',
               IconComponent: MaterialCommunityIcons,
               onPress: () => setShowAdvanced((prev) => !prev),
               isActive: showAdvanced,

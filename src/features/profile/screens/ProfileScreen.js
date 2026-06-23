@@ -14,7 +14,6 @@ import {
 const ProfileScreen = ({ isDarkMode, navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [profileImage, setProfileImage] = useState(null);
 
   const COLORS = CORESPROFILE;
@@ -25,7 +24,6 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
 
       if (storedProfile.name) setName(storedProfile.name);
       if (storedProfile.email) setEmail(storedProfile.email);
-      if (storedProfile.password) setPassword(storedProfile.password);
       if (storedProfile.profileImage) setProfileImage(storedProfile.profileImage);
     } catch (error) {
       console.error('Erro ao carregar dados do perfil:', error);
@@ -66,24 +64,18 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
       return;
     }
 
-    if (!password.trim()) {
-      Alert.alert('Erro', 'O campo Senha é obrigatório.');
-      return;
-    }
-
     try {
-      await saveProfileData({ name, email, password, profileImage });
+      await saveProfileData({ name, email, profileImage });
 
       console.log('[ProfileScreen] Alterações salvas!');
       console.log('[ProfileScreen] Nome atualizado:', name);
       console.log('[ProfileScreen] E-mail atualizado:', email);
-      console.log('[ProfileScreen] Senha atualizada.');
       Alert.alert('Sucesso', 'Alterações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar dados do perfil:', error);
       Alert.alert('Erro', 'Ocorreu um erro ao salvar os dados. Tente novamente.');
     }
-  }, [name, email, password, profileImage]);
+  }, [name, email, profileImage]);
 
   // Função para selecionar uma imagem
   const handleImagePick = async () => {
@@ -157,21 +149,6 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
           keyboardType="email-address"
           placeholder="Digite seu e-mail"
           placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
-        />
-      </View>
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Senha</Text>
-        <TextInput
-          style={[styles.input, {
-            backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.white,
-            borderColor: isDarkMode ? COLORS.accent : '#ccc',
-            color: isDarkMode ? COLORS.textDark : COLORS.text
-          }]}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Digite sua senha"
-          placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
-          secureTextEntry
         />
       </View>
       <TouchableOpacity style={[styles.saveButton, { backgroundColor: COLORS.primary }]} onPress={handleSaveChanges}>

@@ -9,6 +9,7 @@ import ScreenLayout, {
     createHeaderActionsTemplate,
 } from '../../../components/ScreenLayout';
 import { CORESAVARIALIST, CORESFUNCIONALIDADES } from '../../../components/coresAuth';
+import { EmptyState } from '../../../components/states';
 
 import { BONUS_TYPES } from '../constants';
 import { listOpenAvariaBatches } from '../services/avariaBatchService';
@@ -61,18 +62,21 @@ const AvariaListScreen = ({ navigation, isDarkMode }) => {
                         {
                             key: 'dashboard',
                             iconName: 'dashboard',
+                            accessibilityLabel: 'Painel de avarias',
                             onPress: () => navigation.navigate('AvariaDashboardScreen'),
                             iconColor: '#FFFFFF',
                         },
                         {
                             key: 'history',
                             iconName: 'history',
+                            accessibilityLabel: 'Histórico de avarias',
                             onPress: () => navigation.navigate('AvariaHistoryScreen'),
                             iconColor: '#FFFFFF',
                         },
                         {
                             key: 'new-batch',
                             iconName: 'add-box',
+                            accessibilityLabel: 'Novo lote de avaria',
                             onPress: () => navigation.navigate('AvariaEntryScreen'),
                             iconColor: '#FFFFFF',
                         },
@@ -163,13 +167,13 @@ const AvariaListScreen = ({ navigation, isDarkMode }) => {
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <MaterialCommunityIcons name="layers-off" size={64} color="#ccc" />
-                            <Text style={[styles.emptyTitle, isDarkMode && styles.darkEmptyTitle]}>Nenhum lote pendente</Text>
-                            <Text style={[styles.emptySubtitle, isDarkMode && styles.darkEmptySubtitle]}>
-                                Tudo em dia! Use o histórico para ver lotes já concluídos.
-                            </Text>
-                        </View>
+                        <EmptyState
+                            icon="layers"
+                            title="Nenhum lote pendente"
+                            message="Tudo em dia! Use o histórico para ver lotes já concluídos."
+                            ctaLabel="Novo lote"
+                            onCtaPress={() => navigation.navigate('AvariaEntryScreen')}
+                        />
                     }
                 />
             )}
@@ -340,33 +344,6 @@ const styles = StyleSheet.create({
     },
     darkBatchDate: {
         color: COLORS.textMutedDark,
-    },
-
-    // ==================== Estilos de Lista Vazia ====================
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 60,
-        padding: 40,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-        marginTop: 16,
-    },
-    darkEmptyTitle: {
-        color: COLORS.textDark,
-    },
-    emptySubtitle: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 8,
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    darkEmptySubtitle: {
-        color: '#aaa',
     },
 });
 

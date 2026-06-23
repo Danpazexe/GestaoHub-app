@@ -587,6 +587,8 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
             onPress={onRefresh}
             disabled={refreshing || loading}
             style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel="Atualizar dashboard"
           >
             <MaterialIcons name="refresh" size={24} color={COLORS.white} />
           </TouchableOpacity>

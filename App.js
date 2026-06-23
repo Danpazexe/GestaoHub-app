@@ -18,6 +18,7 @@ import {
   isColorDark,
   shouldUseDarkNavigationBarIcons,
 } from './src/utils/systemBars';
+import { ThemeProvider } from './src/theme/ThemeContext';
 
 // Importações de telas
 import EntryScreen from './src/features/auth/screens/EntryScreen';
@@ -358,6 +359,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <ThemeProvider isDarkMode={isDarkMode} setDarkMode={setIsDarkMode}>
       <AppBackground backgroundColor={statusBarBackground}>
         <PaperProvider>
           <NavigationContainer
@@ -569,6 +571,7 @@ export default function App() {
           </NavigationContainer>
         </PaperProvider>
       </AppBackground>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

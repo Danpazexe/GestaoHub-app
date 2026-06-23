@@ -27,6 +27,15 @@ export const mergeRemoteProductsWithCachedLocation = async (remoteProducts = [],
   const normalizedCached = Array.isArray(cachedProducts)
     ? normalizeProducts(cachedProducts)
     : normalizeProducts(await readValidadeProductsCache());
+
+  // Proteção contra perda de dados (chokepoint de TODO sync de validade: load,
+  // replace e o polling do ListScreen passam por aqui): um remoto vazio (RLS sem
+  // retorno, sessão trocada, 200 parcial com []) NUNCA substitui um cache local
+  // populado. Só uma exclusão explícita no device limpa a lista.
+  if (normalizedRemote.length === 0 && normalizedCached.length > 0) {
+    return normalizedCached;
+  }
+
   const cachedById = new Map(normalizedCached.map((item) => [String(item?.id || ''), item]));
 
   return normalizedRemote.map((remoteItem) => {
@@ -49,6 +58,8 @@ export const loadValidadeProducts = async ({ preferRemote = true } = {}) => {
     try {
       const remoteProducts = await listValidadeProducts();
       if (Array.isArray(remoteProducts)) {
+        // O guard contra remoto-vazio fica centralizado em
+        // mergeRemoteProductsWithCachedLocation (cobre load + replace + ListScreen).
         const mergedRemote = await mergeRemoteProductsWithCachedLocation(remoteProducts, normalizedCached);
         await writeValidadeProductsCache(mergedRemote);
         return mergedRemote;

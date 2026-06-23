@@ -6,6 +6,9 @@ import { colors as themeColors } from '../theme/colors';
 import { elevation } from '../theme/elevation';
 import { typography } from '../theme/typography';
 
+// Expande a área de toque dos botões de ícone do header sem mudar o visual.
+const HEADER_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
+
 const ScreenLayout = ({
   children,
   isDarkMode = false,
@@ -68,10 +71,10 @@ export const createHeaderTitleTemplate = ({
         <IconComponent name={iconName} size={iconSize} color={tintColor} />
       </View>
     ) : null}
-    <View>
-      <Text style={[headerStyles.titleText, typography.title, { color: tintColor }]}>{title}</Text>
+    <View style={headerStyles.titleTextColumn}>
+      <Text numberOfLines={1} accessibilityRole="header" style={[headerStyles.titleText, typography.title, { color: tintColor }]}>{title}</Text>
       {subtitle ? (
-        <Text style={[headerStyles.subtitleText, typography.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
+        <Text numberOfLines={1} style={[headerStyles.subtitleText, typography.subtitle, { color: subtitleColor }]}>{subtitle}</Text>
       ) : null}
     </View>
   </View>
@@ -94,6 +97,10 @@ export const createHeaderActionsTemplate = ({
           key={action.key}
           style={[headerStyles.actionButton, { backgroundColor }]}
           onPress={action.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={action.accessibilityLabel || action.label || action.iconName}
+          accessibilityState={{ selected: !!action.isActive }}
+          hitSlop={HEADER_HIT_SLOP}
         >
           <IconComponent
             name={action.iconName}
@@ -120,6 +127,10 @@ const headerStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 3,
+    flexShrink: 1,
+  },
+  titleTextColumn: {
+    flexShrink: 1,
   },
   titleIcon: {
     width: 34,
@@ -142,6 +153,8 @@ const headerStyles = StyleSheet.create({
     paddingBottom: 4,
   },
   actionButton: {
+    // Tamanho visual compacto para não invadir o título; o alvo de toque de 44px
+    // vem do hitSlop (estende a área tocável sem ocupar espaço de layout).
     padding: 6,
     borderRadius: 8,
     marginLeft: 8,

@@ -22,6 +22,7 @@ import {
 import { getCurrentUserId, upsertValidadeProduct } from '../../../services/validadeSupabaseService';
 import { getSignedProductImageUrl, uploadProductImageToSupabase } from '../../../services/supabaseStorageService';
 import { addProductTheme } from '../../../theme/domains/validade';
+import haptics from '../../../utils/haptics';
 import { useLookupSqlPreference } from '../hooks/useLookupSqlPreference';
 import useLogisticsLocationConfig from '../../settings/hooks/useLogisticsLocationConfig';
 import {
@@ -589,6 +590,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   };
 
   const handleSelectRecentProduct = async (product) => {
+    haptics.selection();
     setProductName(String(product?.descricao ?? ''));
     setBatch(String(product?.lote ?? ''));
     setQuantity(String(product?.quantidade ?? ''));
@@ -886,54 +888,69 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       </Portal>
 
       <Portal>
-        <Dialog visible={historyDialogVisible} onDismiss={() => setHistoryDialogVisible(false)} style={{ backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card }}>
-          <Dialog.Title>Produtos Recentes</Dialog.Title>
-          <Dialog.Content>
+        <Dialog visible={historyDialogVisible} onDismiss={() => setHistoryDialogVisible(false)} style={[styles.historyDialog, { backgroundColor: isDarkMode ? COLORS.cardDark : COLORS.card }]}>
+          <View style={styles.historyHeader}>
+            <View style={styles.historyHeaderIcon}>
+              <MaterialCommunityIcons name="history" size={18} color={COLORS.primary} />
+            </View>
+            <View style={styles.historyHeaderTextWrap}>
+              <Text style={[styles.historyHeaderTitle, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Produtos Recentes</Text>
+              <Text style={[styles.historyHeaderSubtitle, { color: isDarkMode ? COLORS.textMutedDark : COLORS.textMuted }]} numberOfLines={1}>
+                {recentProducts.length === 0
+                  ? 'Nada salvo ainda'
+                  : `${recentProducts.length} ${recentProducts.length === 1 ? 'produto' : 'produtos'} · toque para preencher`}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setHistoryDialogVisible(false)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar"
+            >
+              <MaterialCommunityIcons name="close" size={22} color={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
+            </TouchableOpacity>
+          </View>
+          <Dialog.Content style={styles.historyContent}>
             {recentProducts.length === 0 ? (
-              <Text style={styles.historyEmpty}>Nenhum produto salvo recentemente.</Text>
+              <View style={styles.historyEmptyState}>
+                <View style={styles.historyEmptyIcon}>
+                  <MaterialCommunityIcons name="package-variant-closed" size={30} color={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
+                </View>
+                <Text style={[styles.historyEmptyTitle, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Nenhum produto recente</Text>
+                <Text style={styles.historyEmpty}>Os últimos produtos que você salvar aparecem aqui para reuso rápido.</Text>
+              </View>
             ) : (
-              <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={styles.historyList} showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={styles.historyList} showsVerticalScrollIndicator={false}>
                 {recentProducts.slice().reverse().map((p, i) => {
-                  const loteBg = isDarkMode ? COLORS.chipLoteDark : COLORS.chipLoteLight;
-                  const qtdBg = isDarkMode ? COLORS.chipQtdDark : COLORS.chipQtdLight;
-                  const codBg = isDarkMode ? COLORS.chipCodDark : COLORS.chipCodLight;
-                  const eanBg = isDarkMode ? COLORS.chipEanDark : COLORS.chipEanLight;
-                  const validadeBg = isDarkMode ? COLORS.chipValidadeDark : COLORS.chipValidadeLight;
-                  const chipTextColor = isDarkMode ? COLORS.white : COLORS.text;
+                  const mutedColor = isDarkMode ? COLORS.textMutedDark : COLORS.textMuted;
+                  // Monta a meta só com os campos preenchidos (evita "·  ·" e "—" soltos).
+                  const metaParts = [];
+                  if (p.codprod) metaParts.push(`Cód ${p.codprod}`);
+                  if (p.codauxiliar) metaParts.push(`EAN ${p.codauxiliar}`);
+                  if (p.lote) metaParts.push(`Lote ${p.lote}`);
+                  if (p.quantidade != null) metaParts.push(`Qtd ${p.quantidade}`);
                   return (
-                    <TouchableOpacity key={p.id || String(i)} style={styles.historyItem} onPress={() => handleSelectRecentProduct(p)}>
-                      <View style={styles.historyHeaderRow}>
-                        {p.previewImageUrl ? (
-                          <Image source={{ uri: p.previewImageUrl }} style={styles.historyThumb} />
-                        ) : (
-                          <View style={styles.historyThumbPlaceholder}>
-                            <MaterialCommunityIcons name="image-off-outline" size={16} color={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
+                    <TouchableOpacity key={p.id || String(i)} style={styles.historyItem} activeOpacity={0.7} onPress={() => handleSelectRecentProduct(p)}>
+                      {p.previewImageUrl ? (
+                        <Image source={{ uri: p.previewImageUrl }} style={styles.historyThumb} />
+                      ) : (
+                        <View style={styles.historyThumbPlaceholder}>
+                          <MaterialCommunityIcons name="image-off-outline" size={16} color={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
+                        </View>
+                      )}
+                      <View style={styles.historyBody}>
+                        <View style={styles.historyTopRow}>
+                          <Text style={styles.historyTitle} numberOfLines={1}>{p.descricao || 'Produto sem descrição'}</Text>
+                          <View style={styles.historyValBadge}>
+                            <MaterialCommunityIcons name="calendar-check-outline" size={12} color={isDarkMode ? COLORS.successDark : COLORS.accent} />
+                            <Text style={styles.historyValBadgeText}>{formatDateLabel(p.validade)}</Text>
                           </View>
-                        )}
-                        <Text style={styles.historyTitle} numberOfLines={1}>{p.descricao || 'Produto sem descricao'}</Text>
+                        </View>
+                        <Text style={[styles.historyMeta, { color: mutedColor }]} numberOfLines={1}>
+                          {metaParts.length ? metaParts.join('  ·  ') : 'Sem detalhes adicionais'}
+                        </Text>
                       </View>
-                      <View style={styles.historyChipsRow}>
-                        <View style={[styles.historyChip, { backgroundColor: loteBg }]}>
-                          <MaterialCommunityIcons name="archive-outline" size={14} color={chipTextColor} />
-                          <Text style={[styles.historyChipText, { color: chipTextColor }]}>Lote {p.lote || '-'}</Text>
-                        </View>
-                        <View style={[styles.historyChip, { backgroundColor: qtdBg }]}>
-                          <MaterialCommunityIcons name="counter" size={14} color={chipTextColor} />
-                          <Text style={[styles.historyChipText, { color: chipTextColor }]}>Qtd {p.quantidade ?? 0}</Text>
-                        </View>
-                        <View style={[styles.historyChip, { backgroundColor: codBg }]}>
-                          <MaterialCommunityIcons name="identifier" size={14} color={chipTextColor} />
-                          <Text style={[styles.historyChipText, { color: chipTextColor }]}>Cod {p.codprod || '-'}</Text>
-                        </View>
-                        <View style={[styles.historyChip, { backgroundColor: eanBg }]}>
-                          <MaterialCommunityIcons name="barcode" size={14} color={chipTextColor} />
-                          <Text style={[styles.historyChipText, { color: chipTextColor }]}>EAN {p.codauxiliar || '-'}</Text>
-                        </View>
-                        <View style={[styles.historyChip, { backgroundColor: validadeBg }]}>
-                          <MaterialCommunityIcons name="calendar-check-outline" size={14} color={chipTextColor} />
-                          <Text style={[styles.historyChipText, { color: chipTextColor }]}>Val {formatDateLabel(p.validade)}</Text>
-                        </View>
-                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={20} color={mutedColor} style={styles.historyChevron} />
                     </TouchableOpacity>
                   );
                 })}
@@ -1180,14 +1197,71 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       fontWeight: '600',
       marginLeft: 4,
     },
+    historyDialog: {
+      borderRadius: 20,
+    },
+    historyHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 12,
+    },
+    historyHeaderIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDarkMode ? 'rgba(5,150,105,0.20)' : 'rgba(5,150,105,0.12)',
+      marginRight: 12,
+    },
+    historyHeaderTextWrap: {
+      flex: 1,
+    },
+    historyHeaderTitle: {
+      fontSize: 18,
+      fontWeight: '800',
+    },
+    historyHeaderSubtitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 2,
+    },
+    historyContent: {
+      paddingTop: 0,
+      paddingHorizontal: 16,
+    },
+    historyEmptyState: {
+      alignItems: 'center',
+      paddingVertical: 24,
+      paddingHorizontal: 12,
+    },
+    historyEmptyIcon: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: isDarkMode ? COLORS.neutralDark : '#f1f3f9',
+      marginBottom: 14,
+    },
+    historyEmptyTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      marginBottom: 6,
+      textAlign: 'center',
+    },
     historyList: {
       paddingTop: 4,
     },
     historyItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
       borderWidth: 1,
       borderColor: isDarkMode ? COLORS.borderDark : COLORS.historyItemBorderLight,
-      borderRadius: 12,
-      padding: 10,
+      borderRadius: 14,
+      padding: 12,
       marginBottom: 8,
       backgroundColor: isDarkMode ? COLORS.historyItemBackgroundDark : COLORS.historyItemBackgroundLight,
     },
@@ -1197,18 +1271,18 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       marginBottom: 8,
     },
     historyThumb: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      marginRight: 8,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      marginRight: 10,
       borderWidth: 1,
       borderColor: isDarkMode ? COLORS.borderDark : COLORS.historyItemBorderLight,
     },
     historyThumbPlaceholder: {
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      marginRight: 8,
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      marginRight: 10,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: isDarkMode ? COLORS.neutralDark : COLORS.photoPlaceholderLight,
@@ -1217,10 +1291,40 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
     },
     historyTitle: {
       flex: 1,
-      fontSize: 14,
-      fontWeight: '700',
+      fontSize: 15,
+      fontWeight: '800',
       color: isDarkMode ? COLORS.white : COLORS.text,
       marginRight: 4,
+    },
+    historyBody: {
+      flex: 1,
+    },
+    historyTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    historyValBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: isDarkMode ? 'rgba(5,150,105,0.20)' : 'rgba(5,150,105,0.10)',
+    },
+    historyValBadgeText: {
+      fontSize: 11.5,
+      fontWeight: '800',
+      marginLeft: 4,
+      color: isDarkMode ? COLORS.successDark : COLORS.accent,
+    },
+    historyMeta: {
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 3,
+    },
+    historyChevron: {
+      marginLeft: 8,
     },
     historyChipsRow: {
       flexDirection: 'row',

@@ -9,6 +9,7 @@ import ScreenLayout, {
     createHeaderActionsTemplate,
 } from '../../../components/ScreenLayout';
 import { CORESAVARIAHISTORY, CORESFUNCIONALIDADES } from '../../../components/coresAuth';
+import { EmptyState } from '../../../components/states';
 import Toast from 'react-native-toast-message';
 import { BONUS_TYPES } from '../constants';
 import {
@@ -84,6 +85,7 @@ const AvariaHistoryScreen = ({ navigation, isDarkMode }) => {
                         {
                             key: 'clear',
                             iconName: 'delete-sweep',
+                            accessibilityLabel: 'Limpar histórico',
                             onPress: confirmClearHistory,
                             iconColor: '#FFFFFF',
                         },
@@ -198,13 +200,11 @@ const AvariaHistoryScreen = ({ navigation, isDarkMode }) => {
                     keyExtractor={item => item.id?.toString()}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <MaterialCommunityIcons name="history" size={64} color="#ccc" />
-                            <Text style={[styles.emptyTitle, isDarkMode && styles.darkEmptyTitle]}>Histórico Vazio</Text>
-                            <Text style={[styles.emptySubtitle, isDarkMode && styles.darkEmptySubtitle]}>
-                                Nenhum lote foi finalizado até o momento. Conclua um lote na tela anterior para vê-lo aqui.
-                            </Text>
-                        </View>
+                        <EmptyState
+                            icon="history"
+                            title="Nenhum lote finalizado"
+                            message="Nenhum lote foi finalizado até o momento. Conclua um lote na tela anterior para vê-lo aqui."
+                        />
                     }
                 />
             )}
@@ -392,33 +392,6 @@ const styles = StyleSheet.create({
         right: 8,
         top: '50%',
         marginTop: -12,
-    },
-
-    // ==================== Estilos de Lista Vazia ====================
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 60,
-        padding: 40,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#333',
-        marginTop: 16,
-    },
-    darkEmptyTitle: {
-        color: '#fff',
-    },
-    emptySubtitle: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 8,
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    darkEmptySubtitle: {
-        color: '#aaa',
     },
 });
 

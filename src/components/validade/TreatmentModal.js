@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TextInput, Pressable, StyleSheet } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import haptics from '../../utils/haptics';
 
 const getModalStyles = (isDarkMode) => StyleSheet.create({
   quantitySection: {
@@ -21,6 +22,11 @@ const TreatmentModal = ({
   onQuantityChange 
 }) => {
   const modalStyles = getModalStyles(isDarkMode);
+
+  const handleTreat = (type) => {
+    haptics.success();
+    onTreat(selectedProduct, type);
+  };
 
   return (
     <Modal
@@ -60,19 +66,19 @@ const TreatmentModal = ({
           </View>
 
           <View style={styles.buttonsContainer}>
-            <Pressable style={[styles.treatmentButton, styles.sellButton]} onPress={() => onTreat(selectedProduct, 'sold')}>
+            <Pressable style={[styles.treatmentButton, styles.sellButton]} onPress={() => handleTreat('sold')}>
               <MaterialIcons name="shopping-cart" size={24} color="#FFF" />
               <Text style={styles.treatmentButtonText}>Vendido</Text>
             </Pressable>
-            <Pressable style={[styles.treatmentButton, styles.exchangeButton]} onPress={() => onTreat(selectedProduct, 'exchanged')}>
+            <Pressable style={[styles.treatmentButton, styles.exchangeButton]} onPress={() => handleTreat('exchanged')}>
               <MaterialIcons name="swap-horiz" size={24} color="#FFF" />
               <Text style={styles.treatmentButtonText}>Trocado</Text>
             </Pressable>
-            <Pressable style={[styles.treatmentButton, styles.returnButton]} onPress={() => onTreat(selectedProduct, 'returned')}>
+            <Pressable style={[styles.treatmentButton, styles.returnButton]} onPress={() => handleTreat('returned')}>
               <MaterialIcons name="assignment-return" size={24} color="#FFF" />
               <Text style={styles.treatmentButtonText}>Devolvido</Text>
             </Pressable>
-            <Pressable style={[styles.treatmentButton, styles.expiredButton]} onPress={() => onTreat(selectedProduct, 'expired')}>
+            <Pressable style={[styles.treatmentButton, styles.expiredButton]} onPress={() => handleTreat('expired')}>
               <MaterialIcons name="error" size={24} color="#FFF" />
               <Text style={styles.treatmentButtonText}>Vencido</Text>
             </Pressable>

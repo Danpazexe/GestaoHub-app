@@ -103,6 +103,13 @@ export const listTratativaCases = async () => {
       pending_remote_sync: false,
     }));
     const cachedCases = await readTratativaCasesCache();
+
+    // Proteção contra perda de dados: um remoto vazio (RLS sem retorno, sessão
+    // trocada, 200 parcial com []) não apaga o cache populado de tratativas.
+    if (mapped.length === 0 && cachedCases.length > 0) {
+      return cachedCases;
+    }
+
     const pendingCases = cachedCases.filter((item) => item.pending_remote_sync);
     const mergedMap = new Map(mapped.map((item) => [item.id, item]));
 

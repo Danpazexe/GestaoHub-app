@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import haptics from '../../utils/haptics';
 
 const DeleteConfirmationModal = ({
   visible,
@@ -37,7 +38,7 @@ const DeleteConfirmationModal = ({
           </Pressable>
           <Pressable
             style={styles.confirmationDeleteButton}
-            onPress={onConfirm}
+            onPress={() => { haptics.warning(); onConfirm(); }}
             android_ripple={{ color: 'rgba(255,255,255,0.1)' }}
           >
             <MaterialIcons name="delete" size={24} color="#FFF" />

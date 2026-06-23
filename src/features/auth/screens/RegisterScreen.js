@@ -18,6 +18,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Toast from 'react-native-toast-message';
 import authService from '../../../services/authService';
 import { CORESREGISTER } from '../../../components/coresAuth';
+import haptics from '../../../utils/haptics';
 
 const { width, height } = Dimensions.get('window');
 
@@ -127,6 +128,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
       const response = await authService.register(name, email, password);
 
       if (response.status === 201 || response.status === 200) {
+        haptics.success();
         Toast.show({
           type: 'success',
           text1: 'Sucesso!',
@@ -152,6 +154,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
   };
 
   const shakeForm = () => {
+    haptics.error();
     Animated.sequence([
       Animated.timing(shakeAnimation, {
         toValue: 10,
@@ -321,6 +324,10 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   }}
                   secureTextEntry={secureText}
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="off"
+                  textContentType="oneTimeCode"
+                  importantForAutofill="no"
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}
@@ -370,6 +377,10 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   }}
                   secureTextEntry={secureConfirmText}
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="off"
+                  textContentType="oneTimeCode"
+                  importantForAutofill="no"
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}

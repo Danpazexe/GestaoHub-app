@@ -55,15 +55,13 @@ export const saveSettingsValue = async (key, value) => {
 };
 
 export const loadSavedAuthPreferences = async () => {
-  const [savedEmail, savedPassword, biometricEnabled] = await Promise.all([
+  const [savedEmail, biometricEnabled] = await Promise.all([
     readStringStorage(STORAGE_KEYS.SAVED_EMAIL, ''),
-    readStringStorage(STORAGE_KEYS.SAVED_PASSWORD, ''),
     readStringStorage(STORAGE_KEYS.BIOMETRIC_ENABLED, ''),
   ]);
 
   return {
     savedEmail,
-    savedPassword,
     biometricEnabled: biometricEnabled === 'true',
   };
 };

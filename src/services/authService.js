@@ -164,21 +164,23 @@ class AuthService {
 
     await Promise.all([
       writeStringStorage(STORAGE_KEYS.SAVED_EMAIL, String(email || '').trim()),
-      writeStringStorage(STORAGE_KEYS.SAVED_PASSWORD, String(password || '').trim()),
       writeStringStorage(STORAGE_KEYS.REMEMBER_ME, 'true'),
+      // Nunca persistir a senha em texto puro (AsyncStorage não é criptografado).
+      // "Lembrar-me" guarda só o e-mail; a sessão do Supabase mantém o login.
+      // Remove resíduo de senha salva por versões anteriores do app.
+      removeStorageKeys([STORAGE_KEYS.SAVED_PASSWORD]),
     ]);
   }
 
   async loadSavedCredentials() {
-    const [savedEmail, savedPassword, savedRememberMe] = await Promise.all([
+    const [savedEmail, savedRememberMe] = await Promise.all([
       readStringStorage(STORAGE_KEYS.SAVED_EMAIL, ''),
-      readStringStorage(STORAGE_KEYS.SAVED_PASSWORD, ''),
       readStringStorage(STORAGE_KEYS.REMEMBER_ME, ''),
     ]);
 
     return {
       savedEmail,
-      savedPassword,
+      savedPassword: '', // senha não é mais armazenada em texto puro
       savedRememberMe,
     };
   }

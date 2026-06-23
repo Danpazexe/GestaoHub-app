@@ -63,7 +63,7 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, resetThemePreference, navig
       ]);
 
       setBiometricEnabled(settings.biometric);
-      setHasSavedCredentials(Boolean(authPreferences.savedEmail && authPreferences.savedPassword));
+      setHasSavedCredentials(Boolean(authPreferences.savedEmail));
       setUserSummary({
         name: summary?.name || 'Usuário',
         email: summary?.email || '',
@@ -99,9 +99,9 @@ const SettingsScreen = ({ isDarkMode, setIsDarkMode, resetThemePreference, navig
         return;
       }
 
-      const { savedEmail, savedPassword } = await loadSavedAuthPreferences();
+      const { savedEmail } = await loadSavedAuthPreferences();
 
-      if (!savedEmail || !savedPassword) {
+      if (!savedEmail) {
         setHasSavedCredentials(false);
         Alert.alert(
           'Configuração necessária',

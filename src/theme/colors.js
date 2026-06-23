@@ -5,6 +5,7 @@ export const semanticColors = {
   error: '#ef4444',
   info: '#0ea5e9',
   surface: '#ffffff',
+  surfaceDark: '#262d47',
   background: '#f7f7f8',
   backgroundDark: '#1f2438',
   text: '#2f333a',
