@@ -22,6 +22,8 @@ import ScreenLayout, {
   createHeaderTitleTemplate,
 } from '../../../components/ScreenLayout';
 import SwipeableHistoryItem from '../../../components/validade/SwipeableHistoryItem';
+import haptics from '../../../utils/haptics';
+import { SkeletonList } from '../../../components/states';
 import {
   clearTreatedValidadeProducts,
   deleteValidadeProductRecord,
@@ -60,8 +62,8 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
       }),
       headerTitle: () =>
         createHeaderTitleTemplate({
-          title: 'Historico de Tratativas',
-          subtitle: 'Gestao de saidas e ocorrencias',
+          title: 'Histórico',
+          subtitle: 'Gestão de saídas e ocorrências',
           iconName: 'assignment-turned-in',
           tintColor: COLORS.white,
         }),
@@ -287,8 +289,11 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
           isSelected && { backgroundColor: typeInfo.color || COLORS.primary },
           !isSelected && isDarkMode && styles.darkFilterChip,
         ]}
-        onPress={() => setSelectedFilter(type)}
+        onPress={() => { haptics.selection(); setSelectedFilter(type); }}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
+        accessibilityLabel={`Filtrar por ${label}`}
       >
         <MaterialIcons
           name={icon}
@@ -309,7 +314,11 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
   };
 
   const StatsCard = ({ label, value, color, icon }) => (
-    <View style={[styles.statsCard, isDarkMode && styles.darkStatsCard, { borderBottomColor: color, borderBottomWidth: 3 }]}>
+    <View
+      style={[styles.statsCard, isDarkMode && styles.darkStatsCard, { borderBottomColor: color, borderBottomWidth: 3 }]}
+      accessible
+      accessibilityLabel={`${label}: ${value}`}
+    >
       <View style={[styles.statsIconConfig, { backgroundColor: `${color}20` }]}>
         <MaterialIcons name={icon} size={20} color={color} />
       </View>
@@ -384,7 +393,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
           <MaterialIcons name="search" size={22} color={COLORS.textMuted} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, isDarkMode && styles.darkSearchInput]}
-            placeholder="Buscar por nome, codigo ou lote..."
+            placeholder="Buscar por nome, código ou lote..."
             placeholderTextColor={COLORS.textMuted}
             value={searchText}
             onChangeText={setSearchText}
@@ -420,7 +429,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
+          <SkeletonList count={6} rowHeight={64} />
         ) : (
           <FlatList
             data={filteredItems}
