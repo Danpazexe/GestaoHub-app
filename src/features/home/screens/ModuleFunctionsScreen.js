@@ -44,6 +44,7 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
   const onModuleColor = isDarkColor(moduleColor) ? '#ffffff' : '#1f2937';
   const palette = {
     background: isDarkMode ? MODULE_COLORS.backgroundDark : MODULE_COLORS.background,
+    card: isDarkMode ? (MODULE_COLORS.cardDark || '#262d47') : (MODULE_COLORS.card || '#ffffff'),
     text: isDarkMode ? MODULE_COLORS.textDark : MODULE_COLORS.text,
     textMuted: isDarkMode ? MODULE_COLORS.textMutedDark : MODULE_COLORS.textMuted,
     emptySubtitle: isDarkMode ? MODULE_COLORS.emptySubtitleDark : MODULE_COLORS.textMuted,
@@ -120,25 +121,31 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
           {actions.map((action) => {
             const actionColor = action.color || moduleColor;
             const onActionColor = isDarkColor(actionColor) ? '#ffffff' : '#1f2937';
-            const borderColor = isDarkMode ? withAlpha(actionColor, 0.78) : withAlpha(actionColor, 0.34);
-            const iconBackground = withAlpha(onActionColor, isDarkMode ? 0.24 : 0.2);
-            const chevronColor = withAlpha(onActionColor, 0.82);
+            const tintedBackground = withAlpha(actionColor, isDarkMode ? 0.18 : 0.09);
+            const borderColor = withAlpha(actionColor, isDarkMode ? 0.46 : 0.24);
+            const iconBg = withAlpha(actionColor, isDarkMode ? 0.94 : 0.88);
+            const chevronBg = withAlpha(actionColor, isDarkMode ? 0.25 : 0.14);
+            const chevronColor = isDarkMode ? '#e7ecff' : actionColor;
 
             return (
               <Pressable
                 key={action.id}
                 onPress={() => handleActionPress(action)}
-                style={({ pressed }) => [
-                  styles.actionCard,
-                  { backgroundColor: actionColor, borderColor },
-                  pressed && styles.pressedCard,
-                ]}
+                accessibilityRole="button"
+                accessibilityLabel={action.title}
+                style={({ pressed }) => [styles.actionCardWrapper, pressed && styles.pressedCard]}
               >
-                <View style={[styles.actionIconCircle, { backgroundColor: iconBackground }]}>
-                  <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={onActionColor} />
+                <View style={[styles.actionCard, { borderColor }]}>
+                  <View style={[styles.actionTint, { backgroundColor: tintedBackground }]} />
+                  <View style={[styles.actionAccent, { backgroundColor: actionColor }]} />
+                  <View style={[styles.actionIconCircle, { backgroundColor: iconBg }]}>
+                    <MaterialIcons name={action.icon || 'chevron-right'} size={22} color={onActionColor} />
+                  </View>
+                  <Text style={styles.actionTitle} numberOfLines={2}>{action.title}</Text>
+                  <View style={[styles.chevronBadge, { backgroundColor: chevronBg }]}>
+                    <MaterialIcons name="chevron-right" size={22} color={chevronColor} />
+                  </View>
                 </View>
-                <Text style={[styles.actionTitle, { color: onActionColor }]}>{action.title}</Text>
-                <MaterialIcons name="chevron-right" size={24} color={chevronColor} />
               </Pressable>
             );
           })}
@@ -176,28 +183,56 @@ const getStyles = (palette) => {
       paddingTop: 6,
       paddingBottom: 24,
     },
-    actionCard: {
-      borderRadius: 14,
-      borderWidth: 1,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 10,
+    actionCardWrapper: {
+      marginBottom: 12,
+      borderRadius: 16,
       ...actionCardShadow,
     },
+    actionCard: {
+      position: 'relative',
+      overflow: 'hidden',
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 13,
+      paddingHorizontal: 14,
+      borderRadius: 16,
+      minHeight: 72,
+      borderWidth: 1,
+      backgroundColor: palette.card,
+    },
+    actionTint: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    actionAccent: {
+      width: 4,
+      alignSelf: 'stretch',
+      borderRadius: 4,
+      marginRight: 12,
+    },
     actionIconCircle: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 10,
+      marginRight: 12,
     },
     actionTitle: {
       flex: 1,
       fontSize: 15,
-      fontWeight: '700',
+      fontWeight: '800',
+      color: palette.text,
+    },
+    chevronBadge: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     pressedCard: {
       transform: [{ scale: 0.99 }],
