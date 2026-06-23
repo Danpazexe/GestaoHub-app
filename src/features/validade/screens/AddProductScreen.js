@@ -301,10 +301,11 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     ));
 
     if (hasEmptyFields || hasMissingLocationFields) {
+      haptics.error();
       Toast.show({
         type: 'error',
         text1: 'Campos Obrigatórios',
-        text2: 'Por favor, preencha todos os campos obrigatórios.',
+        text2: 'Preencha os campos destacados em vermelho.',
         visibilityTime: 3000,
       });
       setIsSaving(false);
@@ -371,6 +372,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
       await writeValidadeProductsCache(products);
 
+      haptics.success();
       Toast.show({
         type: 'success',
         text1: 'Sucesso',
@@ -380,6 +382,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
       navigation.navigate('ListScreen');
     } catch (error) {
       console.error("Erro ao salvar produto:", error);
+      haptics.error();
       Toast.show({
         type: 'error',
         text1: 'Erro',
@@ -723,7 +726,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   return (
     <ScreenLayout isDarkMode={isDarkMode} lightBackground={COLORS.background} darkBackground={COLORS.darkBackground} contentStyle={styles.container}>
       <View style={styles.formCard}>
-        <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollViewContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={true}>
 
           {/* Foto */}
           <View style={styles.fieldContainer}>
@@ -736,6 +739,8 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   <Image source={{ uri: productImage }} style={styles.photoPreview} />
                   <TouchableOpacity
                     style={styles.removePhotoButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remover foto"
                     onPress={() => {
                       setProductImage(null);
                       setProductImagePath(null);
@@ -745,7 +750,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity style={styles.photoPlaceholder} onPress={() => setShowImageOptions(true)}>
+                <TouchableOpacity style={styles.photoPlaceholder} onPress={() => setShowImageOptions(true)} accessibilityRole="button" accessibilityLabel="Adicionar foto do produto">
                   <MaterialCommunityIcons name="camera-plus" size={40} color={isDarkMode ? COLORS.neutralMid : COLORS.neutralLight} />
                   <Text style={[styles.photoPlaceholderText, isDarkMode ? styles.darkText : styles.lightText]}>Foto</Text>
                 </TouchableOpacity>
@@ -757,6 +762,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
               <MaterialCommunityIcons name="package-variant" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> Nome do Produto
+              <Text style={styles.requiredMark}> *</Text>
             </Text>
             <View style={[styles.inputContainer, showErrors && checkEmptyFields('productName') && styles.emptyField]}>
               <TextInput placeholder="Ex: Sabão em Pó" value={productName} onChangeText={(t) => performSearch(t, 'productName')} style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
@@ -768,13 +774,13 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           {/* Lote e Qtd */}
           <View style={styles.rowContainer}>
             <View style={[styles.fieldContainer, { flex: 1, marginRight: 10 }]}>
-              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Lote</Text>
+              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Lote<Text style={styles.requiredMark}> *</Text></Text>
               <View style={[styles.inputContainer, showErrors && checkEmptyFields('lote') && styles.emptyField]}>
                 <TextInput placeholder="Ex: 123" value={lote} onChangeText={setBatch} style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
               </View>
             </View>
             <View style={[styles.fieldContainer, { flex: 1 }]}>
-              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Qtd</Text>
+              <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Qtd<Text style={styles.requiredMark}> *</Text></Text>
               <View style={[styles.inputContainer, showErrors && checkEmptyFields('quantidade') && styles.emptyField]}>
                 <TextInput placeholder="Ex: 10" value={quantidade} onChangeText={t => setQuantity(t.replace(/[^0-9]/g, ''))} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
               </View>
@@ -785,6 +791,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
               <MaterialCommunityIcons name="identifier" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> Código Interno
+              <Text style={styles.requiredMark}> *</Text>
             </Text>
             <View style={[styles.inputContainer, showErrors && checkEmptyFields('codprod') && styles.emptyField]}>
               <TextInput placeholder="Ex: 1001" value={codprod} onChangeText={(t) => performSearch(t, 'codprod')} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
@@ -797,13 +804,14 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           <View style={styles.fieldContainer}>
             <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>
               <MaterialCommunityIcons name="barcode" size={18} color={isDarkMode ? COLORS.fieldIconDark : COLORS.fieldIconLight} /> EAN
+              <Text style={styles.requiredMark}> *</Text>
             </Text>
             <View style={styles.eanContainer}>
               <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }, showErrors && checkEmptyFields('codauxiliar') && styles.emptyField]}>
                 <TextInput placeholder="Ex: 789..." value={codauxiliar} onChangeText={(t) => performSearch(t, 'codauxiliar')} keyboardType="numeric" style={styles.input} placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight} />
                 {renderFieldStatus('codauxiliar')}
               </View>
-              <TouchableOpacity style={styles.scanButton} onPress={handleScanBarcode}>
+              <TouchableOpacity style={styles.scanButton} onPress={handleScanBarcode} accessibilityRole="button" accessibilityLabel="Escanear código de barras">
                 <MaterialCommunityIcons name="barcode-scan" size={24} color={COLORS.white} />
               </TouchableOpacity>
             </View>
@@ -812,7 +820,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
 
           {/* Data */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Validade</Text>
+            <Text style={[styles.label, isDarkMode ? styles.darkText : styles.lightText]}>Validade<Text style={styles.requiredMark}> *</Text></Text>
             <TouchableOpacity style={styles.inputContainer} onPress={toggleDatePicker}>
               <Text style={[styles.input, { paddingVertical: 10 }]}>{validade.toLocaleDateString('pt-BR')}</Text>
             </TouchableOpacity>
@@ -1106,6 +1114,10 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       fontSize: 12,
       marginTop: 4,
       color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
+    },
+    requiredMark: {
+      color: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
+      fontWeight: '800',
     },
     emptyField: {
       borderColor: isDarkMode ? COLORS.dangerDark : COLORS.dangerLight,
