@@ -45,13 +45,24 @@ const NavCard = ({
   const cardBg = isDarkMode ? '#262d47' : '#ffffff';
   const titleColor = isDarkMode ? '#f3f5ff' : '#1f2937';
   const subtitleColor = isDarkMode ? '#aab1cf' : '#667085';
+  // Sombra idêntica à da Home (HomeScreen menuCardShadow).
+  const shadowStyle = Platform.select({
+    ios: {
+      shadowColor: withAlpha('#2f333a', isDarkMode ? 0.5 : 0.25),
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.54,
+      shadowRadius: 2,
+    },
+    android: { elevation: 2 },
+    default: {},
+  });
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}
-      style={({ pressed }) => [styles.wrapper, style, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.wrapper, shadowStyle, style, pressed && styles.pressed]}
     >
       <View style={[styles.card, { borderColor: border, backgroundColor: cardBg }]}>
         <View style={[styles.tint, { backgroundColor: tint }]} />
@@ -73,17 +84,10 @@ const NavCard = ({
   );
 };
 
-const cardShadow = Platform.select({
-  ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10 },
-  android: { elevation: 3 },
-  default: {},
-});
-
 const styles = StyleSheet.create({
   wrapper: {
     marginBottom: 12,
     borderRadius: 16,
-    ...cardShadow,
   },
   pressed: {
     transform: [{ scale: 0.99 }],
