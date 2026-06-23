@@ -5,13 +5,12 @@ import {
   ScrollView,
   StyleSheet,
   Image,
-  Dimensions,
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { BarChart, PieChart } from 'react-native-chart-kit';
+import { BarChart, PieChart } from 'react-native-gifted-charts';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Share from 'react-native-share';
 import ReactNativeBlobUtil from 'react-native-blob-util';
@@ -37,6 +36,9 @@ import {
 import {
   loadValidadeProducts,
 } from '../services/validadeProductsService';
+import haptics from '../../../utils/haptics';
+import { SkeletonBlock } from '../../../components/states';
+import * as Animatable from 'react-native-animatable';
 
 const COLORS = dashboardTheme;
 
@@ -250,14 +252,6 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
     [safeProducts.length, expiring30Products.length, expiredProducts.length, treatedProducts.length, isDarkMode],
   );
 
-  const treatmentBarData = useMemo(
-    () => ({
-      labels: treatmentSummary.map((item) => item.short),
-      datasets: [{ data: treatmentSummary.map((item) => item.count) }],
-    }),
-    [treatmentSummary],
-  );
-
   const criticalProducts = useMemo(
     () =>
       [...listedProducts]
@@ -331,23 +325,6 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
     [filteredProducts, treatmentInfo],
   );
 
-  const chartConfig = useMemo(
-    () => ({
-      backgroundGradientFrom: isDarkMode ? COLORS.cardDark : COLORS.card,
-      backgroundGradientTo: isDarkMode ? COLORS.cardDark : COLORS.card,
-      decimalPlaces: 0,
-      color: (opacity = 1) => `rgba(${COLORS.chartColorRgb}, ${opacity})`,
-      labelColor: () => (isDarkMode ? COLORS.textDark : COLORS.text),
-      barPercentage: 0.65,
-      propsForBackgroundLines: {
-        stroke: isDarkMode ? COLORS.borderDark : COLORS.border,
-        strokeDasharray: '',
-      },
-    }),
-    [isDarkMode],
-  );
-
-  const chartWidth = Math.max(280, Dimensions.get('window').width - 56);
   const cardTheme = isDarkMode ? styles.cardDark : styles.cardLight;
   const textPrimary = isDarkMode ? styles.textLight : styles.textDark;
   const textSecondary = isDarkMode ? styles.textLightSecondary : styles.textDarkSecondary;
@@ -635,10 +612,13 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
         lightBackground={COLORS.background}
         darkBackground={COLORS.backgroundDark}
       >
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.loadingText, textSecondary]}>Carregando dashboard...</Text>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <SkeletonBlock height={92} radius={16} style={styles.skeletonBlock} />
+          <SkeletonBlock height={120} radius={16} style={styles.skeletonBlock} />
+          <SkeletonBlock height={260} radius={16} style={styles.skeletonBlock} />
+          <SkeletonBlock height={260} radius={16} style={styles.skeletonBlock} />
+          <SkeletonBlock height={180} radius={16} style={styles.skeletonBlock} />
+        </ScrollView>
       </ScreenLayout>
     );
   }
@@ -667,7 +647,10 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
                   isDarkMode && styles.filterChipDark,
                   periodFilter === option.key && styles.filterChipActive,
                 ]}
-                onPress={() => setPeriodFilter(option.key)}
+                onPress={() => { haptics.selection(); setPeriodFilter(option.key); }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: periodFilter === option.key }}
+                accessibilityLabel={`Janela de análise ${option.label}`}
               >
                 <Text
                   style={[
@@ -692,7 +675,10 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
                   isDarkMode && styles.filterChipDark,
                   scopeFilter === option.key && styles.filterChipActive,
                 ]}
-                onPress={() => setScopeFilter(option.key)}
+                onPress={() => { haptics.selection(); setScopeFilter(option.key); }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: scopeFilter === option.key }}
+                accessibilityLabel={`Escopo ${option.label}`}
               >
                 <Text
                   style={[
@@ -712,12 +698,15 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
           </Text>
         </View>
 
-        <View style={styles.summaryGrid}>
+        <Animatable.View animation="fadeInUp" duration={450} useNativeDriver style={styles.summaryGrid}>
           {summaryCards.map((card) => (
             <TouchableOpacity
               key={card.key}
               activeOpacity={0.86}
-              onPress={() => setScopeFilter(card.scope)}
+              onPress={() => { haptics.selection(); setScopeFilter(card.scope); }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scopeFilter === card.scope }}
+              accessibilityLabel={`${card.label}: ${card.value}`}
               style={[
                 styles.summaryCard,
                 cardTheme,
@@ -731,7 +720,7 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
               <Text style={[styles.summaryLabel, textSecondary]}>{card.label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </Animatable.View>
 
         <View style={[styles.sectionCard, cardTheme]}>
           <Text style={[styles.sectionTitle, textPrimary]}>Distribuição de Status</Text>
@@ -740,17 +729,35 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
           </Text>
 
           {statusPieData.length > 0 ? (
-            <PieChart
-              data={statusPieData}
-              width={chartWidth}
-              height={220}
-              chartConfig={chartConfig}
-              accessor="count"
-              backgroundColor="transparent"
-              paddingLeft="8"
-              absolute
-              hasLegend
-            />
+            <View style={styles.pieWrap}>
+              <PieChart
+                data={statusPieData.map((d) => ({ value: d.count, color: d.color }))}
+                donut
+                radius={92}
+                innerRadius={56}
+                innerCircleColor={isDarkMode ? COLORS.cardDark : COLORS.card}
+                centerLabelComponent={() => (
+                  <View style={styles.pieCenter}>
+                    <Text style={[styles.pieCenterValue, textPrimary]}>
+                      {statusPieData.reduce((sum, d) => sum + d.count, 0)}
+                    </Text>
+                    <Text style={[styles.pieCenterLabel, textSecondary]}>itens</Text>
+                  </View>
+                )}
+              />
+              <View
+                style={styles.pieLegend}
+                accessibilityLabel={`Distribuição de status: ${statusPieData.map((d) => `${d.name} ${d.count}`).join(', ')}`}
+              >
+                {statusPieData.map((d) => (
+                  <View key={d.name} style={styles.pieLegendItem}>
+                    <View style={[styles.pieLegendDot, { backgroundColor: d.color }]} />
+                    <Text style={[styles.pieLegendName, textSecondary]} numberOfLines={1}>{d.name}</Text>
+                    <Text style={[styles.pieLegendValue, textPrimary]}>{d.count}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           ) : (
             <View style={styles.emptyChartState}>
               <MaterialIcons name="pie-chart" size={42} color={isDarkMode ? COLORS.textMutedDark : COLORS.textMuted} />
@@ -764,17 +771,22 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
           <Text style={[styles.sectionSubtitle, textSecondary]}>Volume de unidades tratadas por categoria</Text>
 
           {treatmentSummary.some((item) => item.count > 0) ? (
-            <BarChart
-              data={treatmentBarData}
-              width={chartWidth}
-              height={220}
-              fromZero
-              withInnerLines={false}
-              yAxisLabel=""
-              yAxisSuffix=""
-              chartConfig={chartConfig}
-              style={styles.chartSpacing}
-            />
+            <View style={styles.barWrap}>
+              <BarChart
+                data={treatmentSummary.map((t) => ({ value: t.count, label: t.short, frontColor: t.color }))}
+                height={200}
+                barWidth={26}
+                spacing={24}
+                initialSpacing={14}
+                barBorderRadius={6}
+                noOfSections={4}
+                yAxisThickness={0}
+                xAxisThickness={0}
+                isAnimated
+                xAxisLabelTextStyle={{ color: isDarkMode ? COLORS.textMutedDark : COLORS.textMuted, fontSize: 11 }}
+                yAxisTextStyle={{ color: isDarkMode ? COLORS.textMutedDark : COLORS.textMuted, fontSize: 11 }}
+              />
+            </View>
           ) : (
             <View style={styles.emptyChartState}>
               <MaterialIcons name="bar-chart" size={42} color={isDarkMode ? COLORS.textMutedDark : COLORS.textMuted} />
@@ -793,7 +805,10 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
           <Text style={[styles.sectionSubtitle, textSecondary]}>Produtos vencidos e a vencer em até 30 dias</Text>
 
           {criticalProducts.length === 0 ? (
-            <Text style={[styles.emptyListText, textSecondary]}>Nenhum item crítico com os filtros atuais.</Text>
+            <View style={styles.emptyListState}>
+              <MaterialIcons name="check-circle-outline" size={34} color={isDarkMode ? COLORS.textMutedDark : COLORS.textMuted} />
+              <Text style={[styles.emptyListText, textSecondary]}>Nenhum item crítico com os filtros atuais.</Text>
+            </View>
           ) : (
             criticalProducts.map((item) => {
               const isExpired = item._daysRemaining < 0;
@@ -833,7 +848,10 @@ const DashboardScreen = ({ isDarkMode, navigation }) => {
           <Text style={[styles.sectionSubtitle, textSecondary]}>Movimentacoes mais recentes da tela de tratativas</Text>
 
           {recentTreatments.length === 0 ? (
-            <Text style={[styles.emptyListText, textSecondary]}>Nenhuma tratativa registrada com os filtros atuais.</Text>
+            <View style={styles.emptyListState}>
+              <MaterialIcons name="inbox" size={34} color={isDarkMode ? COLORS.textMutedDark : COLORS.textMuted} />
+              <Text style={[styles.emptyListText, textSecondary]}>Nenhuma tratativa registrada com os filtros atuais.</Text>
+            </View>
           ) : (
             recentTreatments.map((item) => {
               const info = treatmentInfo[item.treatmentType] || treatmentInfo.unknown;
@@ -1011,6 +1029,57 @@ const styles = StyleSheet.create({
   emptyChartText: {
     marginTop: 8,
     fontSize: 13,
+  },
+  skeletonBlock: {
+    marginBottom: 16,
+  },
+  pieWrap: {
+    alignItems: 'center',
+  },
+  pieCenter: {
+    alignItems: 'center',
+  },
+  pieCenterValue: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  pieCenterLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  pieLegend: {
+    width: '100%',
+    marginTop: 16,
+    gap: 8,
+  },
+  pieLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pieLegendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  pieLegendName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pieLegendValue: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  barWrap: {
+    alignItems: 'center',
+    paddingTop: 8,
+  },
+  emptyListState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
   },
   listHeaderRow: {
     flexDirection: 'row',
