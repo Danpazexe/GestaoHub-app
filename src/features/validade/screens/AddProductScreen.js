@@ -28,6 +28,7 @@ import useLogisticsLocationConfig from '../../settings/hooks/useLogisticsLocatio
 import {
   createEmptyLogisticsLocationState,
   getEnabledLogisticsLocationFields,
+  getLogisticsLocationCardChips,
   hydrateLogisticsLocation,
   sanitizeLogisticsLocation,
 } from '../constants/logisticsLocation';
@@ -578,11 +579,14 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
           <TextInput
             placeholder={field.placeholder}
             value={locationForm[field.key]}
-            onChangeText={(value) => updateLocationField(field.key, value)}
+            onChangeText={(value) => updateLocationField(field.key, isObservationField ? value : value.toUpperCase())}
             style={[styles.input, isObservationField && styles.multilineInput]}
             placeholderTextColor={isDarkMode ? COLORS.placeholderDark : COLORS.placeholderLight}
             multiline={isObservationField}
             textAlignVertical={isObservationField ? 'top' : 'center'}
+            autoCapitalize={isObservationField ? 'sentences' : 'characters'}
+            autoCorrect={isObservationField}
+            maxLength={isObservationField ? 160 : 12}
           />
         </View>
         {hasError ? (
@@ -721,6 +725,7 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
     rows[rows.length - 1].push(field);
     return rows;
   }, []);
+  const locationCardChips = getLogisticsLocationCardChips(locationForm, logisticsLocationConfig);
   const styles = createStyles(isDarkMode, concentratedShadow, subtleConcentratedShadow);
 
   return (
@@ -847,6 +852,15 @@ const AddProductScreen = ({ navigation, route, isDarkMode }) => {
                   {row.length === 1 ? <View style={styles.locationGridSpacer} /> : null}
                 </View>
               ))}
+
+              {locationCardChips.length > 0 ? (
+                <View style={styles.locationPreview}>
+                  <MaterialCommunityIcons name="map-marker-check" size={16} color={COLORS.primary} />
+                  <Text style={styles.locationPreviewText} numberOfLines={2}>
+                    {locationCardChips.map((chip) => `${chip.label} ${chip.value}`).join('  ·  ')}
+                  </Text>
+                </View>
+              ) : null}
 
               {observationLocationField ? renderLocationField(observationLocationField) : null}
             </View>
@@ -1019,6 +1033,23 @@ const createStyles = (isDarkMode, concentratedShadow, subtleConcentratedShadow) 
       lineHeight: 18,
       opacity: 0.76,
       marginBottom: 12,
+    },
+    locationPreview: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 4,
+      marginBottom: 12,
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: isDarkMode ? 'rgba(5,150,105,0.16)' : 'rgba(5,150,105,0.08)',
+    },
+    locationPreviewText: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: '700',
+      color: isDarkMode ? COLORS.textDark : COLORS.accent,
     },
     locationGridRow: {
       flexDirection: 'row',
