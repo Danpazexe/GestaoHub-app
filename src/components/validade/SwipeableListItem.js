@@ -2,6 +2,7 @@ import React, { useRef, useImperativeHandle, forwardRef, useState, useMemo } fro
 import { View, Animated, TouchableOpacity, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import haptics from '../../utils/haptics';
 
 const BUTTON_WIDTH = 76;
 
@@ -28,7 +29,7 @@ const SwipeableListItem = forwardRef(({
         key: 'location',
         label: 'Local',
         icon: 'map-marker-path',
-        color: '#7838e8',
+        color: '#7c3aed',
       });
     }
 
@@ -37,19 +38,19 @@ const SwipeableListItem = forwardRef(({
         key: 'treat',
         label: 'Tratar',
         icon: 'archive-check-outline',
-        color: '#27ae60',
+        color: '#16a34a',
       },
       {
         key: 'edit',
         label: 'Editar',
         icon: 'archive-edit-outline',
-        color: '#1976D2',
+        color: '#2563eb',
       },
       {
         key: 'delete',
         label: 'Excluir',
         icon: 'archive-remove-outline',
-        color: '#e53935',
+        color: '#dc2626',
       },
     );
 
@@ -97,19 +98,19 @@ const SwipeableListItem = forwardRef(({
               <TouchableOpacity
                 style={styles.actionTouchable}
                 onPress={() => {
+                  haptics.selection();
                   swipeableRef.current?.close();
                   setTimeout(() => {
                     onPress?.();
                   }, 120);
                 }}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`${btn.label} produto`}
               >
-                <MaterialCommunityIcons
-                  name={btn.icon}
-                  size={36}
-                  color="#FFF"
-                  style={styles.actionIcon}
-                />
+                <View style={styles.actionIconCircle}>
+                  <MaterialCommunityIcons name={btn.icon} size={24} color="#FFF" />
+                </View>
                 <Text style={styles.actionButtonText}>{btn.label}</Text>
               </TouchableOpacity>
             </Animated.View>
@@ -180,10 +181,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 7,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    elevation: 4,
   },
   actionTouchable: {
     flex: 1,
@@ -194,17 +195,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
   },
-  actionIcon: {
-    marginBottom: 6,
-    alignSelf: 'center',
+  actionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.20)',
+    marginBottom: 8,
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 13.5,
+    fontWeight: '700',
     textAlign: 'center',
-    letterSpacing: 0.5,
-    marginTop: 1,
+    letterSpacing: 0.3,
   },
   buttonSeparator: {
     marginLeft: 6,
