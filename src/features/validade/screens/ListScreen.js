@@ -629,16 +629,18 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
     );
   };
 
-  const handleSwipeableOpen = (ref) => {
-    if (openSwipeRef.current && openSwipeRef.current !== ref) {
-      openSwipeRef.current.close();
+  // Coordena "uma linha aberta por vez" rastreando o id (estável) da linha
+  // aberta — não o objeto handle, cuja identidade muda entre renders e fazia
+  // a reabertura da mesma linha ser interpretada como "outra" e fechá-la.
+  const handleSwipeableOpen = (id) => {
+    if (openSwipeRef.current != null && openSwipeRef.current !== id) {
+      swipeRefs.current[openSwipeRef.current]?.current?.close();
     }
-    openSwipeRef.current = ref;
+    openSwipeRef.current = id;
   };
 
-  const handleCloseSwipe = () => {
-    if (openSwipeRef.current) {
-      openSwipeRef.current.close();
+  const handleSwipeableClose = (id) => {
+    if (openSwipeRef.current === id) {
       openSwipeRef.current = null;
     }
   };
@@ -678,8 +680,8 @@ const ListScreen = ({ route, navigation, isDarkMode }) => {
           onDelete={handleDeleteProduct}
           showLocationAction={hasLocationInfo}
           isDarkMode={isDarkMode}
-          onSwipeableOpen={() => handleSwipeableOpen(swipeRefs.current[item.id].current)}
-          onRequestClose={handleCloseSwipe}
+          onSwipeableOpen={() => handleSwipeableOpen(item.id)}
+          onSwipeableClose={() => handleSwipeableClose(item.id)}
         >
           <ProductItem
             product={{

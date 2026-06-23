@@ -15,7 +15,7 @@ const SwipeableListItem = forwardRef(({
   isDarkMode,
   children,
   onSwipeableOpen,
-  onRequestClose,
+  onSwipeableClose,
 }, ref) => {
   const swipeableRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -56,13 +56,14 @@ const SwipeableListItem = forwardRef(({
     return buttons;
   }, [showLocationAction]);
 
+  // deps [] mantém a identidade do handle estável entre renders — sem isso o
+  // objeto era recriado a cada render e a comparação de "linha aberta" no pai
+  // confundia a mesma linha com outra.
   useImperativeHandle(ref, () => ({
     close: () => {
-      if (swipeableRef.current) {
-        swipeableRef.current.close();
-      }
-    }
-  }));
+      swipeableRef.current?.close();
+    },
+  }), []);
 
   const renderRightActions = (progress, dragX) => {
     return (
@@ -118,14 +119,12 @@ const SwipeableListItem = forwardRef(({
     );
   };
 
-  // Só fecha ao tocar fora se estiver aberto
-  const handleBackgroundPress = (e) => {
-    // Só fecha se o swipe estiver aberto e o toque for fora do card
-    if (isOpen && onRequestClose) {
-      setTimeout(() => {
-        onRequestClose();
-      }, 150);
-    }
+  // Fecha a linha ao tocar no card quando ele já está aberto. O overlay só é
+  // montado com isOpen=true, então NUNCA captura o fim do gesto de abertura
+  // (era essa captura, por um TouchableWithoutFeedback envolvendo o Swipeable,
+  // que fechava a linha sozinha ao puxar).
+  const handleOverlayPress = () => {
+    swipeableRef.current?.close();
   };
 
   const handleSwipeableOpen = () => {
@@ -135,25 +134,33 @@ const SwipeableListItem = forwardRef(({
 
   const handleSwipeableClose = () => {
     setIsOpen(false);
+    if (onSwipeableClose) onSwipeableClose();
   };
 
   return (
-    <TouchableWithoutFeedback onPress={handleBackgroundPress}>
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      rightThreshold={40}
+      overshootRight={false}
+      friction={2}
+      useNativeAnimations
+      onSwipeableOpen={handleSwipeableOpen}
+      onSwipeableClose={handleSwipeableClose}
+    >
       <View>
-        <Swipeable
-          ref={swipeableRef}
-          renderRightActions={renderRightActions}
-          rightThreshold={40}
-          overshootRight={false}
-          friction={2}
-          useNativeAnimations
-          onSwipeableOpen={handleSwipeableOpen}
-          onSwipeableClose={handleSwipeableClose}
-        >
-          {children}
-        </Swipeable>
+        {children}
+        {isOpen ? (
+          <TouchableWithoutFeedback
+            onPress={handleOverlayPress}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <View style={styles.closeOverlay} />
+          </TouchableWithoutFeedback>
+        ) : null}
       </View>
-    </TouchableWithoutFeedback>
+    </Swipeable>
   );
 });
 
@@ -201,6 +208,12 @@ const styles = StyleSheet.create({
   },
   buttonSeparator: {
     marginLeft: 6,
+  },
+  // Captador de toque que aparece só com a linha aberta, para fechá-la ao
+  // tocar no card. Não interfere no gesto de arrastar (RNGH distingue
+  // toque de arraste) nem cobre os botões de ação (que ficam à direita).
+  closeOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
 });
 
