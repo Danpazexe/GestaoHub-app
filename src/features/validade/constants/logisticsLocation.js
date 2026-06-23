@@ -5,6 +5,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Corredor',
     shortLabel: 'Corredor',
     compactLabel: 'COR',
+    icon: 'view-column',
     placeholder: 'Ex: A',
   },
   {
@@ -13,6 +14,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Prateleira',
     shortLabel: 'Prat',
     compactLabel: 'PRAT',
+    icon: 'view-day',
     placeholder: 'Ex: 02',
   },
   {
@@ -21,6 +23,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Nível',
     shortLabel: 'Nível',
     compactLabel: 'NV',
+    icon: 'layers',
     placeholder: 'Ex: 1',
   },
   {
@@ -29,6 +32,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Aéreo',
     shortLabel: 'Aéreo',
     compactLabel: 'AE',
+    icon: 'height',
     placeholder: 'Ex: A1',
   },
   {
@@ -37,6 +41,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Picking',
     shortLabel: 'Picking',
     compactLabel: 'PK',
+    icon: 'shopping-cart',
     placeholder: 'Ex: 5',
   },
   {
@@ -45,6 +50,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Gôndola',
     shortLabel: 'Gôndola',
     compactLabel: 'GON',
+    icon: 'storefront',
     placeholder: 'Ex: G7',
   },
   {
@@ -53,6 +59,7 @@ export const LOGISTICS_LOCATION_FIELDS = [
     cardLabel: 'Observação',
     shortLabel: 'Obs',
     compactLabel: 'OBS',
+    icon: 'notes',
     placeholder: 'Ex: Próximo à doca 2',
   },
 ];
@@ -163,6 +170,8 @@ export const getLogisticsLocationInfoItems = (
       key: field.key,
       label: field.label,
       value: safeLocation[field.key],
+      icon: field.icon,
+      compactLabel: field.compactLabel,
       isObservation: field.key === 'observacao',
     }));
 };
