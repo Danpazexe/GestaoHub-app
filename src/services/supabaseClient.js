@@ -16,12 +16,14 @@ export const getSupabaseClient = () => {
     try {
       supabaseSingleton = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
         auth: {
-          // Persistir a sessão no AsyncStorage e restaurá-la no boot é o que
-          // garante que auth.getUser() funcione após reabrir o app — sem isso,
-          // toda sincronização remota falhava silenciosamente ("não autenticado").
+          // Sessão persiste localmente (necessário p/ sync após reabrir o app),
+          // mas SEM refresh em background:
+          //  - autoRefreshToken:false evita o timer/AppState do supabase-js no RN
+          //    (suspeito da tela preta) e reduz requisições no plano FREE;
+          //  - o token expirado é renovado sob demanda quando getSession() é chamado.
           storage: AsyncStorage,
           persistSession: true,
-          autoRefreshToken: true,
+          autoRefreshToken: false,
           detectSessionInUrl: false,
         },
       });

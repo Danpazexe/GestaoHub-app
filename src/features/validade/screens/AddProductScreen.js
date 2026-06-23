@@ -32,9 +32,10 @@ import {
 } from '../constants/logisticsLocation';
 
 const COLORS = addProductTheme;
-const IMAGE_UPLOAD_QUALITY = 0.4;
-const IMAGE_UPLOAD_MAX_WIDTH = 1024;
-const IMAGE_UPLOAD_MAX_HEIGHT = 1024;
+// Plano FREE: imagens leves (Storage limitado). 0.3 + 900px mantém data/lote legível (~50-120KB).
+const IMAGE_UPLOAD_QUALITY = 0.3;
+const IMAGE_UPLOAD_MAX_WIDTH = 900;
+const IMAGE_UPLOAD_MAX_HEIGHT = 900;
 
 const AddProductScreen = ({ navigation, route, isDarkMode }) => {
   const [productName, setProductName] = useState('');

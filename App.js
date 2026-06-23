@@ -175,16 +175,24 @@ export default function App() {
     checkNotificationPermissions();
   }, []);
 
-  // Presença: cria/atualiza a sessão em user_presence (heartbeat + ciclo de vida do app).
-  // É no-op enquanto não houver usuário Supabase autenticado.
+  // Presença econômica (plano FREE): 1 heartbeat a cada 3 min com módulo/tela atual
+  // + transições de AppState. NÃO faz request por navegação. Dispara o backfill 1x.
   useEffect(() => {
-    const HEARTBEAT_MS = 45000;
-    const beat = () => reportPresence({ status: 'online' });
+    const HEARTBEAT_MS = 180000; // 3 min (antes 45s) -> ~4x menos requisições
+    const beat = () => {
+      const routeName = routeNameRef.current;
+      reportPresence({
+        status: 'online',
+        module: deriveModuleFromRoute(routeName),
+        screen: routeName,
+      });
+      maybeRunInitialSyncBackfill();
+    };
     beat();
     const timer = setInterval(beat, HEARTBEAT_MS);
     const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        reportPresence({ status: 'online' });
+        beat();
       } else if (state === 'background' || state === 'inactive') {
         setPresenceStatus('idle');
       }
@@ -195,21 +203,6 @@ export default function App() {
       appStateSub?.remove?.();
     };
   }, []);
-
-  // Atualiza módulo/tela atual na presença a cada navegação e dispara o backfill
-  // inicial (uma vez) assim que o usuário estiver autenticado em uma tela interna.
-  useEffect(() => {
-    const routeName = currentRoute?.name;
-    reportPresence({
-      status: 'online',
-      module: deriveModuleFromRoute(routeName),
-      screen: routeName,
-    });
-
-    if (routeName && !['EntryScreen', 'LoginScreen', 'RegisterScreen'].includes(routeName)) {
-      maybeRunInitialSyncBackfill();
-    }
-  }, [currentRoute]);
 
   useEffect(() => {
     let isMounted = true;

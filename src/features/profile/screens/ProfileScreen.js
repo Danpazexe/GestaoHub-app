@@ -90,7 +90,9 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
     const result = await launchImageLibrary({
       mediaType: 'photo',
       includeBase64: false,
-      quality: 0.8,
+      quality: 0.5,
+      maxWidth: 512,
+      maxHeight: 512,
       selectionLimit: 1,
     });
 
