@@ -127,7 +127,7 @@ create table if not exists public.recebimento_treatment_cases (
   id text not null,
   user_id uuid not null references auth.users(id) on delete cascade,
   doc_number text not null,
-  supplier_code text not null,
+  supplier_code text, -- nullable: casos de espelho/recebimento sem código de fornecedor
   doc_sequence_number integer,
   origin_invoice_number text,
   return_invoice_number text,

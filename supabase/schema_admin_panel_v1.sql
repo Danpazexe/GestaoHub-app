@@ -200,9 +200,22 @@ drop policy if exists conferencia_bonus_queue_admin_insert on public.conferencia
 create policy conferencia_bonus_queue_admin_insert on public.conferencia_bonus_queue
 for insert with check (public.is_admin_user());
 
+-- Fila de bônus é um pool compartilhado: o operador "assume" uma tarefa pelo app.
+-- UPDATE liberado só para admin, linha ainda não atribuída (assumir) ou a própria
+-- atribuição — impede sobrescrever/sequestrar a tarefa de outro operador.
 drop policy if exists conferencia_bonus_queue_admin_update on public.conferencia_bonus_queue;
 create policy conferencia_bonus_queue_admin_update on public.conferencia_bonus_queue
-for update using (auth.uid() is not null) with check (auth.uid() is not null);
+for update
+using (
+  public.is_admin_user()
+  or assigned_user_id is null
+  or assigned_user_id = auth.uid()
+)
+with check (
+  public.is_admin_user()
+  or assigned_user_id is null
+  or assigned_user_id = auth.uid()
+);
 
 drop policy if exists conferencia_bonus_queue_items_authenticated_select on public.conferencia_bonus_queue_items;
 create policy conferencia_bonus_queue_items_authenticated_select on public.conferencia_bonus_queue_items
