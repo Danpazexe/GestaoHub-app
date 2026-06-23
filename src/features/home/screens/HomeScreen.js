@@ -63,11 +63,11 @@ const HomeScreen = ({ isDarkMode }) => {
       icon: 'event-note',
       color: FUNC_COLORS.modules.validade,
       actions: [
-        { id: 'validade-lista', title: 'Ver lista', icon: 'fact-check', screen: 'ListScreen', color: FUNC_COLORS.actions['validade-lista'] },
-        { id: 'validade-add', title: 'Adicionar', icon: 'add-circle-outline', screen: 'AddProductScreen', color: FUNC_COLORS.actions['validade-add'] },
-        { id: 'validade-dashboard', title: 'Dashboard', icon: 'analytics', screen: 'DashboardScreen', color: FUNC_COLORS.actions['validade-dashboard'] },
-        { id: 'validade-tratativas', title: 'Tratativas', icon: 'assignment-turned-in', screen: 'TratarScreen', color: FUNC_COLORS.actions['validade-tratativas'] },
-        { id: 'validade-excel', title: 'Exportar/Importar', icon: 'table-chart', screen: 'ExcelScreen', color: FUNC_COLORS.actions['validade-excel'] },
+        { id: 'validade-lista', title: 'Ver lista', subtitle: 'Produtos e validades cadastradas', icon: 'fact-check', screen: 'ListScreen', color: FUNC_COLORS.actions['validade-lista'] },
+        { id: 'validade-add', title: 'Adicionar', subtitle: 'Cadastrar um novo produto', icon: 'add-circle-outline', screen: 'AddProductScreen', color: FUNC_COLORS.actions['validade-add'] },
+        { id: 'validade-dashboard', title: 'Dashboard', subtitle: 'Métricas e gráficos de validade', icon: 'analytics', screen: 'DashboardScreen', color: FUNC_COLORS.actions['validade-dashboard'] },
+        { id: 'validade-tratativas', title: 'Tratativas', subtitle: 'Histórico de saídas e ocorrências', icon: 'assignment-turned-in', screen: 'TratarScreen', color: FUNC_COLORS.actions['validade-tratativas'] },
+        { id: 'validade-excel', title: 'Exportar/Importar', subtitle: 'Planilha Excel da lista', icon: 'table-chart', screen: 'ExcelScreen', color: FUNC_COLORS.actions['validade-excel'] },
       ],
     },
     {
@@ -80,6 +80,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'conferencia-recebimento',
           title: 'Conferência de recebimento',
+          subtitle: 'Conferir entrada de mercadoria',
           icon: 'inventory',
           screen: 'ConferenciaRecebimentoScreen',
           color: FUNC_COLORS.actions['conferencia-recebimento'],
@@ -87,6 +88,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'conferencia-saida',
           title: 'Conferência de saída',
+          subtitle: 'Conferir separação e expedição',
           icon: 'local-shipping',
           screen: 'ConferenciaSaidaScreen',
           color: FUNC_COLORS.actions['conferencia-saida'],
@@ -94,6 +96,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'conferencia-divergencias',
           title: 'Divergências',
+          subtitle: 'Itens com diferença de quantidade',
           icon: 'rule',
           screen: 'ConferenciaDivergenciasScreen',
           color: FUNC_COLORS.actions['conferencia-divergencias'],
@@ -101,6 +104,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'conferencia-tratativas-recebimento',
           title: 'Tratativas receb.',
+          subtitle: 'Espelhos e ocorrências de recebimento',
           icon: 'assignment-turned-in',
           screen: 'ConferenciaTratativasRecebimentoScreen',
           color: FUNC_COLORS.actions['conferencia-tratativas-recebimento'],
@@ -114,10 +118,10 @@ const HomeScreen = ({ isDarkMode }) => {
       icon: 'report-problem',
       color: FUNC_COLORS.modules.avaria,
       actions: [
-        { id: 'avaria-lancar', title: 'Lançar avaria', icon: 'playlist-add-check-circle', color: FUNC_COLORS.actions['avaria-lancar'], screen: 'AvariaEntryScreen' },
-        { id: 'avaria-consultar', title: 'Consultar avarias', icon: 'search', color: FUNC_COLORS.actions['avaria-consultar'], screen: 'AvariaListScreen' },
-        { id: 'avaria-historico', title: 'Histórico', icon: 'history', color: FUNC_COLORS.actions['avaria-historico'], screen: 'AvariaHistoryScreen' },
-        { id: 'avaria-dashboard', title: 'Dashboard de Avaria', icon: 'bar-chart', color: FUNC_COLORS.actions['avaria-dashboard'], screen: 'AvariaDashboardScreen' },
+        { id: 'avaria-lancar', title: 'Lançar avaria', subtitle: 'Registrar um novo lote', icon: 'playlist-add-check-circle', color: FUNC_COLORS.actions['avaria-lancar'], screen: 'AvariaEntryScreen' },
+        { id: 'avaria-consultar', title: 'Consultar avarias', subtitle: 'Buscar e resolver itens', icon: 'search', color: FUNC_COLORS.actions['avaria-consultar'], screen: 'AvariaListScreen' },
+        { id: 'avaria-historico', title: 'Histórico', subtitle: 'Lotes já finalizados', icon: 'history', color: FUNC_COLORS.actions['avaria-historico'], screen: 'AvariaHistoryScreen' },
+        { id: 'avaria-dashboard', title: 'Dashboard de Avaria', subtitle: 'Métricas e gráficos de avaria', icon: 'bar-chart', color: FUNC_COLORS.actions['avaria-dashboard'], screen: 'AvariaDashboardScreen' },
       ],
     },
     {
@@ -130,6 +134,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'utilitarios-excel',
           title: 'Exportar/Importar Excel',
+          subtitle: 'Planilhas .xlsx',
           icon: 'table-chart',
           screen: 'ExcelScreen',
           color: FUNC_COLORS.actions['utilitarios-excel'],
@@ -137,6 +142,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'utilitarios-pdf',
           title: 'Exportar relatórios PDF',
+          subtitle: 'Relatórios em PDF',
           icon: 'picture-as-pdf',
           screen: 'PdfScreen',
           color: FUNC_COLORS.actions['utilitarios-pdf'],
@@ -144,6 +150,7 @@ const HomeScreen = ({ isDarkMode }) => {
         {
           id: 'utilitarios-sql',
           title: 'Gerenciar banco de dados',
+          subtitle: 'Cache local e diagnóstico',
           icon: 'storage',
           screen: 'SqlScreen',
           color: FUNC_COLORS.actions['utilitarios-sql'],

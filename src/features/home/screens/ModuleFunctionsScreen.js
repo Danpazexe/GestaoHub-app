@@ -121,6 +121,7 @@ const ModuleFunctionsScreen = ({ isDarkMode }) => {
             <NavCard
               key={action.id}
               title={action.title}
+              subtitle={action.subtitle}
               icon={action.icon}
               color={action.color || moduleColor}
               isDarkMode={isDarkMode}
