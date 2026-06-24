@@ -804,6 +804,31 @@ from public.conferencia_saidas cs
 left join public.profiles p on p.user_id = cs.user_id
 order by cs.updated_at desc;
 
+-- Divergências de conferência para o painel admin (até então só um contador no
+-- dashboard). Deriva os campos do payload jsonb gravado pelo app ao finalizar.
+create or replace view public.admin_conferencia_divergencias_view as
+select
+  cd.user_id,
+  p.name as user_name,
+  p.email as user_email,
+  cd.id,
+  cd.created_at,
+  cd.updated_at,
+  cd.payload ->> 'source' as source,            -- recebimento | saida
+  cd.payload ->> 'status' as status,            -- pendente | (resolvida)
+  cd.payload ->> 'code' as code,
+  cd.payload ->> 'description' as description,
+  cd.payload ->> 'supplier' as supplier,
+  cd.payload ->> 'invoice' as invoice,
+  cd.payload ->> 'orderCode' as order_code,
+  coalesce((cd.payload ->> 'expectedQty')::numeric, 0) as expected_qty,
+  coalesce((cd.payload ->> 'checkedQty')::numeric, 0) as checked_qty,
+  coalesce((cd.payload ->> 'diff')::numeric, 0) as diff,
+  cd.payload
+from public.conferencia_divergencias cd
+left join public.profiles p on p.user_id = cd.user_id
+order by cd.created_at desc;
+
 
 -- ==========================================================================
 -- MÓDULO: RECEBIMENTO / TRATATIVAS
@@ -1611,6 +1636,7 @@ declare
     'admin_avaria_items_view',
     'admin_conferencia_recebimentos_view',
     'admin_conferencia_saidas_view',
+    'admin_conferencia_divergencias_view',
     'admin_conferencia_bonus_queue_view',
     'admin_conferencia_saida_bonus_queue_view',
     'admin_purchase_orders_view',
