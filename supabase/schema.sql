@@ -404,6 +404,12 @@ drop policy if exists validade_products_admin_update on public.validade_products
 create policy validade_products_admin_update on public.validade_products
 for update using (public.is_admin_user()) with check (public.is_admin_user());
 
+-- Admin pode apagar (alinha com avaria; habilita limpeza administrativa de órfãos).
+drop policy if exists validade_products_admin_delete on public.validade_products;
+
+create policy validade_products_admin_delete on public.validade_products
+for delete using (public.is_admin_user());
+
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', false)
 on conflict (id) do nothing;
@@ -894,6 +900,12 @@ drop policy if exists recebimento_treatment_cases_admin_update on public.recebim
 
 create policy recebimento_treatment_cases_admin_update on public.recebimento_treatment_cases
 for update using (public.is_admin_user()) with check (public.is_admin_user());
+
+-- Admin pode apagar (alinha com avaria; habilita limpeza administrativa de órfãos).
+drop policy if exists recebimento_treatment_cases_admin_delete on public.recebimento_treatment_cases;
+
+create policy recebimento_treatment_cases_admin_delete on public.recebimento_treatment_cases
+for delete using (public.is_admin_user());
 
 create or replace view public.admin_tratativas_view as
 select
