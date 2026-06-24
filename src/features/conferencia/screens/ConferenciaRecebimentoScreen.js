@@ -37,6 +37,7 @@ import {
   listConferenciaRecebimentos,
 } from '../services/conferenciaRecordsService';
 import {
+  buildConferenceResultSummary,
   finishRemoteConferenciaBonus,
   listRemoteConferenciaBonusQueue,
   loadRemoteConferenciaBonusItems,
@@ -1134,7 +1135,9 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
         }));
       await finalizeConferenciaRecebimento(payload, divergences);
       if (activeRemoteQueueId) {
-        await finishRemoteConferenciaBonus(activeRemoteQueueId);
+        // Sobe o resultado completo (esperado x conferido por item) para o admin
+        // ver porcentagem, itens e divergências no painel.
+        await finishRemoteConferenciaBonus(activeRemoteQueueId, buildConferenceResultSummary(items));
         await loadRemoteQueue();
       }
       await removeByKey(payload.invoice);
@@ -1171,6 +1174,34 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     }
     persistConference();
   }, [items, divergentItems, persistConference]);
+
+  // ── Voltar dentro do bônus retorna à fila (não sai do módulo) ──
+  // O rascunho é persistido na hora para o card poder retomar de onde parou.
+  const exitToQueue = useCallback(() => {
+    if (invoice.trim()) {
+      upsertDraftImmediate({
+        invoice: invoice.trim(),
+        supplier: supplier.trim(),
+        conferente: conferente.trim(),
+        remoteQueueId: activeRemoteQueueId || null,
+        items,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    setStarted(false);
+    setItems([]);
+    setLastScanned('');
+    setActiveRemoteQueueId(null);
+  }, [invoice, supplier, conferente, activeRemoteQueueId, items, upsertDraftImmediate]);
+
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      if (!started) return;   // na fila: deixa sair normalmente para os módulos
+      e.preventDefault();     // no bônus ativo: não desmonta a tela…
+      exitToQueue();          // …apenas volta para a fila do painel
+    });
+    return unsub;
+  }, [navigation, started, exitToQueue]);
 
   // ── Draft auto-save ──
   useEffect(() => {

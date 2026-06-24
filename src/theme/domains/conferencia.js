@@ -11,10 +11,3 @@ export const conferenciaSaidaTheme = {
   text: '#312e81',
   background: '#eef2ff',
 };
-
-export const conferenciaDivergenciasTheme = {
-  primary: '#06b6d4',
-  secondary: '#0891b2',
-  text: '#164e63',
-  background: '#ecfeff',
-};

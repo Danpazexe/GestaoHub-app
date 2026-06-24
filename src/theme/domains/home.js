@@ -50,7 +50,6 @@ export const functionalityTheme = {
     'validade-excel': '#0ea5e9',
     'conferencia-recebimento': '#0f766e',
     'conferencia-saida': '#4338ca',
-    'conferencia-divergencias': '#06b6d4',
     'conferencia-tratativas-recebimento': '#c2410c',
     'avaria-lancar': '#b91c1c',
     'avaria-consultar': '#334155',

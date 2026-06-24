@@ -460,7 +460,6 @@ export const CORESNOTIFICATION = {
 // CONFERÊNCIA
 export const CORESCONFERENCIARECB = { primary: '#0f766e', secondary: '#0d9488', text: '#134e4a', background: '#f0fdfa' };
 export const CORESCONFERENCIASAIDA = { primary: '#4338ca', secondary: '#3730a3', text: '#312e81', background: '#eef2ff' };
-export const CORESCONFERENCIADIVERG = { primary: '#06b6d4', secondary: '#0891b2', text: '#164e63', background: '#ecfeff' };
 
 // INVENTÁRIO
 export const CORESINVENTARIOCONT = { primary: '#6d28d9', secondary: '#5b21b6', text: '#2e1065', background: '#f5f3ff' };
@@ -508,7 +507,6 @@ export const CORESFUNCIONALIDADES = {
     'conferencia-recebimento': CORESCONFERENCIARECB.primary,
     'conferencia-tratativas-recebimento': CORESTRATAR.primary,
     'conferencia-saida': CORESCONFERENCIASAIDA.primary,
-    'conferencia-divergencias': CORESCONFERENCIADIVERG.primary,
 
     'inventario-contagem': CORESINVENTARIOCONT.primary,
     'inventario-recontagem': CORESINVENTARIORECONT.primary,

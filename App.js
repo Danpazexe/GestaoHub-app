@@ -36,7 +36,6 @@ import AvariaEntryScreen from './src/features/avaria/screens/AvariaEntryScreen';
 import AvariaHistoryScreen from './src/features/avaria/screens/AvariaHistoryScreen';
 import AvariaListScreen from './src/features/avaria/screens/AvariaListScreen';
 import AvariaResolutionScreen from './src/features/avaria/screens/AvariaResolutionScreen';
-import ConferenciaDivergenciasScreen from './src/features/conferencia/screens/ConferenciaDivergenciasScreen';
 import ConferenciaRecebimentoScreen from './src/features/conferencia/screens/ConferenciaRecebimentoScreen';
 import ConferenciaScanScreen from './src/features/conferencia/screens/ConferenciaScanScreen';
 import ConferenciaSaidaScreen from './src/features/conferencia/screens/ConferenciaSaidaScreen';
@@ -542,9 +541,6 @@ export default function App() {
               />
               <Stack.Screen name="ConferenciaSaidaScreen">
                 {props => <ConferenciaSaidaScreen {...props} isDarkMode={isDarkMode} />}
-              </Stack.Screen>
-              <Stack.Screen name="ConferenciaDivergenciasScreen">
-                {props => <ConferenciaDivergenciasScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
               {/* Avaria Module Screens */}

@@ -73,7 +73,7 @@ const HomeScreen = ({ isDarkMode }) => {
     {
       id: 'conferencia',
       title: 'CONFERÊNCIA',
-      subtitle: 'Recebimento, saída e divergências',
+      subtitle: 'Recebimento e saída de mercadoria',
       icon: 'fact-check',
       color: FUNC_COLORS.modules.conferencia,
       actions: [
@@ -92,14 +92,6 @@ const HomeScreen = ({ isDarkMode }) => {
           icon: 'local-shipping',
           screen: 'ConferenciaSaidaScreen',
           color: FUNC_COLORS.actions['conferencia-saida'],
-        },
-        {
-          id: 'conferencia-divergencias',
-          title: 'Divergências',
-          subtitle: 'Itens com diferença de quantidade',
-          icon: 'rule',
-          screen: 'ConferenciaDivergenciasScreen',
-          color: FUNC_COLORS.actions['conferencia-divergencias'],
         },
         {
           id: 'conferencia-tratativas-recebimento',

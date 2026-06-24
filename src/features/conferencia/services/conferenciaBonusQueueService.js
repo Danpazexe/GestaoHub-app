@@ -229,19 +229,75 @@ export const syncRemoteConferenciaBonusProgress = async (queueId, progress = {})
   }
 };
 
-export const finishRemoteConferenciaBonus = async (queueId) => {
+// Constrói o snapshot do resultado da conferência (esperado x conferido por item)
+// para o admin ver no painel: porcentagem, itens e divergências. Guardado dentro
+// de imported_payload (o conferente já tem permissão de UPDATE na própria linha),
+// evitando ALTER TABLE — a view admin extrai os campos derivados.
+export const buildConferenceResultSummary = (items = []) => {
+  const list = Array.isArray(items) ? items : [];
+  const result = list.map((item) => {
+    const expectedQty = Number(item?.expectedQty || 0);
+    const checkedQty = Number(item?.checkedQty || 0);
+    return {
+      code: String(item?.code || '').trim(),
+      ean: String(item?.ean || '').trim(),
+      description: String(item?.description || '').trim(),
+      expectedQty,
+      checkedQty,
+      diff: checkedQty - expectedQty,
+      packagingLabel: String(item?.lastMeta?.packagingLabel || '').trim(),
+    };
+  });
+
+  const checkedQuantity = result.reduce((sum, item) => sum + item.checkedQty, 0);
+  const expectedQuantity = result.reduce((sum, item) => sum + item.expectedQty, 0);
+  const divergenceCount = result.filter((item) => item.diff !== 0).length;
+  const checkedItems = result.filter((item) => item.checkedQty > 0).length;
+
+  return { result, checkedQuantity, expectedQuantity, divergenceCount, checkedItems };
+};
+
+export const finishRemoteConferenciaBonus = async (queueId, summary = null) => {
   const supabase = getSupabaseClient();
   if (!supabase || !queueId) {
     return false;
   }
 
   try {
+    const updates = {
+      status: 'finalizada',
+      finished_at: new Date().toISOString(),
+    };
+
+    // Anexa o resultado da conferência ao imported_payload (sem perder o payload
+    // de importação). Lê o atual e mescla — caso o read falhe, finaliza mesmo
+    // assim (status é o que importa para sair da fila do conferente).
+    if (summary && Array.isArray(summary.result)) {
+      try {
+        const { data: current } = await supabase
+          .from(QUEUE_TABLE)
+          .select('imported_payload')
+          .eq('id', queueId)
+          .maybeSingle();
+        const base = current?.imported_payload && typeof current.imported_payload === 'object'
+          ? current.imported_payload
+          : {};
+        updates.imported_payload = {
+          ...base,
+          conference_result: summary.result,
+          checked_quantity: Number(summary.checkedQuantity || 0),
+          divergence_count: Number(summary.divergenceCount || 0),
+          checked_items: Number(summary.checkedItems || 0),
+          conferred_at: new Date().toISOString(),
+        };
+      } catch (mergeError) {
+        console.warn('Falha ao anexar resultado da conferência; finalizando sem snapshot.', mergeError?.message || mergeError);
+      }
+    }
+
     const { error } = await supabase
       .from(QUEUE_TABLE)
-      .update({
-        status: 'finalizada',
-        finished_at: new Date().toISOString(),
-      })
+      .update(updates)
       .eq('id', queueId);
 
     if (error) {
