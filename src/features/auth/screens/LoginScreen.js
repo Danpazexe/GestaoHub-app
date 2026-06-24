@@ -356,8 +356,8 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.checkbox,
                   {
-                    backgroundColor: rememberMe ? palette.acento : 'transparent',
-                    borderColor: rememberMe ? palette.acento : palette.borda,
+                    backgroundColor: rememberMe ? palette.textoPrincipal : 'transparent',
+                    borderColor: rememberMe ? palette.textoPrincipal : palette.borda,
                   }
                 ]}>
                   {rememberMe && (
