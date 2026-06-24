@@ -32,9 +32,8 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     textoPrincipal: isDarkMode ? COLORS.textoPrincipalDark : COLORS.textoPrincipal,
     textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
     placeholder: isDarkMode ? COLORS.placeholderDark : COLORS.placeholder,
-    // Checkbox marcado
-    destaque: isDarkMode ? '#6470E0' : COLORS.textoPrincipal,
-    // Acento dourado da marca (mesma matiz da logo): claro no dark, fechado/legível no claro
+    // Acento dourado da marca (mesma matiz da logo): claro no dark, fechado/legível no claro.
+    // Usado nos links e no checkbox "Lembrar-me".
     acento: isDarkMode ? '#f5cc85' : '#a8780f',
   };
 
@@ -357,12 +356,12 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 <View style={[
                   styles.checkbox,
                   {
-                    backgroundColor: rememberMe ? palette.destaque : 'transparent',
-                    borderColor: rememberMe ? palette.destaque : palette.borda,
+                    backgroundColor: rememberMe ? palette.acento : 'transparent',
+                    borderColor: rememberMe ? palette.acento : palette.borda,
                   }
                 ]}>
                   {rememberMe && (
-                    <MaterialIcons name="check" size={16} color={COLORS.branco} />
+                    <MaterialIcons name="check" size={16} color={isDarkMode ? palette.cartao : COLORS.branco} />
                   )}
                 </View>
                 <Text style={[
