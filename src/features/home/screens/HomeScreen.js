@@ -321,6 +321,9 @@ const HomeScreen = ({ isDarkMode }) => {
     menuCardWrapper: {
       marginBottom: 12,
       borderRadius: 16,
+      // Fundo sólido p/ a sombra ser calculada de forma eficiente (o card interno
+      // cobre com a mesma cor); evita o aviso "cannot calculate shadow efficiently".
+      backgroundColor: palette.cartao,
       ...menuCardShadow,
     },
     menuButton: {

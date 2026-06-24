@@ -8,6 +8,7 @@ import {
 } from './appStorageService';
 import { endPresence } from './presenceService';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
+import { NativeModules } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 
 const DEV_USER = {
@@ -18,11 +19,30 @@ const DEV_USER = {
 };
 
 // Cofre seguro do aparelho para a senha do "Lembrar-me" (Keychain no iOS,
-// Keystore no Android). Encapsulado e tolerante a falha: se o módulo nativo
-// não estiver disponível (ex.: antes de um rebuild), degrada sem quebrar.
+// Keystore no Android). Encapsulado e tolerante a falha.
 const KEYCHAIN_SERVICE = 'gestaohub.auth';
 
+// O módulo nativo só existe após um build nativo (pod install + rebuild). Enquanto
+// não estiver linkado, RNKeychainManager é null e qualquer chamada quebra — então
+// detectamos isso e pulamos as chamadas, avisando UMA vez (sem poluir o console).
+const KEYCHAIN_AVAILABLE = !!(NativeModules && NativeModules.RNKeychainManager);
+let warnedKeychainUnavailable = false;
+
+function ensureKeychain() {
+  if (KEYCHAIN_AVAILABLE) {
+    return true;
+  }
+  if (!warnedKeychainUnavailable) {
+    warnedKeychainUnavailable = true;
+    console.info('[AuthService] Cofre seguro indisponível (módulo nativo não linkado — requer rebuild). "Lembrar-me" guardará só o e-mail por enquanto.');
+  }
+  return false;
+}
+
 async function saveSecurePassword(email, password) {
+  if (!ensureKeychain()) {
+    return;
+  }
   try {
     if (!password) {
       await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
@@ -35,6 +55,9 @@ async function saveSecurePassword(email, password) {
 }
 
 async function loadSecurePassword() {
+  if (!ensureKeychain()) {
+    return '';
+  }
   try {
     const creds = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
     return creds && creds.password ? creds.password : '';
@@ -45,6 +68,9 @@ async function loadSecurePassword() {
 }
 
 async function clearSecurePassword() {
+  if (!ensureKeychain()) {
+    return;
+  }
   try {
     await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
   } catch (error) {
