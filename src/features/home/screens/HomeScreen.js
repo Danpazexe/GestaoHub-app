@@ -429,7 +429,7 @@ const HomeScreen = ({ isDarkMode }) => {
                 onPress={handleLogoPress}
                 activeOpacity={0.85}
               >
-                <Image source={require('../../../../assets/Image/LOGOCOMFRASE.png')} style={[styles.logo, isDarkMode && { tintColor: '#ffffff' }]} resizeMode="contain" />
+                <Image source={isDarkMode ? require('../../../../assets/Image/LOGOCOMFRASE_DARK.png') : require('../../../../assets/Image/LOGOCOMFRASE.png')} style={styles.logo} resizeMode="contain" />
               </TouchableOpacity>
               <View style={styles.headerButtons}>
                 <TouchableOpacity

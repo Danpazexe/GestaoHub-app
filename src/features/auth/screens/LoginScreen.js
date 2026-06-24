@@ -17,6 +17,7 @@ import Toast from 'react-native-toast-message';
 import authService from '../../../services/authService';
 import { CORESLOGIN } from '../../../components/coresAuth';
 import KeyboardAwareScreen from '../../../components/KeyboardAwareScreen';
+import LinearGradient from 'react-native-linear-gradient';
 import haptics from '../../../utils/haptics';
 
 const COLORS = CORESLOGIN;
@@ -32,10 +33,12 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     textoPrincipal: isDarkMode ? COLORS.textoPrincipalDark : COLORS.textoPrincipal,
     textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
     placeholder: isDarkMode ? COLORS.placeholderDark : COLORS.placeholder,
-    // Botão primário: indigo mais claro/nítido no dark p/ manter contraste sobre fundo escuro
-    botaoPrimario: isDarkMode ? '#4a5599' : COLORS.textoPrincipal,
+    // Botão primário: gradiente índigo vivo no dark; navio sutil no claro (mantém o visual original)
+    botaoGradient: isDarkMode ? ['#6470E0', '#3C46AE'] : [COLORS.textoPrincipal, '#283049'],
     // Checkbox marcado acompanha o botão primário
-    destaque: isDarkMode ? '#4a5599' : COLORS.textoPrincipal,
+    destaque: isDarkMode ? '#6470E0' : COLORS.textoPrincipal,
+    // Acento dourado da marca (mesma matiz da logo): claro no dark, fechado/legível no claro
+    acento: isDarkMode ? '#f5cc85' : '#a8780f',
   };
 
   const [email, setEmail] = useState("");
@@ -230,8 +233,8 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
           <Animated.View style={styles.header}>
             <Animated.View style={{ transform: [{ scale: logoScale }] }}>
               <Image
-                source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
-                style={[styles.logo, isDarkMode && { tintColor: '#ffffff' }]}
+                source={isDarkMode ? require("../../../../assets/Image/LOGOCOMFRASE_DARK.png") : require("../../../../assets/Image/LOGOCOMFRASE.png")}
+                style={styles.logo}
                 resizeMode="contain"
               />
             </Animated.View>
@@ -373,25 +376,28 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
             {/* Botão de Login */}
             <TouchableOpacity
-              style={[
-                styles.loginButton,
-                { backgroundColor: palette.botaoPrimario },
-                pressedButton && styles.loginButtonPressed,
-              ]}
+              style={[styles.loginButton, pressedButton && styles.loginButtonPressed]}
               activeOpacity={0.9}
               onPressIn={() => setPressedButton(true)}
               onPressOut={() => setPressedButton(false)}
               onPress={handleLogin}
               disabled={isLoading}
             >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.branco} />
-              ) : (
-                <>
-                  <MaterialIcons name="login" size={20} color={COLORS.branco} />
-                  <Text style={styles.loginButtonText}>Entrar</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={palette.botaoGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.loginButtonFill}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.branco} />
+                ) : (
+                  <>
+                    <MaterialIcons name="login" size={20} color={COLORS.branco} />
+                    <Text style={styles.loginButtonText}>Entrar</Text>
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
 
             {/* Link para Registro */}
@@ -404,7 +410,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
                 { color: palette.textoSecundario }
               ]}>
                 Não tem uma conta?{' '}
-                <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
+                <Text style={[styles.registerLinkTextBold, { color: palette.acento }]}>Cadastre-se</Text>
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -520,19 +526,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loginButton: {
-    height: 56,
     borderRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.textoPrincipal,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 10,
     elevation: 6,
+  },
+  loginButtonFill: {
+    height: 56,
+    borderRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    overflow: 'hidden',
   },
   loginButtonPressed: {
     opacity: 0.9,

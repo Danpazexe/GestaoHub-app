@@ -36,6 +36,8 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
     textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
     placeholder: isDarkMode ? COLORS.placeholderDark : COLORS.placeholder,
     modalOverlay: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)',
+    // Acento dourado da marca (mesma matiz da logo): claro no dark, fechado/legível no claro
+    acento: isDarkMode ? '#f5cc85' : '#a8780f',
   };
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -206,8 +208,8 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
         <View style={styles.centeredContent}>
           <Animated.View style={styles.header}>
             <Image
-              source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
-              style={[styles.logo, isDarkMode && { tintColor: '#ffffff' }]}
+              source={isDarkMode ? require("../../../../assets/Image/LOGOCOMFRASE_DARK.png") : require("../../../../assets/Image/LOGOCOMFRASE.png")}
+              style={styles.logo}
               resizeMode="contain"
             />
             <View style={styles.welcomeContainer}>
@@ -440,9 +442,9 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               </View>
               <Text style={[styles.termsText, { color: palette.textoSecundario }]}>
                 Li e aceito os{' '}
-                <Text style={styles.termsLink} onPress={() => openTerms('terms')}>Termos de Uso</Text>
+                <Text style={[styles.termsLink, { color: palette.acento }]} onPress={() => openTerms('terms')}>Termos de Uso</Text>
                 {' '}e a{' '}
-                <Text style={styles.termsLink} onPress={() => openTerms('privacy')}>Política de Privacidade</Text>
+                <Text style={[styles.termsLink, { color: palette.acento }]} onPress={() => openTerms('privacy')}>Política de Privacidade</Text>
               </Text>
             </TouchableOpacity>
             {termsError ? (
@@ -482,7 +484,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                 { color: palette.textoSecundario }
               ]}>
                 Já tem uma conta?{' '}
-                <Text style={styles.loginLinkTextBold}>Faça login</Text>
+                <Text style={[styles.loginLinkTextBold, { color: palette.acento }]}>Faça login</Text>
               </Text>
             </TouchableOpacity>
           </Animated.View>
