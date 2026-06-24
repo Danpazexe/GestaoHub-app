@@ -577,6 +577,70 @@ before update on public.conferencia_bonus_queue_items
 for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------
+-- 8.2.1 Fila de bônus de SAÍDA (conferência de expedição/pedido — análogo ao
+--       Winthor rotina 3854). Tabela SEPARADA da de entrada para isolar os
+--       fluxos. O conferente bipa/digita o order_code para entrar no bônus.
+--       carga_code fica preparado para agrupamento por carga (não usado ainda).
+-- ---------------------------------------------
+create table if not exists public.conferencia_saida_bonus_queue (
+  id uuid primary key default gen_random_uuid(),
+  source_type text not null default 'manual', -- manual (montado no painel)
+  order_code text not null,                    -- número bipavel do pedido (QR/cód.barras/número)
+  order_key text,                              -- order_code normalizado (dedup de bônus em aberto)
+  carga_code text,                             -- agrupamento por carga (futuro)
+  customer_name text,                          -- cliente / destino (opcional)
+  customer_code text,
+  route_code text,                             -- rota (opcional)
+  item_count integer not null default 0,
+  total_quantity numeric(14,3) not null default 0,
+  status text not null default 'nao_iniciado', -- nao_iniciado | em_conferencia | finalizada | saida_realizada | cancelada
+  imported_by uuid references auth.users(id) on delete set null,
+  assigned_user_id uuid references auth.users(id) on delete set null,
+  assigned_user_name text,
+  imported_payload jsonb not null default '{}'::jsonb,
+  started_at timestamptz,
+  finished_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.conferencia_saida_bonus_queue_items (
+  id uuid primary key default gen_random_uuid(),
+  queue_id uuid not null references public.conferencia_saida_bonus_queue(id) on delete cascade,
+  line_number integer,
+  code text,
+  ean text,
+  dun text,
+  description text not null,
+  unit text,
+  expected_qty numeric(14,3) not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_conferencia_saida_bonus_queue_status on public.conferencia_saida_bonus_queue(status);
+create index if not exists idx_conferencia_saida_bonus_queue_order on public.conferencia_saida_bonus_queue(order_code);
+create index if not exists idx_conferencia_saida_bonus_queue_created_at on public.conferencia_saida_bonus_queue(created_at desc);
+create index if not exists idx_conferencia_saida_bonus_queue_assigned_user on public.conferencia_saida_bonus_queue(assigned_user_id);
+create index if not exists idx_conferencia_saida_bonus_queue_items_queue on public.conferencia_saida_bonus_queue_items(queue_id);
+
+alter table public.conferencia_saida_bonus_queue
+  drop constraint if exists ck_saida_bonus_queue_status;
+alter table public.conferencia_saida_bonus_queue
+  add constraint ck_saida_bonus_queue_status
+  check (status in ('nao_iniciado','em_conferencia','finalizada','saida_realizada','cancelada')) not valid;
+
+drop trigger if exists trg_conferencia_saida_bonus_queue_updated_at on public.conferencia_saida_bonus_queue;
+create trigger trg_conferencia_saida_bonus_queue_updated_at
+before update on public.conferencia_saida_bonus_queue
+for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_conferencia_saida_bonus_queue_items_updated_at on public.conferencia_saida_bonus_queue_items;
+create trigger trg_conferencia_saida_bonus_queue_items_updated_at
+before update on public.conferencia_saida_bonus_queue_items
+for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------
 -- 8.3 RPC: force sign-out (admin força logout de outro usuário).
 --     SECURITY DEFINER; retorna nº de sessões encerradas (UI distingue "sem sessão").
 -- ---------------------------------------------
@@ -817,6 +881,8 @@ alter table public.purchase_order_actions enable row level security;
 alter table public.admin_users enable row level security;
 alter table public.conferencia_bonus_queue enable row level security;
 alter table public.conferencia_bonus_queue_items enable row level security;
+alter table public.conferencia_saida_bonus_queue enable row level security;
+alter table public.conferencia_saida_bonus_queue_items enable row level security;
 
 -- ---------------------------------------------
 -- Domínio 1 — profiles / user_settings
@@ -1065,6 +1131,54 @@ drop policy if exists conferencia_bonus_queue_items_admin_update on public.confe
 create policy conferencia_bonus_queue_items_admin_update on public.conferencia_bonus_queue_items
 for update using (public.is_admin_user()) with check (public.is_admin_user());
 
+drop policy if exists conferencia_bonus_queue_items_admin_delete on public.conferencia_bonus_queue_items;
+create policy conferencia_bonus_queue_items_admin_delete on public.conferencia_bonus_queue_items
+for delete using (public.is_admin_user());
+
+-- Fila de bônus de SAÍDA — mesmas regras da de entrada: pool compartilhado,
+-- UPDATE só para admin / linha não atribuída / própria atribuição.
+drop policy if exists conferencia_saida_bonus_queue_authenticated_select on public.conferencia_saida_bonus_queue;
+create policy conferencia_saida_bonus_queue_authenticated_select on public.conferencia_saida_bonus_queue
+for select using (auth.uid() is not null);
+
+drop policy if exists conferencia_saida_bonus_queue_admin_insert on public.conferencia_saida_bonus_queue;
+create policy conferencia_saida_bonus_queue_admin_insert on public.conferencia_saida_bonus_queue
+for insert with check (public.is_admin_user());
+
+drop policy if exists conferencia_saida_bonus_queue_admin_update on public.conferencia_saida_bonus_queue;
+create policy conferencia_saida_bonus_queue_admin_update on public.conferencia_saida_bonus_queue
+for update
+using (
+  public.is_admin_user()
+  or assigned_user_id is null
+  or assigned_user_id = auth.uid()
+)
+with check (
+  public.is_admin_user()
+  or assigned_user_id is null
+  or assigned_user_id = auth.uid()
+);
+
+drop policy if exists conferencia_saida_bonus_queue_admin_delete on public.conferencia_saida_bonus_queue;
+create policy conferencia_saida_bonus_queue_admin_delete on public.conferencia_saida_bonus_queue
+for delete using (public.is_admin_user());
+
+drop policy if exists conferencia_saida_bonus_queue_items_authenticated_select on public.conferencia_saida_bonus_queue_items;
+create policy conferencia_saida_bonus_queue_items_authenticated_select on public.conferencia_saida_bonus_queue_items
+for select using (auth.uid() is not null);
+
+drop policy if exists conferencia_saida_bonus_queue_items_admin_insert on public.conferencia_saida_bonus_queue_items;
+create policy conferencia_saida_bonus_queue_items_admin_insert on public.conferencia_saida_bonus_queue_items
+for insert with check (public.is_admin_user());
+
+drop policy if exists conferencia_saida_bonus_queue_items_admin_update on public.conferencia_saida_bonus_queue_items;
+create policy conferencia_saida_bonus_queue_items_admin_update on public.conferencia_saida_bonus_queue_items
+for update using (public.is_admin_user()) with check (public.is_admin_user());
+
+drop policy if exists conferencia_saida_bonus_queue_items_admin_delete on public.conferencia_saida_bonus_queue_items;
+create policy conferencia_saida_bonus_queue_items_admin_delete on public.conferencia_saida_bonus_queue_items
+for delete using (public.is_admin_user());
+
 
 -- =============================================================================
 -- STORAGE — bucket privado product-images + policies (path = {user_id}/...)
@@ -1296,10 +1410,51 @@ select
   cbq.created_at,
   cbq.updated_at,
   p.name as imported_by_name,
-  p.email as imported_by_email
+  p.email as imported_by_email,
+  -- Resultado da conferência (snapshot gravado pelo app ao finalizar): porcentagem,
+  -- itens conferidos e divergências. Derivado de imported_payload, sem coluna nova.
+  -- Colunas APENDADAS no fim — `create or replace view` exige manter a ordem das demais.
+  coalesce(cbq.imported_payload->'conference_result', '[]'::jsonb) as conference_result,
+  coalesce((cbq.imported_payload->>'checked_quantity')::numeric, 0) as checked_quantity,
+  coalesce((cbq.imported_payload->>'checked_items')::integer, 0) as checked_items,
+  coalesce((cbq.imported_payload->>'divergence_count')::integer, 0) as divergence_count,
+  (cbq.imported_payload->>'conferred_at') as conferred_at,
+  coalesce((cbq.imported_payload->>'finalized_with_pendency')::boolean, false) as finalized_with_pendency
 from public.conferencia_bonus_queue cbq
 left join public.profiles p on p.user_id = cbq.imported_by
 order by cbq.created_at desc;
+
+-- Fila de bônus de saída para o painel admin (com resultado da conferência).
+create or replace view public.admin_conferencia_saida_bonus_queue_view as
+select
+  sbq.id,
+  sbq.source_type,
+  sbq.order_code,
+  sbq.order_key,
+  sbq.carga_code,
+  sbq.customer_name,
+  sbq.customer_code,
+  sbq.route_code,
+  sbq.item_count,
+  sbq.total_quantity,
+  sbq.status,
+  sbq.assigned_user_id,
+  sbq.assigned_user_name,
+  sbq.started_at,
+  sbq.finished_at,
+  sbq.created_at,
+  sbq.updated_at,
+  p.name as imported_by_name,
+  p.email as imported_by_email,
+  coalesce(sbq.imported_payload->'conference_result', '[]'::jsonb) as conference_result,
+  coalesce((sbq.imported_payload->>'checked_quantity')::numeric, 0) as checked_quantity,
+  coalesce((sbq.imported_payload->>'checked_items')::integer, 0) as checked_items,
+  coalesce((sbq.imported_payload->>'divergence_count')::integer, 0) as divergence_count,
+  (sbq.imported_payload->>'conferred_at') as conferred_at,
+  coalesce((sbq.imported_payload->>'finalized_with_pendency')::boolean, false) as finalized_with_pendency
+from public.conferencia_saida_bonus_queue sbq
+left join public.profiles p on p.user_id = sbq.imported_by
+order by sbq.created_at desc;
 
 create or replace view public.admin_purchase_orders_view as
 select
@@ -1385,6 +1540,7 @@ declare
     'admin_conferencia_recebimentos_view',
     'admin_conferencia_saidas_view',
     'admin_conferencia_bonus_queue_view',
+    'admin_conferencia_saida_bonus_queue_view',
     'admin_purchase_orders_view',
     'admin_purchase_order_actions_view',
     'admin_dashboard_summary_view'
