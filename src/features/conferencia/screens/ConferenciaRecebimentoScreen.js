@@ -66,26 +66,6 @@ const truncateText = (value, max = HEADER_SUPPLIER_MAX) => {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 };
 
-// ─── Compact summary bar shown during active conference ───────────────────────
-// Conferência CEGA: a barra mostra só a identidade da NF e um progresso por
-// ITENS tocados (não por quantidade — não revela o esperado).
-const CompactSummaryBar = ({ invoice, supplier, countedCount, totalCount, colors, styles }) => (
-  <View style={styles.compactBar}>
-    <View style={styles.compactBarLeft}>
-      <View style={styles.compactHeaderRow}>
-        <Text style={styles.compactLabel}>NF</Text>
-        <Text style={styles.compactInvoice} numberOfLines={1}>{invoice || '-'}</Text>
-      </View>
-      <Text style={styles.compactSupplier} numberOfLines={1}>{supplier}</Text>
-    </View>
-    <View style={[styles.miniPill, { backgroundColor: colors.slateSoft, borderColor: colors.border }]}>
-      <MaterialIcons name="inventory-2" size={12} color={colors.textMuted} />
-      <Text style={[styles.miniPillText, { color: colors.text }]}>{countedCount}/{totalCount}</Text>
-      <Text style={[styles.miniPillCaption, { color: colors.textMuted }]}>itens</Text>
-    </View>
-  </View>
-);
-
 // Aba (A conferir / Conferido) — contagem por itens, cego-safe.
 const TabButton = ({ label, count, active, onPress, colors, styles }) => (
   <Pressable
@@ -121,8 +101,8 @@ const ScanInputRow = ({ codeInputRef, manualCode, setManualCode, onSubmit, onOpe
   return (
     <View style={styles.scanCard}>
       <View style={styles.scanCardHeader}>
-        <View style={[styles.sectionIconWrap, styles.sectionIconScan]}>
-          <MaterialIcons name="qr-code-scanner" size={16} color="#ffffff" />
+        <View style={[styles.sectionIconWrap, { backgroundColor: colors.primary, width: 30, height: 30, borderRadius: 10 }]}>
+          <MaterialIcons name="qr-code-scanner" size={15} color="#ffffff" />
         </View>
         <Text style={styles.scanCardTitle}>Leitura</Text>
         {lastScanned ? (
@@ -256,28 +236,8 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     upsertDraftDebounced,
     upsertDraftImmediate,
     removeByKey,
-    clearDrafts,
     findByKey,
   } = useConferenciaRecebimentoDrafts();
-
-  const handleClearDrafts = useCallback(() => {
-    if (!drafts.length) return;
-    Alert.alert(
-      'Limpar rascunhos',
-      `Remover ${drafts.length} ${drafts.length === 1 ? 'rascunho' : 'rascunhos'} de conferência em andamento? Conferências já finalizadas não são afetadas.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Limpar',
-          style: 'destructive',
-          onPress: async () => {
-            await clearDrafts();
-            await loadDrafts();
-          },
-        },
-      ],
-    );
-  }, [drafts.length, clearDrafts, loadDrafts]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -1244,17 +1204,6 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
                   : `${queueCounts.open} bônus para conferir`}
               </Text>
             </View>
-            {drafts.length > 0 ? (
-              <Pressable
-                style={styles.clearDraftsBtn}
-                onPress={handleClearDrafts}
-                accessibilityRole="button"
-                accessibilityLabel="Limpar rascunhos"
-              >
-                <MaterialIcons name="delete-sweep" size={16} color={colors.danger} />
-                <Text style={styles.clearDraftsText}>Limpar</Text>
-              </Pressable>
-            ) : null}
           </View>
           <View style={styles.searchShell}>
             <MaterialIcons name="search" size={20} color={colors.textMuted} />
@@ -1400,16 +1349,8 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   return (
     <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* ── Compact sticky bar (cega: só identidade + progresso por itens) ── */}
-      <CompactSummaryBar
-        invoice={invoice}
-        supplier={supplier}
-        countedCount={countedItems.length}
-        totalCount={items.length}
-        colors={colors}
-        styles={styles}
-      />
-
+      {/* NF + fornecedor já estão no header; contagem nas abas. Sem barra de
+          resumo redundante. */}
       <ScanInputRow
         codeInputRef={codeInputRef}
         manualCode={manualCode}
@@ -1541,11 +1482,12 @@ const getStyles = (colors) =>
     // ── Scan card ──
     scanCard: {
       backgroundColor: colors.surface,
-      borderRadius: 20,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: colors.border,
-      padding: 14,
-      marginBottom: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      marginBottom: 10,
       shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.07,
@@ -1556,25 +1498,24 @@ const getStyles = (colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 10,
+      marginBottom: 8,
     },
-    scanCardTitle: { color: colors.text, fontSize: 14, fontWeight: '900', flex: 1 },
+    scanCardTitle: { color: colors.text, fontSize: 13.5, fontWeight: '900', flex: 1 },
     lastScannedBadge: {
       color: colors.textMuted,
       fontSize: 11,
       fontWeight: '700',
       maxWidth: 140,
     },
-    codeInputRow: { flexDirection: 'row', gap: 10 },
-    codeInput: { flex: 1, marginBottom: 0 },
+    codeInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    codeInput: { flex: 1, marginBottom: 0, paddingVertical: 10, fontSize: 14 },
     scanIconButton: {
-      width: 52,
-      borderRadius: 14,
+      width: 44,
+      height: 44,
+      borderRadius: 12,
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.primary,
     },
 
     // ── Section divider ──

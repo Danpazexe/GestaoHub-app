@@ -101,6 +101,11 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
     const parsed = parsePtBrDate(item?.lastMeta?.validade);
     return parsed || new Date();
   });
+  // Nem todo produto tem validade. Default: "sem validade" só quando estamos
+  // editando uma leitura que já foi salva sem validade.
+  const [semValidade, setSemValidade] = useState(
+    () => Boolean(item?.lastMeta) && !String(item?.lastMeta?.validade || '').trim(),
+  );
   const [packaging, setPackaging] = useState(() => pickDefaultPackaging(item, initialPackagingId));
   const embalagemLabel = useMemo(() => String(packaging?.label || '').trim(), [packaging]);
   const handleSelectPackaging = (opt) => setPackaging(opt);
@@ -128,8 +133,16 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
   }, [navigation, isDarkMode, colors.primary, item?.code]);
 
   const toggleDatePicker = () => {
+    if (semValidade) return;
     setValidadeDraftDate(validadeDate);
     setShowDatePicker(true);
+  };
+
+  const toggleSemValidade = () => {
+    setSemValidade((prev) => {
+      if (!prev) setShowDatePicker(false); // ao marcar sem validade, fecha o picker
+      return !prev;
+    });
   };
 
   const onChangeDate = (event, selectedDate) => {
@@ -169,7 +182,7 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
       itemId,
       scannedValue,
       lote: String(lote || '').trim(),
-      validade: formatPtBrDate(validadeDate),
+      validade: semValidade ? '' : formatPtBrDate(validadeDate),
       embalagem: embalagemLabel,
       qty: qtyInt,
       factor: factorInt,
@@ -198,21 +211,6 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.card}>
-          <View style={styles.scanSummaryRow}>
-            <View style={styles.scanSummaryPill}>
-              <Text style={styles.scanSummaryLabel}>Fator</Text>
-              <Text style={styles.scanSummaryValue}>x{factorInt}</Text>
-            </View>
-            <View style={styles.scanSummaryPill}>
-              <Text style={styles.scanSummaryLabel}>Qt digitada</Text>
-              <Text style={styles.scanSummaryValue}>{qtyInt}</Text>
-            </View>
-            <View style={[styles.scanSummaryPill, styles.scanSummaryPillAccent]}>
-              <Text style={[styles.scanSummaryLabel, styles.scanSummaryLabelAccent]}>Total</Text>
-              <Text style={[styles.scanSummaryValue, styles.scanSummaryValueAccent]}>{effectiveQty}</Text>
-            </View>
-          </View>
-
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>{item?.description || 'Produto'}</Text>
@@ -254,30 +252,53 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
             })}
           </View>
 
-          <View style={styles.formRow}>
-            <View style={styles.formCol}>
-              <Text style={styles.fieldLabel}>
-                <MaterialIcons name="confirmation-number" size={16} color={colors.textMuted} /> Lote
-              </Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Informe o lote"
-                  placeholderTextColor={colors.textMuted}
-                  value={lote}
-                  onChangeText={setLote}
-                />
-              </View>
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>
+              <MaterialIcons name="confirmation-number" size={16} color={colors.textMuted} /> Lote
+            </Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Informe o lote (opcional)"
+                placeholderTextColor={colors.textMuted}
+                value={lote}
+                onChangeText={setLote}
+              />
             </View>
-            <View style={styles.formCol}>
+          </View>
+
+          <View style={styles.fieldBlock}>
+            <View style={styles.fieldLabelRow}>
               <Text style={styles.fieldLabel}>
                 <MaterialIcons name="event" size={16} color={colors.textMuted} /> Validade
               </Text>
+              <Pressable
+                style={styles.semValidadeToggle}
+                onPress={toggleSemValidade}
+                hitSlop={6}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: semValidade }}
+                accessibilityLabel="Produto sem validade"
+              >
+                <MaterialIcons
+                  name={semValidade ? 'check-box' : 'check-box-outline-blank'}
+                  size={18}
+                  color={semValidade ? colors.primary : colors.textMuted}
+                />
+                <Text style={[styles.semValidadeText, semValidade && { color: colors.primary }]}>Sem validade</Text>
+              </Pressable>
+            </View>
+            {semValidade ? (
+              <View style={[styles.inputContainer, styles.inputDisabled]}>
+                <Text style={[styles.inputText, { color: colors.textMuted }]}>Produto sem validade</Text>
+                <MaterialIcons name="event-busy" size={18} color={colors.textMuted} />
+              </View>
+            ) : (
               <Pressable style={styles.inputContainer} onPress={toggleDatePicker}>
                 <Text style={styles.inputText}>{formatPtBrDate(validadeDate) || 'Selecione a data'}</Text>
                 <MaterialIcons name="calendar-month" size={18} color={colors.textMuted} />
               </Pressable>
-            </View>
+            )}
           </View>
 
           {showDatePicker ? (
@@ -303,30 +324,39 @@ const ConferenciaScanScreen = ({ navigation, route, isDarkMode }) => {
             </View>
           ) : null}
 
-          <View style={styles.formRow}>
-            <View style={styles.formCol}>
-              <Text style={styles.fieldLabel}>
-                <MaterialIcons name="all-inbox" size={16} color={colors.textMuted} /> Embalagem
-              </Text>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputText}>{embalagemLabel || '-'}</Text>
-              </View>
-            </View>
-            <View style={styles.qtyCol}>
-              <Text style={styles.fieldLabel}>
-                <MaterialIcons name="tag" size={16} color={colors.textMuted} /> Quantidade
-              </Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={[styles.input, styles.qtyInput]}
-                  placeholder="1"
-                  placeholderTextColor={colors.textMuted}
-                  value={qty}
-                  onChangeText={(v) => setQty(String(v || '').replace(/[^0-9]/g, ''))}
-                  keyboardType="numeric"
-                  returnKeyType="done"
-                />
-              </View>
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>
+              <MaterialIcons name="tag" size={16} color={colors.textMuted} /> Quantidade ({embalagemLabel || 'UN'})
+            </Text>
+            <View style={styles.qtyStepperRow}>
+              <Pressable
+                style={[styles.qtyStepBtn, qtyInt <= 1 && styles.qtyStepBtnDisabled]}
+                onPress={() => setQty(String(Math.max(1, qtyInt - 1)))}
+                disabled={qtyInt <= 1}
+                accessibilityRole="button"
+                accessibilityLabel="Diminuir quantidade"
+              >
+                <MaterialIcons name="remove" size={22} color={qtyInt <= 1 ? colors.textMuted : colors.primary} />
+              </Pressable>
+              <TextInput
+                style={styles.qtyStepInput}
+                placeholder="1"
+                placeholderTextColor={colors.textMuted}
+                value={qty}
+                onChangeText={(v) => setQty(String(v || '').replace(/[^0-9]/g, ''))}
+                keyboardType="numeric"
+                returnKeyType="done"
+                textAlign="center"
+                selectTextOnFocus
+              />
+              <Pressable
+                style={styles.qtyStepBtn}
+                onPress={() => setQty(String(qtyInt + 1))}
+                accessibilityRole="button"
+                accessibilityLabel="Aumentar quantidade"
+              >
+                <MaterialIcons name="add" size={22} color={colors.primary} />
+              </Pressable>
             </View>
           </View>
 
@@ -520,6 +550,61 @@ const getStyles = (colors) =>
     },
     qtyInput: {
       textAlign: 'center',
+    },
+    fieldBlock: {
+      marginBottom: 12,
+    },
+    fieldLabelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    semValidadeToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingVertical: 2,
+    },
+    semValidadeText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '800',
+    },
+    inputDisabled: {
+      backgroundColor: colors.surface2,
+      borderStyle: 'dashed',
+    },
+    qtyStepperRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    qtyStepBtn: {
+      width: 50,
+      height: 50,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface2,
+    },
+    qtyStepBtnDisabled: {
+      opacity: 0.5,
+    },
+    qtyStepInput: {
+      flex: 1,
+      height: 50,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: 14,
+      backgroundColor: colors.inputBg,
+      color: colors.text,
+      fontSize: 22,
+      fontWeight: '900',
+      textAlign: 'center',
+      paddingVertical: 0,
     },
     totalRow: {
       marginTop: 2,

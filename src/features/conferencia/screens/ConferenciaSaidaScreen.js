@@ -19,21 +19,6 @@ import { useConferenciaSaidaDrafts } from '../hooks/useConferenciaSaidaDrafts';
 import { hasConferenceCatalog } from '../services/conferenciaCatalogService';
 import { conferenciaSaidaTheme } from '../../../theme/domains/conferencia';
 
-// ─── Compact summary bar (conferência CEGA: só identidade + progresso por
-// ITENS tocados — sem barra de % vs esperado, que vazaria o alvo) ─────────────
-const CompactSummaryBar = ({ orderCode, countedCount, totalCount, colors, styles }) => (
-  <View style={styles.compactBar}>
-    <View style={styles.compactBarLeft}>
-      <Text style={styles.compactInvoice} numberOfLines={1}>Pedido {orderCode}</Text>
-    </View>
-    <View style={[styles.miniPill, { backgroundColor: colors.slateSoft, borderColor: colors.border }]}>
-      <MaterialIcons name="inventory-2" size={12} color={colors.textMuted} />
-      <Text style={[styles.miniPillText, { color: colors.text }]}>{countedCount}/{totalCount}</Text>
-      <Text style={[styles.miniPillCaption, { color: colors.textMuted }]}>itens</Text>
-    </View>
-  </View>
-);
-
 // Aba (A conferir / Conferido) — contagem por itens, cego-safe.
 const TabButton = ({ label, count, active, onPress, colors, styles }) => (
   <Pressable
@@ -580,13 +565,7 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
   return (
     <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <CompactSummaryBar
-        orderCode={orderCode}
-        countedCount={countedItems.length}
-        totalCount={items.length}
-        colors={colors}
-        styles={styles}
-      />
+      {/* Pedido já está no header; contagem nas abas. Sem barra redundante. */}
 
       {/* Scan card */}
       <View style={styles.scanCard}>
@@ -773,25 +752,26 @@ const getStyles = (colors) =>
     // ── Scan card ──
     scanCard: {
       backgroundColor: colors.surface,
-      borderRadius: 20,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: colors.border,
-      padding: 14,
-      marginBottom: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 11,
+      marginBottom: 10,
       shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.07,
       shadowRadius: 14,
       elevation: 2,
     },
-    scanCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-    scanCardTitle: { color: colors.text, fontSize: 14, fontWeight: '900', flex: 1 },
+    scanCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    scanCardTitle: { color: colors.text, fontSize: 13.5, fontWeight: '900', flex: 1 },
     lastScannedBadge: { color: colors.textMuted, fontSize: 11, fontWeight: '700', maxWidth: 140 },
     codeInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
     scanIconButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
+      width: 44,
+      height: 44,
+      borderRadius: 12,
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
@@ -837,9 +817,9 @@ const getStyles = (colors) =>
       color: colors.text,
       borderRadius: 14,
       paddingHorizontal: 13,
-      paddingVertical: 12,
+      paddingVertical: 10,
       marginBottom: 10,
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '700',
     },
     inputDisabled: { opacity: 0.6 },

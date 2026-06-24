@@ -10,8 +10,8 @@ const getStyles = (colors) =>
     itemRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      paddingVertical: 11,
+      gap: 10,
+      paddingVertical: 8,
       paddingHorizontal: 2,
       borderBottomWidth: 1,
       borderBottomColor: colors.divider,
@@ -34,7 +34,7 @@ const getStyles = (colors) =>
       width: 3,
       borderRadius: 2,
       alignSelf: 'stretch',
-      minHeight: 36,
+      minHeight: 26,
     },
 
     // ── Content ──
@@ -45,27 +45,27 @@ const getStyles = (colors) =>
       color: colors.textMuted,
       fontSize: 11,
       fontWeight: '800',
-      marginBottom: 2,
+      marginBottom: 1,
       letterSpacing: 0.2,
     },
     itemDesc: {
       color: colors.text,
-      fontSize: 14,
+      fontSize: 13.5,
       fontWeight: '800',
-      lineHeight: 19,
+      lineHeight: 17,
     },
     itemMetaRow: {
       flexDirection: 'row',
       gap: 6,
       flexWrap: 'wrap',
-      marginTop: 6,
+      marginTop: 4,
       alignItems: 'center',
     },
     itemTag: {
       backgroundColor: colors.chipBg,
       borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -83,7 +83,7 @@ const getStyles = (colors) =>
       flexDirection: 'row',
       gap: 6,
       flexWrap: 'wrap',
-      marginTop: 8,
+      marginTop: 6,
       alignItems: 'center',
     },
     itemActionButton: {
@@ -91,7 +91,7 @@ const getStyles = (colors) =>
       alignItems: 'center',
       gap: 4,
       paddingHorizontal: 9,
-      paddingVertical: 5,
+      paddingVertical: 4,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: colors.border,
@@ -228,32 +228,8 @@ export const ConferenciaItemRow = ({
               ) : null}
             </View>
           ) : null}
-          {canAdjust && (onAdjust || onEdit || onClear) ? (
+          {canAdjust && (onEdit || onClear) ? (
             <View style={styles.itemActionsRow}>
-              {onAdjust ? (
-                <>
-                  <Pressable
-                    style={styles.stepperBtn}
-                    onPress={() => onAdjust(row, -1)}
-                    hitSlop={6}
-                    accessibilityRole="button"
-                    accessibilityLabel="Diminuir 1"
-                  >
-                    <MaterialIcons name="remove" size={16} color={colors.danger} />
-                  </Pressable>
-                  <Pressable
-                    style={[styles.stepperBtn, (done && !blind) && styles.stepperBtnDisabled]}
-                    onPress={() => onAdjust(row, 1)}
-                    disabled={done && !blind}
-                    hitSlop={6}
-                    accessibilityRole="button"
-                    accessibilityLabel="Aumentar 1"
-                    accessibilityState={{ disabled: done && !blind }}
-                  >
-                    <MaterialIcons name="add" size={16} color={(done && !blind) ? colors.textMuted : colors.success} />
-                  </Pressable>
-                </>
-              ) : null}
               {onEdit ? (
                 <Pressable style={styles.itemActionButton} onPress={() => onEdit(row)}>
                   <MaterialIcons name="edit" size={13} color={colors.primary} />
