@@ -92,11 +92,14 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
   const loadSavedCredentials = async () => {
     try {
-      const { savedEmail, savedRememberMe } = await authService.loadSavedCredentials();
+      const { savedEmail, savedPassword, savedRememberMe } = await authService.loadSavedCredentials();
 
       if (savedRememberMe === 'true') {
         setEmail(savedEmail);
-        // A senha não é mais pré-preenchida (não é guardada em texto puro).
+        // Senha pré-preenchida a partir do cofre seguro do aparelho (Keychain/Keystore).
+        if (savedPassword) {
+          setPassword(savedPassword);
+        }
         setRememberMe(true);
       }
     } catch (error) {

@@ -8,6 +8,7 @@ import {
 } from './appStorageService';
 import { endPresence } from './presenceService';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient';
+import * as Keychain from 'react-native-keychain';
 
 const DEV_USER = {
   id: 'dev-local-user',
@@ -15,6 +16,41 @@ const DEV_USER = {
   email: 'dev@gestaohub.local',
   password: 'dev123456',
 };
+
+// Cofre seguro do aparelho para a senha do "Lembrar-me" (Keychain no iOS,
+// Keystore no Android). Encapsulado e tolerante a falha: se o módulo nativo
+// não estiver disponível (ex.: antes de um rebuild), degrada sem quebrar.
+const KEYCHAIN_SERVICE = 'gestaohub.auth';
+
+async function saveSecurePassword(email, password) {
+  try {
+    if (!password) {
+      await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+      return;
+    }
+    await Keychain.setGenericPassword(email, password, { service: KEYCHAIN_SERVICE });
+  } catch (error) {
+    console.warn('[AuthService] Falha ao salvar senha no cofre seguro.', error?.message || error);
+  }
+}
+
+async function loadSecurePassword() {
+  try {
+    const creds = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
+    return creds && creds.password ? creds.password : '';
+  } catch (error) {
+    console.warn('[AuthService] Falha ao ler senha do cofre seguro.', error?.message || error);
+    return '';
+  }
+}
+
+async function clearSecurePassword() {
+  try {
+    await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+  } catch (error) {
+    console.warn('[AuthService] Falha ao limpar senha do cofre seguro.', error?.message || error);
+  }
+}
 
 class AuthService {
   registerInFlight = false;
@@ -159,16 +195,17 @@ class AuthService {
         STORAGE_KEYS.SAVED_PASSWORD,
         STORAGE_KEYS.REMEMBER_ME,
       ]);
+      await clearSecurePassword();
       return;
     }
 
     await Promise.all([
       writeStringStorage(STORAGE_KEYS.SAVED_EMAIL, String(email || '').trim()),
       writeStringStorage(STORAGE_KEYS.REMEMBER_ME, 'true'),
-      // Nunca persistir a senha em texto puro (AsyncStorage não é criptografado).
-      // "Lembrar-me" guarda só o e-mail; a sessão do Supabase mantém o login.
-      // Remove resíduo de senha salva por versões anteriores do app.
+      // A senha vai para o cofre seguro do aparelho (Keychain/Keystore), nunca em
+      // texto puro. Remove resíduo de senha salva por versões anteriores do app.
       removeStorageKeys([STORAGE_KEYS.SAVED_PASSWORD]),
+      saveSecurePassword(String(email || '').trim(), String(password || '')),
     ]);
   }
 
@@ -178,9 +215,11 @@ class AuthService {
       readStringStorage(STORAGE_KEYS.REMEMBER_ME, ''),
     ]);
 
+    const savedPassword = savedRememberMe === 'true' ? await loadSecurePassword() : '';
+
     return {
       savedEmail,
-      savedPassword: '', // senha não é mais armazenada em texto puro
+      savedPassword,
       savedRememberMe,
     };
   }
