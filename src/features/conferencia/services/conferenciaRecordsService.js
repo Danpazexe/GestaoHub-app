@@ -32,6 +32,10 @@ export const listConferenciaRecebimentos = async () => {
   return readConferenciaCollection(STORAGE_KEYS.CONFERENCIA_RECEBIMENTOS);
 };
 
+export const listConferenciaSaidas = async () => {
+  return readConferenciaCollection(STORAGE_KEYS.CONFERENCIA_SAIDAS);
+};
+
 // Apaga as divergências no servidor (fonte de verdade) e no cache local.
 // Sem o delete remoto, a próxima leitura traria tudo de volta.
 export const clearConferenciaDivergencias = async () => {

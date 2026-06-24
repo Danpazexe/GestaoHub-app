@@ -11,7 +11,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
  * colors – paleta do tema (conferenciaRecebimentoTheme + runtime dark/light)
  * onPress – callback ao tocar
  */
-const ConferenciaBonusCard = ({ item, colors, onPress, status }) => {
+const ConferenciaBonusCard = ({ item, colors, onPress, status, codeLabel = 'NF' }) => {
   const linesCount = Number(item.lines) || 0;
   const formattedDate = item.createdAt
     ? new Date(item.createdAt).toLocaleString('pt-BR', {
@@ -52,9 +52,9 @@ const ConferenciaBonusCard = ({ item, colors, onPress, status }) => {
             </View>
           </View>
 
-          {/* NF number */}
+          {/* Código (NF / Pedido) */}
           <Text style={s.invoiceLabel}>
-            NF <Text style={s.invoiceValue}>{item.invoice || '—'}</Text>
+            {codeLabel} <Text style={s.invoiceValue}>{item.invoice || '—'}</Text>
           </Text>
 
           {/* Meta row: supplier code + date */}
