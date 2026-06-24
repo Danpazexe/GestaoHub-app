@@ -120,7 +120,7 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
           source={profileImage ? { uri: profileImage } : require('../../../../assets/Perfil/default-profile.png')}
           style={[styles.profileImage, { borderColor: isDarkMode ? COLORS.accent : '#ccc' }]}
         />
-        <Text style={[styles.editPhotoText, { color: COLORS.primary }]}>Alterar Foto</Text>
+        <Text style={[styles.editPhotoText, { color: isDarkMode ? COLORS.accent : COLORS.primary }]}>Alterar Foto</Text>
       </TouchableOpacity>
       <View style={styles.inputContainer}>
         <Text style={[styles.label, { color: isDarkMode ? COLORS.textDark : COLORS.text }]}>Nome</Text>
@@ -133,7 +133,7 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
           value={name}
           onChangeText={setName}
           placeholder="Digite seu nome"
-          placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
+          placeholderTextColor={isDarkMode ? '#9fa7c7' : '#888'}
         />
       </View>
       <View style={styles.inputContainer}>
@@ -148,7 +148,7 @@ const ProfileScreen = ({ isDarkMode, navigation }) => {
           onChangeText={setEmail}
           keyboardType="email-address"
           placeholder="Digite seu e-mail"
-          placeholderTextColor={isDarkMode ? '#aaa' : '#888'}
+          placeholderTextColor={isDarkMode ? '#9fa7c7' : '#888'}
         />
       </View>
       <TouchableOpacity style={[styles.saveButton, { backgroundColor: COLORS.primary }]} onPress={handleSaveChanges}>

@@ -383,24 +383,51 @@ const ProductDetailsModal = ({ visible, item, onClose, onShare, isDarkMode }) =>
     onRequestClose={onClose}
   >
     <View style={styles.productModalOverlay}>
-      <View style={styles.productModalContent}>
-        <TouchableOpacity style={styles.productModalClose} onPress={onClose}>
-          <MaterialIcons name="close" size={28} color="#64748B" />
+      <View style={[
+        styles.productModalContent,
+        { backgroundColor: isDarkMode ? '#262d47' : '#fff' }
+      ]}>
+        <TouchableOpacity
+          style={[
+            styles.productModalClose,
+            { backgroundColor: isDarkMode ? '#2b3350' : '#F1F5F9' }
+          ]}
+          onPress={onClose}
+        >
+          <MaterialIcons name="close" size={28} color={isDarkMode ? '#aab1cf' : '#64748B'} />
         </TouchableOpacity>
-        <View style={styles.productModalIconCircle}>
-          <MaterialIcons name="info" size={40} color="#2563EB" />
+        <View style={[
+          styles.productModalIconCircle,
+          { backgroundColor: isDarkMode ? '#1E3A8A' : '#DBEAFE' }
+        ]}>
+          <MaterialIcons name="info" size={40} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
         </View>
-        <Text style={styles.productModalTitle}>Detalhes do {CURRENT_TABLE.label}</Text>
+        <Text style={[
+          styles.productModalTitle,
+          { color: isDarkMode ? '#60A5FA' : '#2563EB' }
+        ]}>Detalhes do {CURRENT_TABLE.label}</Text>
         <View style={styles.productModalBody}>
           {CURRENT_TABLE.fields.map((field) => (
             <View key={field.key} style={styles.productModalRow}>
-              <MaterialIcons name={field.icon} size={22} color="#2563EB" />
-              <Text style={styles.productModalLabel}>{field.label}</Text>
-              <Text style={styles.productModalValue}>{item[field.key] || 'N/A'}</Text>
+              <MaterialIcons name={field.icon} size={22} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
+              <Text style={[
+                styles.productModalLabel,
+                { color: isDarkMode ? '#60A5FA' : '#2563EB' }
+              ]}>{field.label}</Text>
+              <Text style={[
+                styles.productModalValue,
+                { color: isDarkMode ? '#f3f5ff' : '#374151' }
+              ]}>{item[field.key] || 'N/A'}</Text>
             </View>
           ))}
         </View>
-        <TouchableOpacity style={styles.productModalShareButton} onPress={onShare}>
+        <TouchableOpacity
+          style={[
+            styles.productModalShareButton,
+            { backgroundColor: isDarkMode ? '#2563EB' : '#2563EB' }
+          ]}
+          onPress={onShare}
+        >
           <MaterialIcons name="share" size={22} color="#fff" />
           <Text style={styles.productModalShareText}>Compartilhar</Text>
         </TouchableOpacity>

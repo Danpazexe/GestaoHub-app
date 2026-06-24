@@ -40,10 +40,17 @@ const SCAN_CODE_TYPES = [
 
 const COLORS = CORESBARCODESCANNER;
 
+const DARK_TOKENS = {
+  surface: '#1f2438',
+  card: '#262d47',
+  textPrimary: '#f3f5ff',
+  textMuted: '#aab1cf',
+};
+
 const isPermissionGranted = (status) =>
   status === true || status === 'granted' || status === 'authorized';
 
-const BarcodeScannerScreen = ({ navigation, route }) => {
+const BarcodeScannerScreen = ({ navigation, route, isDarkMode }) => {
   const isFocused = useIsFocused();
   const device = useCameraDevice('back');
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -54,6 +61,14 @@ const BarcodeScannerScreen = ({ navigation, route }) => {
   const [barcodeData, setBarcodeData] = useState('');
   const [permissionChecked, setPermissionChecked] = useState(false);
   const [torchEnabled, setTorchEnabled] = useState(false);
+
+  const palette = {
+    permissionBackground: isDarkMode ? DARK_TOKENS.surface : COLORS.permissionBackground,
+    permissionTitle: isDarkMode ? DARK_TOKENS.textPrimary : COLORS.permissionTitle,
+    permissionText: isDarkMode ? DARK_TOKENS.textMuted : COLORS.permissionText,
+    modalCard: isDarkMode ? DARK_TOKENS.card : COLORS.white,
+    modalTitle: isDarkMode ? DARK_TOKENS.textPrimary : COLORS.modalTitle,
+  };
 
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const backHandlerRef = useRef(null);
@@ -349,20 +364,20 @@ const BarcodeScannerScreen = ({ navigation, route }) => {
 
   if (!permissionChecked) {
     return (
-      <View style={styles.permissionContainer}>
+      <View style={[styles.permissionContainer, { backgroundColor: palette.permissionBackground }]}>
         <MaterialCommunityIcons name="camera" size={52} color={COLORS.primary} />
-        <Text style={styles.permissionTitle}>Preparando leitor...</Text>
-        <Text style={styles.permissionText}>Solicitando permissão para acessar a câmera.</Text>
+        <Text style={[styles.permissionTitle, { color: palette.permissionTitle }]}>Preparando leitor...</Text>
+        <Text style={[styles.permissionText, { color: palette.permissionText }]}>Solicitando permissão para acessar a câmera.</Text>
       </View>
     );
   }
 
   if (hasPermission === false) {
     return (
-      <View style={styles.permissionContainer}>
+      <View style={[styles.permissionContainer, { backgroundColor: palette.permissionBackground }]}>
         <MaterialCommunityIcons name="camera-off" size={52} color={COLORS.danger} />
-        <Text style={styles.permissionTitle}>Sem acesso à câmera</Text>
-        <Text style={styles.permissionText}>
+        <Text style={[styles.permissionTitle, { color: palette.permissionTitle }]}>Sem acesso à câmera</Text>
+        <Text style={[styles.permissionText, { color: palette.permissionText }]}>
           Habilite a permissão de câmera para usar o leitor de código de barras.
         </Text>
 
@@ -375,10 +390,10 @@ const BarcodeScannerScreen = ({ navigation, route }) => {
 
   if (!device) {
     return (
-      <View style={styles.permissionContainer}>
+      <View style={[styles.permissionContainer, { backgroundColor: palette.permissionBackground }]}>
         <MaterialCommunityIcons name="camera-alert" size={52} color={COLORS.warning} />
-        <Text style={styles.permissionTitle}>Câmera indisponível</Text>
-        <Text style={styles.permissionText}>Não encontramos uma câmera traseira neste dispositivo.</Text>
+        <Text style={[styles.permissionTitle, { color: palette.permissionTitle }]}>Câmera indisponível</Text>
+        <Text style={[styles.permissionText, { color: palette.permissionText }]}>Não encontramos uma câmera traseira neste dispositivo.</Text>
       </View>
     );
   }
@@ -497,10 +512,10 @@ const BarcodeScannerScreen = ({ navigation, route }) => {
         onRequestClose={resetScanner}
       >
         <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: palette.modalCard }]}>
             <View style={styles.modalHeader}>
               <MaterialCommunityIcons name="barcode-scan" size={28} color={COLORS.success} />
-              <Text style={styles.modalTitle}>Código detectado</Text>
+              <Text style={[styles.modalTitle, { color: palette.modalTitle }]}>Código detectado</Text>
             </View>
 
             <Text style={styles.modalData}>{barcodeData}</Text>

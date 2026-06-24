@@ -17,6 +17,15 @@ const ModuleBaseScreen = ({ isDarkMode }) => {
   const color = route.params?.color || COLORS.destaqueAzul;
   const bullets = Array.isArray(route.params?.bullets) ? route.params.bullets : [];
 
+  const palette = {
+    card: isDarkMode ? '#262d47' : '#ffffff',
+    cardBorder: isDarkMode ? '#3a4265' : 'rgba(64, 68, 76, 0.16)',
+    bulletBorder: isDarkMode ? '#3a4265' : 'rgba(64, 68, 76, 0.14)',
+    title: isDarkMode ? '#f3f5ff' : '#2f333a',
+    subtitle: isDarkMode ? '#aab1cf' : '#4b5563',
+    bulletText: isDarkMode ? '#aab1cf' : '#374151',
+  };
+
   useLayoutEffect(() => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
@@ -45,16 +54,24 @@ const ModuleBaseScreen = ({ isDarkMode }) => {
       darkBackground={COLORS.fundoDark}
       contentStyle={styles.content}
     >
-      <View style={[styles.heroCard, { borderLeftColor: color }]}>
-        <Text style={styles.heroTitle}>{title}</Text>
-        <Text style={styles.heroSubtitle}>{subtitle}</Text>
+      <View
+        style={[
+          styles.heroCard,
+          { backgroundColor: palette.card, borderColor: palette.cardBorder, borderLeftColor: color },
+        ]}
+      >
+        <Text style={[styles.heroTitle, { color: palette.title }]}>{title}</Text>
+        <Text style={[styles.heroSubtitle, { color: palette.subtitle }]}>{subtitle}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Próximas entregas</Text>
+      <Text style={[styles.sectionTitle, { color: palette.title }]}>Próximas entregas</Text>
       {bullets.map((item) => (
-        <View key={item} style={styles.bulletCard}>
+        <View
+          key={item}
+          style={[styles.bulletCard, { backgroundColor: palette.card, borderColor: palette.bulletBorder }]}
+        >
           <MaterialIcons name="check-circle-outline" size={20} color={color} />
-          <Text style={styles.bulletText}>{item}</Text>
+          <Text style={[styles.bulletText, { color: palette.bulletText }]}>{item}</Text>
         </View>
       ))}
     </ScreenLayout>
@@ -68,38 +85,31 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   heroCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 16,
     borderLeftWidth: 5,
     borderWidth: 1,
-    borderColor: 'rgba(64, 68, 76, 0.16)',
     marginBottom: 16,
   },
   heroTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#2f333a',
     marginBottom: 4,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: '#4b5563',
     lineHeight: 20,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#2f333a',
     marginBottom: 10,
   },
   bulletCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(64, 68, 76, 0.14)',
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -107,7 +117,6 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     flex: 1,
-    color: '#374151',
     fontSize: 14,
     fontWeight: '600',
   },

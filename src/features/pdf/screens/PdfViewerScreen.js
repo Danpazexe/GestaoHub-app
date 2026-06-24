@@ -18,7 +18,7 @@ import Share from 'react-native-share';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createScreenHeaderTemplate, createHeaderTitleTemplate } from '../../../components/ScreenLayout';
 
-const PdfViewerScreen = ({ route, navigation }) => {
+const PdfViewerScreen = ({ route, navigation, isDarkMode = false }) => {
   const { pdfUri } = route.params;
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -26,6 +26,20 @@ const PdfViewerScreen = ({ route, navigation }) => {
   const [shareLoading, setShareLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const palette = {
+    bg: isDarkMode ? '#1f2438' : '#f5f5f5',
+    surface: isDarkMode ? '#262d47' : '#fff',
+    pdfBg: isDarkMode ? '#1f2438' : '#fff',
+    text: isDarkMode ? '#f3f5ff' : '#294380',
+    muted: isDarkMode ? '#aab1cf' : '#666',
+    border: isDarkMode ? '#3a4265' : '#e0e0e0',
+    navButton: isDarkMode ? '#2b3350' : '#f0f0f0',
+    navButtonDisabled: isDarkMode ? '#1f2438' : '#f5f5f5',
+    navIcon: isDarkMode ? '#f3f5ff' : '#294380',
+    navIconDisabled: isDarkMode ? '#5b6488' : '#ccc',
+    statusBarBg: isDarkMode ? '#1f2438' : '#294380',
+  };
+  const styles = createStyles(palette);
 
   const pdfRef = useRef(null);
 
@@ -86,9 +100,9 @@ const PdfViewerScreen = ({ route, navigation }) => {
   React.useEffect(() => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
-        isDarkMode: false,
+        isDarkMode,
         lightHeaderColor: '#294380',
-        darkHeaderColor: '#294380',
+        darkHeaderColor: '#1f2438',
         tintColor: '#FFFFFF',
       }),
       headerTitle: () =>
@@ -99,7 +113,7 @@ const PdfViewerScreen = ({ route, navigation }) => {
         }),
 
     });
-  }, [navigation]);
+  }, [navigation, isDarkMode]);
 
   if (error) {
     return (
@@ -119,8 +133,8 @@ const PdfViewerScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#294380" barStyle="light-content" />
-      
+      <StatusBar backgroundColor={palette.statusBarBg} barStyle="light-content" />
+
       {/* Área principal do PDF */}
       <View style={styles.pdfContainer}>
         <Pdf
@@ -166,7 +180,7 @@ const PdfViewerScreen = ({ route, navigation }) => {
             onPress={goToPreviousPage}
             disabled={currentPage <= 1}
           >
-            <MaterialCommunityIcons name="chevron-left" size={24} color={currentPage <= 1 ? "#ccc" : "#294380"} />
+            <MaterialCommunityIcons name="chevron-left" size={24} color={currentPage <= 1 ? palette.navIconDisabled : palette.navIcon} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -174,7 +188,7 @@ const PdfViewerScreen = ({ route, navigation }) => {
             onPress={goToNextPage}
             disabled={currentPage >= totalPages}
           >
-            <MaterialCommunityIcons name="chevron-right" size={24} color={currentPage >= totalPages ? "#ccc" : "#294380"} />
+            <MaterialCommunityIcons name="chevron-right" size={24} color={currentPage >= totalPages ? palette.navIconDisabled : palette.navIcon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -199,14 +213,14 @@ const PdfViewerScreen = ({ route, navigation }) => {
 
 
 
-const styles = StyleSheet.create({
+const createStyles = (palette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: palette.bg,
   },
   pdfContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: palette.pdfBg,
   },
   pdf: {
     flex: 1,
@@ -217,19 +231,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: palette.pdfBg,
   },
   loadingText: {
-    color: '#666',
+    color: palette.muted,
     marginTop: 16,
     fontSize: 16,
   },
   controlsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: palette.surface,
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: palette.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -239,7 +253,7 @@ const styles = StyleSheet.create({
   },
   pageText: {
     fontSize: 16,
-    color: '#294380',
+    color: palette.text,
     fontWeight: '600',
   },
   navigationControls: {
@@ -250,7 +264,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: palette.navButton,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 5,
@@ -261,7 +275,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   navButtonDisabled: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: palette.navButtonDisabled,
     elevation: 0,
   },
   fab: {
@@ -282,7 +296,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: palette.bg,
   },
   errorContent: {
     flex: 1,
@@ -293,13 +307,13 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#294380',
+    color: palette.text,
     marginTop: 20,
     marginBottom: 10,
   },
   errorMessage: {
     fontSize: 16,
-    color: '#666',
+    color: palette.muted,
     textAlign: 'center',
     marginBottom: 30,
   },

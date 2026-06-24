@@ -588,7 +588,7 @@ const EasterEggScreen = ({ navigation, isDarkMode }) => {
           <Text style={[styles.title, isDarkMode && styles.titleDark]}>Painel</Text>
           <Text style={[styles.subtitle, isDarkMode && styles.subtitleDark]}>Diagnostico tecnico do dispositivo e app</Text>
         </View>
-        <Pressable style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]} onPress={() => navigation.goBack()}>
+        <Pressable style={({ pressed }) => [styles.closeButton, isDarkMode && styles.closeButtonDark, pressed && styles.pressed]} onPress={() => navigation.goBack()}>
           <MaterialIcons name="close" size={22} color={isDarkMode ? '#ffffff' : '#2f333a'} />
         </Pressable>
       </View>
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f7f8',
   },
   safeAreaDark: {
-    backgroundColor: '#2f333a',
+    backgroundColor: '#1f2438',
   },
   header: {
     paddingHorizontal: 18,
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
     color: '#2f333a',
   },
   titleDark: {
-    color: '#ffffff',
+    color: '#f3f5ff',
   },
   subtitle: {
     marginTop: 2,
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   subtitleDark: {
-    color: 'rgba(255, 255, 255, 0.75)',
+    color: '#aab1cf',
   },
   closeButton: {
     width: 38,
@@ -737,6 +737,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(64, 68, 76, 0.14)',
+  },
+  closeButtonDark: {
+    backgroundColor: '#2b3350',
   },
   scrollContent: {
     paddingHorizontal: 18,
@@ -752,8 +755,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionDark: {
-    backgroundColor: '#3a3f49',
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: '#262d47',
+    borderColor: '#3a4265',
   },
   sectionTitle: {
     fontSize: 14,
@@ -762,7 +765,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionTitleDark: {
-    color: '#ffffff',
+    color: '#f3f5ff',
   },
   row: {
     flexDirection: 'row',
@@ -778,7 +781,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowLabelDark: {
-    color: 'rgba(255, 255, 255, 0.76)',
+    color: '#aab1cf',
   },
   rowValue: {
     fontSize: 13,
@@ -788,7 +791,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   rowValueDark: {
-    color: '#ffffff',
+    color: '#f3f5ff',
   },
   permissionBlock: {
     marginTop: 10,
@@ -803,7 +806,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   permissionTitleDark: {
-    color: '#ffffff',
+    color: '#f3f5ff',
   },
   footer: {
     paddingHorizontal: 18,

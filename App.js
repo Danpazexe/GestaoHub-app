@@ -474,7 +474,7 @@ export default function App() {
               </Stack.Screen>
 
               <Stack.Screen name="BarcodeScannerScreen" options={{ headerShown: false }}>
-                {props => <BarcodeScannerScreen {...props} />}
+                {props => <BarcodeScannerScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
               <Stack.Screen name="SettingsScreen">
@@ -525,7 +525,7 @@ export default function App() {
               </Stack.Screen>
 
               <Stack.Screen name="PdfViewerScreen">
-                {props => <PdfViewerScreen {...props} />}
+                {props => <PdfViewerScreen {...props} isDarkMode={isDarkMode} />}
               </Stack.Screen>
 
               <Stack.Screen name="ConferenciaRecebimentoScreen">
