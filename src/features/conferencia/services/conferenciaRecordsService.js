@@ -1,6 +1,8 @@
 import { STORAGE_KEYS } from '../../../constants/storage';
 import { logEvent } from '../../../services/operationalEventsService';
 import {
+  clearRemoteConferenciaDivergencias,
+  listRemoteConferenciaDivergencias,
   syncConferenciaRecebimentoRemote,
   syncConferenciaSaidaRemote,
 } from './conferenciaRecordsSupabaseService';
@@ -11,11 +13,30 @@ import {
 } from '../storage/conferenciaStorage';
 
 export const listConferenciaDivergencias = async () => {
+  // Servidor é a fonte de verdade (igual ao painel web). Quando online,
+  // reconcilia o cache local com o remoto — limpa divergências locais antigas
+  // (de testes) que nunca subiram. Offline / erro: cai no cache local.
+  try {
+    const remote = await listRemoteConferenciaDivergencias();
+    if (Array.isArray(remote)) {
+      await writeConferenciaCollection(STORAGE_KEYS.CONFERENCIA_DIVERGENCIAS, remote, 500);
+      return remote;
+    }
+  } catch (error) {
+    console.warn('[conferencia] Leitura remota de divergências falhou; usando cache local.', error?.message || error);
+  }
   return readConferenciaCollection(STORAGE_KEYS.CONFERENCIA_DIVERGENCIAS);
 };
 
 export const listConferenciaRecebimentos = async () => {
   return readConferenciaCollection(STORAGE_KEYS.CONFERENCIA_RECEBIMENTOS);
+};
+
+// Apaga as divergências no servidor (fonte de verdade) e no cache local.
+// Sem o delete remoto, a próxima leitura traria tudo de volta.
+export const clearConferenciaDivergencias = async () => {
+  await clearRemoteConferenciaDivergencias();
+  await writeConferenciaCollection(STORAGE_KEYS.CONFERENCIA_DIVERGENCIAS, [], 500);
 };
 
 export const finalizeConferenciaRecebimento = async (payload, divergences = []) => {

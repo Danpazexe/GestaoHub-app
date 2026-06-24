@@ -17,7 +17,7 @@ import ScreenLayout, {
 } from '../../../components/ScreenLayout';
 import { CORESCONFERENCIADIVERG } from '../../../components/coresAuth';
 import { EmptyState } from '../../../components/states';
-import { listConferenciaDivergencias } from '../services/conferenciaRecordsService';
+import { clearConferenciaDivergencias, listConferenciaDivergencias } from '../services/conferenciaRecordsService';
 
 const ConferenciaDivergenciasScreen = ({ navigation, isDarkMode }) => {
   const [list, setList] = useState([]);
@@ -55,6 +55,31 @@ const ConferenciaDivergenciasScreen = ({ navigation, isDarkMode }) => {
     catch { setList([]); }
   }, []);
 
+  const handleClearDivergencias = useCallback(() => {
+    Alert.alert(
+      'Limpar divergências',
+      'Apagar TODAS as divergências (servidor + app)? Isso não pode ser desfeito.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Apagar tudo',
+          style: 'destructive',
+          onPress: async () => {
+            setRefreshing(true);
+            try {
+              await clearConferenciaDivergencias();
+              await loadDivergencias();
+            } catch (error) {
+              Alert.alert('Erro', error?.message || 'Falha ao limpar divergências.');
+            } finally {
+              setRefreshing(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [loadDivergencias]);
+
   useLayoutEffect(() => {
     navigation.setOptions({
       ...createScreenHeaderTemplate({
@@ -72,20 +97,28 @@ const ConferenciaDivergenciasScreen = ({ navigation, isDarkMode }) => {
         }),
       headerRight: () =>
         createHeaderActionsTemplate({
-          actions: [{
-            key: 'refresh-divergencias',
-            iconName: 'refresh',
-            accessibilityLabel: 'Atualizar',
-            onPress: async () => {
-              setRefreshing(true);
-              await loadDivergencias();
-              setRefreshing(false);
+          actions: [
+            {
+              key: 'clear-divergencias',
+              iconName: 'delete-sweep',
+              accessibilityLabel: 'Limpar divergências',
+              onPress: handleClearDivergencias,
             },
-          }],
+            {
+              key: 'refresh-divergencias',
+              iconName: 'refresh',
+              accessibilityLabel: 'Atualizar',
+              onPress: async () => {
+                setRefreshing(true);
+                await loadDivergencias();
+                setRefreshing(false);
+              },
+            },
+          ],
           isDarkMode,
         }),
     });
-  }, [navigation, isDarkMode, colors.primary, loadDivergencias]);
+  }, [navigation, isDarkMode, colors.primary, loadDivergencias, handleClearDivergencias]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -43,6 +43,43 @@ export const syncConferenciaSaidaRemote = async (payload, divergences = []) => {
   await upsertDivergencias(supabase, userId, divergences);
 };
 
+// Leitura remota das divergências do usuário (fonte de verdade, igual ao web).
+// Retorna null quando não há cliente (offline) para o chamador cair no cache local.
+export const listRemoteConferenciaDivergencias = async () => {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from(DIVERGENCIAS_TABLE)
+    .select('payload')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  if (error) {
+    throw new Error(error.message || 'Falha ao ler divergências remotas');
+  }
+
+  return (data || []).map((row) => row?.payload).filter(Boolean);
+};
+
+// Apaga TODAS as divergências do usuário no servidor (RLS owner permite delete).
+export const clearRemoteConferenciaDivergencias = async () => {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from(DIVERGENCIAS_TABLE)
+    .delete()
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(error.message || 'Falha ao limpar divergências remotas');
+  }
+};
+
 // Usado pelo backfill para empurrar divergências já existentes no cache local.
 export const syncConferenciaDivergenciasRemote = async (divergences = []) => {
   const supabase = getSupabaseClient();
