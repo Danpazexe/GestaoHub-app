@@ -144,7 +144,7 @@ const AvariaHistoryScreen = ({ navigation, isDarkMode }) => {
                 onPress={() => navigation.navigate('AvariaEntryScreen', { batchId: item.id })}
                 activeOpacity={0.8}
             >
-                <View style={styles.cardHeader}>
+                <View style={[styles.cardHeader, isDarkMode && styles.darkCardHeader]}>
                     <View style={[styles.statusBadge, { backgroundColor: '#43a047' }]}>
                         <Text style={styles.statusText}>CONCLUÍDO</Text>
                     </View>
@@ -167,9 +167,9 @@ const AvariaHistoryScreen = ({ navigation, isDarkMode }) => {
                         </View>
                     </View>
 
-                    <View style={styles.cardFooter}>
+                    <View style={[styles.cardFooter, isDarkMode && styles.darkCardFooter]}>
                         <View style={styles.footerStat}>
-                            <MaterialIcons name="inventory" size={14} color="#888" />
+                            <MaterialIcons name="inventory" size={14} color={isDarkMode ? COLORS.textMutedDark : '#888'} />
                             <Text style={[styles.footerStatText, isDarkMode && styles.darkFooterStatText]}>{totalItems} itens</Text>
                         </View>
                         <Text style={[styles.dateText, isDarkMode && styles.darkDateText]}>Finalizado em {new Date(item.updatedAt).toLocaleDateString()}</Text>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     darkSummaryLabel: {
-        color: '#aaa',
+        color: COLORS.textMutedDark,
     },
     summaryValue: {
         fontSize: 18,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     darkSectionTitle: {
-        color: '#fff',
+        color: COLORS.textDark,
     },
     refreshButton: {
         padding: 4,
@@ -307,6 +307,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.02)',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0,0,0,0.05)',
+    },
+    darkCardHeader: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderBottomColor: COLORS.borderDark || '#3a4265',
     },
     statusBadge: {
         paddingHorizontal: 8,
@@ -365,6 +369,9 @@ const styles = StyleSheet.create({
         borderTopColor: 'rgba(0,0,0,0.05)',
         paddingTop: 12,
         gap: 16,
+    },
+    darkCardFooter: {
+        borderTopColor: COLORS.borderDark || '#3a4265',
     },
     footerStat: {
         flexDirection: 'row',

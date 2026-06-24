@@ -95,7 +95,7 @@ const AvariaListScreen = ({ navigation, isDarkMode }) => {
                 onPress={() => navigation.navigate('AvariaEntryScreen', { batchId: item.id })}
                 activeOpacity={0.8}
             >
-                <View style={styles.batchHeader}>
+                <View style={[styles.batchHeader, isDarkMode && styles.darkBatchHeader]}>
                     <View style={[styles.statusBadge, { backgroundColor: '#fb8c00' }]}>
                         <Text style={styles.statusText}>ABERTO</Text>
                     </View>
@@ -113,9 +113,9 @@ const AvariaListScreen = ({ navigation, isDarkMode }) => {
                         </View>
                     </View>
 
-                    <View style={styles.batchFooter}>
+                    <View style={[styles.batchFooter, isDarkMode && styles.darkBatchFooter]}>
                         <View style={styles.footerStat}>
-                            <MaterialIcons name="inventory" size={14} color="#888" />
+                            <MaterialIcons name="inventory" size={14} color={isDarkMode ? COLORS.textMutedDark : '#888'} />
                             <Text style={[styles.footerStatText, isDarkMode && styles.darkFooterStatText]}>{totalItems} itens</Text>
                         </View>
                         <Text style={[styles.batchDate, isDarkMode && styles.darkBatchDate]}>{new Date(item.createdAt).toLocaleDateString()}</Text>
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     darkSummaryLabel: {
-        color: '#aaa',
+        color: COLORS.textMutedDark,
     },
     summaryValue: {
         fontSize: 18,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     darkSectionTitle: {
-        color: '#fff',
+        color: COLORS.textDark,
     },
     refreshButton: {
         padding: 4,
@@ -273,6 +273,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.02)',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0,0,0,0.05)',
+    },
+    darkBatchHeader: {
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderBottomColor: COLORS.borderDark,
     },
     statusBadge: {
         paddingHorizontal: 8,
@@ -323,6 +327,9 @@ const styles = StyleSheet.create({
         borderTopColor: 'rgba(0,0,0,0.05)',
         paddingTop: 12,
         gap: 16,
+    },
+    darkBatchFooter: {
+        borderTopColor: COLORS.borderDark,
     },
     footerStat: {
         flexDirection: 'row',

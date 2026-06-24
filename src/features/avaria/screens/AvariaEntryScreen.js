@@ -39,6 +39,20 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
     const { batchId } = route.params || {};
     const [loading, setLoading] = useState(!!batchId);
 
+    const palette = {
+        background: isDarkMode ? '#1f2438' : '#f8f9fa',
+        surface: isDarkMode ? '#262d47' : '#fff',
+        border: isDarkMode ? '#3a4265' : 'rgba(0,0,0,0.05)',
+        input: isDarkMode ? '#2b3350' : '#f1f3f5',
+        text: isDarkMode ? '#f3f5ff' : '#333',
+        textMuted: isDarkMode ? '#aab1cf' : '#666',
+        textFaint: isDarkMode ? '#9fa7c7' : '#888',
+        placeholder: isDarkMode ? '#9fa7c7' : '#999',
+        emptyIcon: isDarkMode ? '#3a4265' : '#ccc',
+        suggestionIcon: isDarkMode ? '#8e94af' : '#636b8f',
+        closeIcon: isDarkMode ? '#aab1cf' : '#888',
+    };
+
     // Header State
     const [supplierName, setSupplierName] = useState('');
     const [supplierSearch, setSupplierSearch] = useState('');
@@ -267,14 +281,14 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                     {results.map((item, idx) => (
                         <TouchableOpacity
                             key={idx}
-                            style={styles.suggestionItem}
+                            style={[styles.suggestionItem, isDarkMode && styles.darkSuggestionItem]}
                             onPress={() => type === 'supplier' ? selectSupplier(item) : selectProduct(item)}
                         >
                             <View style={styles.suggestionIcon}>
                                 <MaterialCommunityIcons
                                     name={type === 'supplier' ? "office-building" : "package-variant"}
                                     size={20}
-                                    color={isDarkMode ? '#8e94af' : '#636b8f'}
+                                    color={palette.suggestionIcon}
                                 />
                             </View>
                             <View style={styles.suggestionTextContainer}>
@@ -310,7 +324,7 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                                 <TextInput
                                     style={[styles.input, isDarkMode && styles.darkInputText]}
                                     placeholder="Busque o Fornecedor..."
-                                    placeholderTextColor={isDarkMode ? '#666' : '#999'}
+                                    placeholderTextColor={palette.placeholder}
                                     value={supplierSearch}
                                     onChangeText={performSupplierSearch}
                                     editable={!isFinished}
@@ -336,7 +350,7 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                                 onPress={() => !isFinished && setBonusType(key)}
                                 disabled={isFinished}
                             >
-                                <MaterialCommunityIcons name={type.icon} size={24} color={bonusType === key ? type.color : '#888'} />
+                                <MaterialCommunityIcons name={type.icon} size={24} color={bonusType === key ? type.color : palette.textFaint} />
                                 <Text style={[styles.bonusLabel, isDarkMode && styles.darkBonusLabel, bonusType === key && { color: type.color, fontWeight: 'bold' }]}>{type.label}</Text>
                             </TouchableOpacity>
                         ))}
@@ -357,8 +371,8 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
 
                     {items.length === 0 ? (
                         <View style={styles.emptyItems}>
-                            <MaterialCommunityIcons name="playlist-minus" size={48} color="#ccc" />
-                            <Text style={styles.emptyItemsText}>Nenhum item adicionado ainda.</Text>
+                            <MaterialCommunityIcons name="playlist-minus" size={48} color={palette.emptyIcon} />
+                            <Text style={[styles.emptyItemsText, isDarkMode && styles.darkEmptyItemsText]}>Nenhum item adicionado ainda.</Text>
                         </View>
                     ) : (
                         items.map((item, index) => (
@@ -431,7 +445,7 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                         </TouchableOpacity>
 
                         <View style={{ marginTop: 20, alignItems: 'center' }}>
-                            <Text style={{ color: isDarkMode ? '#aaa' : '#666', fontStyle: 'italic' }}>Este lote está finalizado e não pode ser editado.</Text>
+                            <Text style={{ color: palette.textMuted, fontStyle: 'italic' }}>Este lote está finalizado e não pode ser editado.</Text>
                         </View>
                     </View>
                 )}
@@ -444,7 +458,7 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>Adicionar Item</Text>
                             <TouchableOpacity onPress={() => setShowAddItem(false)}>
-                                <MaterialIcons name="close" size={24} color="#888" />
+                                <MaterialIcons name="close" size={24} color={palette.closeIcon} />
                             </TouchableOpacity>
                         </View>
 
@@ -455,7 +469,7 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                                     <TextInput
                                         style={[styles.input, isDarkMode && styles.darkInputText]}
                                         placeholder="Nome, Código ou EAN..."
-                                        placeholderTextColor={isDarkMode ? '#666' : '#999'}
+                                        placeholderTextColor={palette.placeholder}
                                         value={productSearch}
                                         onChangeText={performProductSearch}
                                     />
@@ -469,7 +483,7 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                                     <TextInput
                                         style={[styles.input, isDarkMode && styles.darkInputText]}
                                         placeholder="0"
-                                        placeholderTextColor={isDarkMode ? '#666' : '#999'}
+                                        placeholderTextColor={palette.placeholder}
                                         keyboardType="numeric"
                                         value={itemQty}
                                         onChangeText={setItemQty}
@@ -482,10 +496,10 @@ const AvariaEntryScreen = ({ navigation, route, isDarkMode }) => {
                                 {Object.entries(DAMAGE_TYPES).map(([key, type]) => (
                                     <TouchableOpacity
                                         key={key}
-                                        style={[styles.damageChip, itemDamageType === key && { backgroundColor: type.color }]}
+                                        style={[styles.damageChip, isDarkMode && styles.darkDamageChip, itemDamageType === key && { backgroundColor: type.color }]}
                                         onPress={() => setItemDamageType(key)}
                                     >
-                                        <Text style={[styles.damageChipText, itemDamageType === key && styles.damageChipTextActive]}>
+                                        <Text style={[styles.damageChipText, isDarkMode && styles.darkDamageChipText, itemDamageType === key && styles.damageChipTextActive]}>
                                             {type.label}
                                         </Text>
                                     </TouchableOpacity>
@@ -612,6 +626,9 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0, 0, 0, 0.05)',
     },
+    darkSuggestionItem: {
+        borderBottomColor: COLORS.borderDark,
+    },
     suggestionIcon: {
         marginRight: 10,
     },
@@ -649,7 +666,7 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     darkBonusCard: {
-        backgroundColor: COLORS.cardDark,
+        backgroundColor: COLORS.inputDark,
         borderColor: COLORS.borderDark,
     },
     bonusLabel: {
@@ -680,6 +697,9 @@ const styles = StyleSheet.create({
         color: '#888',
         marginTop: 8,
     },
+    darkEmptyItemsText: {
+        color: COLORS.textMutedDark,
+    },
     itemCard: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -688,7 +708,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#f1f1f1',
     },
     darkItemCard: {
-        borderBottomColor: '#333',
+        borderBottomColor: COLORS.borderDark,
     },
     itemMain: {
         flex: 1,
@@ -793,10 +813,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#f1f3f5',
         marginRight: 8,
     },
+    darkDamageChip: {
+        backgroundColor: COLORS.inputDark,
+    },
     damageChipText: {
         fontSize: 12,
         fontWeight: '600',
         color: '#666',
+    },
+    darkDamageChipText: {
+        color: COLORS.textMutedDark,
     },
     damageChipTextActive: {
         color: '#fff',

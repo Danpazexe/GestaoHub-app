@@ -134,17 +134,17 @@ const AvariaResolutionScreen = ({ navigation, route, isDarkMode }) => {
                     <Text style={[styles.itemTitle, isDarkMode && styles.darkText]}>{item.descricao}</Text>
                     <View style={styles.infoRow}>
                         <View style={styles.infoBlock}>
-                            <Text style={styles.label}>Quantidade</Text>
+                            <Text style={[styles.label, isDarkMode && styles.darkTextMuted]}>Quantidade</Text>
                             <Text style={[styles.value, isDarkMode && styles.darkText]}>{item.quantidade} un</Text>
                         </View>
-                        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#444' : '#eee' }]} />
+                        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#3a4265' : '#eee' }]} />
                         <View style={styles.infoBlock}>
-                            <Text style={styles.label}>Lote</Text>
+                            <Text style={[styles.label, isDarkMode && styles.darkTextMuted]}>Lote</Text>
                             <Text style={[styles.value, isDarkMode && styles.darkText]}>{item.lote || '-'}</Text>
                         </View>
-                        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#444' : '#eee' }]} />
+                        <View style={[styles.separator, { backgroundColor: isDarkMode ? '#3a4265' : '#eee' }]} />
                         <View style={styles.infoBlock}>
-                            <Text style={styles.label}>Data Avaria</Text>
+                            <Text style={[styles.label, isDarkMode && styles.darkTextMuted]}>Data Avaria</Text>
                             <Text style={[styles.value, isDarkMode && styles.darkText]}>{new Date(item.damageDate).toLocaleDateString()}</Text>
                         </View>
                     </View>
@@ -182,7 +182,7 @@ const AvariaResolutionScreen = ({ navigation, route, isDarkMode }) => {
                                 <Text style={[styles.actionTitle, { color: res.color }]}>{res.label}</Text>
                                 <Text style={[styles.actionDesc, isDarkMode && styles.darkTextMuted]}>{res.desc}</Text>
                             </View>
-                            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                            <MaterialIcons name="chevron-right" size={20} color={isDarkMode ? '#9fa7c7' : '#ccc'} />
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     },
     darkItemCard: {
         backgroundColor: COLORS.cardDark,
-        borderColor: '#444',
+        borderColor: '#3a4265',
     },
     damageBadge: {
         flexDirection: 'row',
@@ -268,8 +268,8 @@ const styles = StyleSheet.create({
         borderLeftColor: '#ccc',
     },
     darkNotesBox: {
-        backgroundColor: '#444',
-        borderLeftColor: '#666',
+        backgroundColor: '#1f2438',
+        borderLeftColor: '#3a4265',
     },
     noteText: {
         fontStyle: 'italic',
@@ -297,8 +297,8 @@ const styles = StyleSheet.create({
         borderColor: '#eee',
     },
     darkInput: {
-        backgroundColor: '#333',
-        borderColor: '#444',
+        backgroundColor: '#2b3350',
+        borderColor: '#3a4265',
         color: COLORS.textDark,
     },
     actionsGrid: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     },
     darkResolutionCard: {
         backgroundColor: COLORS.cardDark,
-        borderColor: COLORS.borderDark,
+        borderColor: '#3a4265',
     },
     actionIcon: {
         width: 48,
