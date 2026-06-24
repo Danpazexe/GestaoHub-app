@@ -1,6 +1,7 @@
 import {
   listValidadeProducts,
   upsertValidadeProduct,
+  removeValidadeProduct,
 } from '../../../services/validadeSupabaseService';
 import {
   readValidadeProductsCache,
@@ -104,12 +105,34 @@ export const deleteValidadeProductRecord = async (productId) => {
   const products = await readValidadeProductsCache();
   const filtered = products.filter((item) => item?.id !== productId);
   await writeValidadeProductsCache(filtered);
+
+  // Propaga a exclusão para o Supabase — senão a web continua exibindo o registro.
+  // Best-effort: se falhar (offline), o próximo sync remoto reexibe o item (fonte
+  // da verdade é o remoto), sinalizando que a exclusão ainda não foi confirmada.
+  try {
+    await removeValidadeProduct(productId);
+  } catch (error) {
+    console.warn('Falha ao excluir registro de validade no Supabase.', error?.message || error);
+  }
+
   return filtered;
 };
 
 export const clearTreatedValidadeProducts = async () => {
   const products = await readValidadeProductsCache();
+  const treatedIds = products
+    .filter((item) => item?.status === 'treated' || item?.status === 'resolved')
+    .map((item) => item?.id)
+    .filter(Boolean);
   const filtered = products.filter((item) => item?.status !== 'treated' && item?.status !== 'resolved');
   await writeValidadeProductsCache(filtered);
+
+  // Propaga a limpeza do histórico para o Supabase (mesma exclusão na web).
+  try {
+    await Promise.all(treatedIds.map((id) => removeValidadeProduct(id)));
+  } catch (error) {
+    console.warn('Falha ao limpar histórico de validade no Supabase.', error?.message || error);
+  }
+
   return filtered;
 };
