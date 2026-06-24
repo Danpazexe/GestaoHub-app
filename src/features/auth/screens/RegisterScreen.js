@@ -207,7 +207,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
           <Animated.View style={styles.header}>
             <Image
               source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
-              style={styles.logo}
+              style={[styles.logo, isDarkMode && { tintColor: '#ffffff' }]}
               resizeMode="contain"
             />
             <View style={styles.welcomeContainer}>

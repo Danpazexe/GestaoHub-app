@@ -231,7 +231,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
             <Animated.View style={{ transform: [{ scale: logoScale }] }}>
               <Image
                 source={require("../../../../assets/Image/LOGOCOMFRASE.png")}
-                style={styles.logo}
+                style={[styles.logo, isDarkMode && { tintColor: '#ffffff' }]}
                 resizeMode="contain"
               />
             </Animated.View>
