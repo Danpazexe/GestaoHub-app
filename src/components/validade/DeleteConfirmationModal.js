@@ -22,11 +22,11 @@ const DeleteConfirmationModal = ({
           <Text style={[styles.modalTitle, isDarkMode && styles.darkText]}>
             Confirmar Exclusão
           </Text>
-          <Text style={[styles.productName, isDarkMode && { color: '#999' }]} numberOfLines={2}>
+          <Text style={[styles.productName, isDarkMode && styles.darkMutedText]} numberOfLines={2}>
             {product?.descricao}
           </Text>
         </View>
-        <Text style={[styles.confirmationText, isDarkMode && { color: '#999' }]}>Tem certeza que deseja excluir este produto?</Text>
+        <Text style={[styles.confirmationText, isDarkMode && styles.darkMutedText]}>Tem certeza que deseja excluir este produto?</Text>
         <View style={styles.confirmationButtons}>
           <Pressable
             style={styles.confirmationCancelButton}
@@ -72,9 +72,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   darkModalView: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#262d47',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#3a4265',
   },
   modalHeader: {
     alignItems: 'center',
@@ -93,7 +93,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   darkText: {
-    color: '#EAEAEA',
+    color: '#f3f5ff',
+  },
+  darkMutedText: {
+    color: '#aab1cf',
   },
   confirmationText: {
     fontSize: 16,

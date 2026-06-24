@@ -389,7 +389,7 @@ const ProductItem = ({
               >
                 <Image
                   source={{ uri: resolvedImageUrl }}
-                  style={styles.image}
+                  style={[styles.image, isDarkMode && styles.darkImage]}
                   resizeMode="cover"
                   onError={handleImageRenderError}
                 />
@@ -550,6 +550,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.10,
     shadowRadius: 2,
+  },
+  darkImage: {
+    backgroundColor: COLORS.placeholderDark,
+    borderColor: COLORS.placeholderBorderDark,
   },
   placeholderImage: {
     backgroundColor: COLORS.imageBackground,

@@ -43,6 +43,20 @@ const TREATMENT_TYPES = {
 };
 
 const TratarScreen = ({ navigation, isDarkMode }) => {
+  const palette = useMemo(() => ({
+    surface: isDarkMode ? COLORS.cardDark : '#FFF',
+    input: isDarkMode ? '#2b3350' : '#FFF',
+    textPrimary: isDarkMode ? COLORS.textDark : '#333',
+    textSecondary: isDarkMode ? COLORS.textMutedDark : '#666',
+    textLabel: isDarkMode ? COLORS.textMutedDark : '#888',
+    textFaint: isDarkMode ? COLORS.textMutedDark : '#999',
+    placeholder: isDarkMode ? '#9fa7c7' : COLORS.textMuted,
+    chip: isDarkMode ? COLORS.cardDark : '#F0F0F0',
+    chipBorder: isDarkMode ? COLORS.borderDark : 'transparent',
+    divider: isDarkMode ? COLORS.borderDark : '#F0F0F0',
+    icon: isDarkMode ? COLORS.textMutedDark : COLORS.textMuted,
+  }), [isDarkMode]);
+
   const [treatedItems, setTreatedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -286,8 +300,8 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
       <TouchableOpacity
         style={[
           styles.filterChip,
-          isSelected && { backgroundColor: typeInfo.color || COLORS.primary },
-          !isSelected && isDarkMode && styles.darkFilterChip,
+          { backgroundColor: palette.chip, borderColor: palette.chipBorder },
+          isSelected && { backgroundColor: typeInfo.color || COLORS.primary, borderColor: 'transparent' },
         ]}
         onPress={() => { haptics.selection(); setSelectedFilter(type); }}
         activeOpacity={0.7}
@@ -298,13 +312,13 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
         <MaterialIcons
           name={icon}
           size={16}
-          color={isSelected ? '#FFF' : (isDarkMode ? COLORS.textMuted : COLORS.textMuted)}
+          color={isSelected ? '#FFF' : palette.icon}
         />
         <Text
           style={[
             styles.filterChipText,
+            { color: palette.textSecondary },
             isSelected && styles.filterChipTextSelected,
-            !isSelected && isDarkMode && { color: COLORS.textMuted },
           ]}
         >
           {label}
@@ -315,7 +329,7 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
 
   const StatsCard = ({ label, value, color, icon }) => (
     <View
-      style={[styles.statsCard, isDarkMode && styles.darkStatsCard, { borderBottomColor: color, borderBottomWidth: 3 }]}
+      style={[styles.statsCard, { backgroundColor: palette.surface }, { borderBottomColor: color, borderBottomWidth: 3 }]}
       accessible
       accessibilityLabel={`${label}: ${value}`}
     >
@@ -323,8 +337,8 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
         <MaterialIcons name={icon} size={20} color={color} />
       </View>
       <View>
-        <Text style={[styles.statsValue, isDarkMode && styles.darkText]}>{value}</Text>
-        <Text style={[styles.statsLabel, isDarkMode && styles.darkTextMuted]}>{label}</Text>
+        <Text style={[styles.statsValue, { color: palette.textPrimary }]}>{value}</Text>
+        <Text style={[styles.statsLabel, { color: palette.textLabel }]}>{label}</Text>
       </View>
     </View>
   );
@@ -337,33 +351,33 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
         onDelete={() => handleDeleteItem(item)}
         isDarkMode={isDarkMode}
       >
-        <View style={[styles.itemCard, isDarkMode && styles.darkItemCard]}>
+        <View style={[styles.itemCard, { backgroundColor: palette.surface }, isDarkMode && styles.darkItemCardBorder]}>
           <View style={styles.itemHeader}>
             <View style={[styles.iconContainer, { backgroundColor: info.color }]}>
               <MaterialIcons name={info.icon} size={20} color="#FFF" />
             </View>
             <View style={styles.itemHeaderText}>
-              <Text style={[styles.itemTitle, isDarkMode && styles.darkText]} numberOfLines={1}>
+              <Text style={[styles.itemTitle, { color: palette.textPrimary }]} numberOfLines={1}>
                 {item.descricao}
               </Text>
-              <Text style={styles.itemDate}>
+              <Text style={[styles.itemDate, { color: palette.textFaint }]}>
                 {new Date(item.treatmentDate).toLocaleDateString('pt-BR')} as {new Date(item.treatmentDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
           </View>
 
-          <View style={styles.itemDivider} />
+          <View style={[styles.itemDivider, { backgroundColor: palette.divider }]} />
 
           <View style={styles.itemBody}>
             <View style={styles.infoRow}>
-              <MaterialIcons name="qr-code" size={14} color={COLORS.textMuted} />
-              <Text style={[styles.infoText, isDarkMode && styles.darkTextMuted]}>
+              <MaterialIcons name="qr-code" size={14} color={palette.icon} />
+              <Text style={[styles.infoText, { color: palette.textSecondary }]}>
                 Cod: {item.codprod || '-'}
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <MaterialIcons name="layers" size={14} color={COLORS.textMuted} />
-              <Text style={[styles.infoText, isDarkMode && styles.darkTextMuted]}>
+              <MaterialIcons name="layers" size={14} color={palette.icon} />
+              <Text style={[styles.infoText, { color: palette.textSecondary }]}>
                 Lote: {item.lote || '-'}
               </Text>
             </View>
@@ -389,18 +403,18 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
       darkBackground={COLORS.backgroundDark}
     >
       <View style={styles.container}>
-        <View style={[styles.searchContainer, isDarkMode && styles.darkSearchContainer]}>
-          <MaterialIcons name="search" size={22} color={COLORS.textMuted} style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: palette.input }]}>
+          <MaterialIcons name="search" size={22} color={palette.icon} style={styles.searchIcon} />
           <TextInput
-            style={[styles.searchInput, isDarkMode && styles.darkSearchInput]}
+            style={[styles.searchInput, { color: palette.textPrimary }]}
             placeholder="Buscar por nome, código ou lote..."
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={palette.placeholder}
             value={searchText}
             onChangeText={setSearchText}
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')}>
-              <MaterialIcons name="close" size={20} color={COLORS.textMuted} />
+              <MaterialIcons name="close" size={20} color={palette.icon} />
             </TouchableOpacity>
           )}
         </View>
@@ -439,8 +453,8 @@ const TratarScreen = ({ navigation, isDarkMode }) => {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <MaterialIcons name="history" size={48} color={`${COLORS.textMuted}50`} />
-                <Text style={[styles.emptyText, isDarkMode && styles.darkTextMuted]}>
+                <MaterialIcons name="history" size={48} color={palette.icon} />
+                <Text style={[styles.emptyText, { color: palette.textLabel }]}>
                   Nenhum registro encontrado
                 </Text>
               </View>
@@ -472,9 +486,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  darkSearchContainer: {
-    backgroundColor: COLORS.cardDark,
-  },
   searchIcon: {
     marginRight: 8,
   },
@@ -482,9 +493,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: '#333',
-  },
-  darkSearchInput: {
-    color: '#FFF',
   },
   statsScroll: {
     paddingHorizontal: 12,
@@ -506,9 +514,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
     height: 54,
-  },
-  darkStatsCard: {
-    backgroundColor: COLORS.cardDark,
   },
   statsIconConfig: {
     width: 32,
@@ -546,10 +551,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  darkFilterChip: {
-    backgroundColor: '#262d47',
-    borderColor: '#333',
-  },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
@@ -577,8 +578,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  darkItemCard: {
-    backgroundColor: COLORS.cardDark,
+  darkItemCardBorder: {
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
   },
@@ -675,12 +675,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#888',
     fontWeight: '500',
-  },
-  darkText: {
-    color: '#FFF',
-  },
-  darkTextMuted: {
-    color: '#AAA',
   },
 });
 

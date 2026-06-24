@@ -244,10 +244,10 @@ const PdfScreen = ({ isDarkMode }) => {
       justifyContent: 'center',
       alignItems: 'center',
       padding: 24,
-      backgroundColor: isDarkMode ? '#181A20' : '#e8f0ff',
+      backgroundColor: isDarkMode ? '#1f2438' : '#e8f0ff',
     },
     card: {
-      backgroundColor: isDarkMode ? '#23262F' : '#f9fbff',
+      backgroundColor: isDarkMode ? '#262d47' : '#f9fbff',
       borderRadius: 22,
       padding: 32,
       alignItems: 'center',
@@ -262,14 +262,14 @@ const PdfScreen = ({ isDarkMode }) => {
     title: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: isDarkMode ? '#FFFFFF' : '#B0B3B8',
+      color: isDarkMode ? '#f3f5ff' : '#222',
       marginBottom: 10,
       textAlign: 'center',
       letterSpacing: 0.5,
     },
     desc: {
       fontSize: 16,
-      color: isDarkMode ? '#B0B3B8' : '#B0B3B8',
+      color: isDarkMode ? '#aab1cf' : '#666',
       marginBottom: 28,
       textAlign: 'center',
       lineHeight: 22,
@@ -297,7 +297,7 @@ const PdfScreen = ({ isDarkMode }) => {
     sectionTitle: {
       fontSize: 18,
       fontWeight: 'bold',
-      color: isDarkMode ? '#FFFFFF' : '#B0B3B8',
+      color: isDarkMode ? '#f3f5ff' : '#222',
       marginBottom: 10,
     },
     toggleRow: {
@@ -341,9 +341,9 @@ const PdfScreen = ({ isDarkMode }) => {
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={{
-                backgroundColor: orderBy === 'validade' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: orderBy === 'validade' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: orderBy === 'validade' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: orderBy === 'validade' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 18,
@@ -356,7 +356,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setOrderBy('validade')}
             >
               <Text style={{
-                color: orderBy === 'validade' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
+                color: orderBy === 'validade' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'),
                 fontWeight: orderBy === 'validade' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -365,9 +365,9 @@ const PdfScreen = ({ isDarkMode }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: orderBy === 'quantidade' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: orderBy === 'quantidade' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: orderBy === 'quantidade' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: orderBy === 'quantidade' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 18,
@@ -379,7 +379,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setOrderBy('quantidade')}
             >
               <Text style={{
-                color: orderBy === 'quantidade' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
+                color: orderBy === 'quantidade' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'),
                 fontWeight: orderBy === 'quantidade' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -393,9 +393,9 @@ const PdfScreen = ({ isDarkMode }) => {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: orderDirection === 'asc' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: orderDirection === 'asc' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: orderDirection === 'asc' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: orderDirection === 'asc' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -407,16 +407,16 @@ const PdfScreen = ({ isDarkMode }) => {
               }}
               onPress={() => setOrderDirection('asc')}
             >
-              <MaterialCommunityIcons name="arrow-up" size={20} color={orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222')} />
-              <Text style={{ color: orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'asc' ? 'bold' : 'normal', fontSize: 14 }}>Crescente</Text>
+              <MaterialCommunityIcons name="arrow-up" size={20} color={orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222')} />
+              <Text style={{ color: orderDirection === 'asc' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'asc' ? 'bold' : 'normal', fontSize: 14 }}>Crescente</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: orderDirection === 'desc' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: orderDirection === 'desc' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: orderDirection === 'desc' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: orderDirection === 'desc' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -427,17 +427,17 @@ const PdfScreen = ({ isDarkMode }) => {
               }}
               onPress={() => setOrderDirection('desc')}
             >
-              <MaterialCommunityIcons name="arrow-down" size={20} color={orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222')} />
-              <Text style={{ color: orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'desc' ? 'bold' : 'normal', fontSize: 14 }}>Decrescente</Text>
+              <MaterialCommunityIcons name="arrow-down" size={20} color={orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222')} />
+              <Text style={{ color: orderDirection === 'desc' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'), marginLeft: 8, fontWeight: orderDirection === 'desc' ? 'bold' : 'normal', fontSize: 14 }}>Decrescente</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.sectionTitle}>Filtrar por validade</Text>
           <View style={styles.toggleRow}>
             <TouchableOpacity
               style={{
-                backgroundColor: filterValidade === '7' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: filterValidade === '7' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: filterValidade === '7' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: filterValidade === '7' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -450,7 +450,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setFilterValidade('7')}
             >
               <Text style={{
-                color: filterValidade === '7' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
+                color: filterValidade === '7' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'),
                 fontWeight: filterValidade === '7' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -459,9 +459,9 @@ const PdfScreen = ({ isDarkMode }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: filterValidade === '15' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: filterValidade === '15' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: filterValidade === '15' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: filterValidade === '15' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -474,7 +474,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setFilterValidade('15')}
             >
               <Text style={{
-                color: filterValidade === '15' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
+                color: filterValidade === '15' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'),
                 fontWeight: filterValidade === '15' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -483,9 +483,9 @@ const PdfScreen = ({ isDarkMode }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={{
-                backgroundColor: filterValidade === 'todos' ? '#d7263d' : (isDarkMode ? '#23283a' : '#fff'),
+                backgroundColor: filterValidade === 'todos' ? '#d7263d' : (isDarkMode ? '#262d47' : '#fff'),
                 borderWidth: 2,
-                borderColor: filterValidade === 'todos' ? '#d7263d' : (isDarkMode ? '#444' : '#ccc'),
+                borderColor: filterValidade === 'todos' ? '#d7263d' : (isDarkMode ? '#3a4265' : '#ccc'),
                 borderRadius: 16,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
@@ -497,7 +497,7 @@ const PdfScreen = ({ isDarkMode }) => {
               onPress={() => setFilterValidade('todos')}
             >
               <Text style={{
-                color: filterValidade === 'todos' ? '#fff' : (isDarkMode ? '#FFFFFF' : '#222'),
+                color: filterValidade === 'todos' ? '#fff' : (isDarkMode ? '#f3f5ff' : '#222'),
                 fontWeight: filterValidade === 'todos' ? 'bold' : 'normal',
                 fontSize: 14
               }}>
@@ -514,7 +514,7 @@ const PdfScreen = ({ isDarkMode }) => {
               ios_backgroundColor="#ccc"
               style={{ transform: [{ scaleX: 1.15 }, { scaleY: 1.15 }] }}
             />
-            <Text style={{ marginLeft: 10, color: isDarkMode ? '#FFFFFF' : '#222' }}>Incluir legenda de status no PDF</Text>
+            <Text style={{ marginLeft: 10, color: isDarkMode ? '#f3f5ff' : '#222' }}>Incluir legenda de status no PDF</Text>
           </View>
           <TouchableOpacity
             style={[
