@@ -14,17 +14,19 @@ import { version } from '../../../../package.json';
 
 const { width, height } = Dimensions.get('window');
 
-const COLORS = {
+const getColors = (isDarkMode) => ({
   primary: '#40444c',
   primaryDeep: '#2f333a',
   secondary: '#f4cc84',
-  text: '#40444c',
-  textSoft: 'rgba(64, 68, 76, 0.78)',
-  overlay: '#ffffff',
-};
+  text: isDarkMode ? '#f3f5ff' : '#40444c',
+  textSoft: isDarkMode ? '#aab1cf' : 'rgba(64, 68, 76, 0.78)',
+  overlay: isDarkMode ? '#1f2438' : '#ffffff',
+});
 
-const EntryScreen = () => {
+const EntryScreen = ({ isDarkMode }) => {
   const navigation = useNavigation();
+  const COLORS = useMemo(() => getColors(isDarkMode), [isDarkMode]);
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(12)).current;
 
@@ -125,7 +127,7 @@ const EntryScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (COLORS) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.overlay,

@@ -26,6 +26,17 @@ const COLORS = CORESREGISTER;
 
 const RegisterScreen = ({ navigation, isDarkMode }) => {
   const insets = useSafeAreaInsets();
+
+  const palette = {
+    fundo: isDarkMode ? COLORS.fundoDark : COLORS.fundo,
+    cartao: isDarkMode ? COLORS.cartaoDark : COLORS.cartao,
+    input: isDarkMode ? COLORS.inputDark : COLORS.fundo,
+    borda: isDarkMode ? COLORS.bordaDark : COLORS.borda,
+    textoPrincipal: isDarkMode ? COLORS.textoPrincipalDark : COLORS.textoPrincipal,
+    textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
+    placeholder: isDarkMode ? COLORS.placeholderDark : COLORS.placeholder,
+    modalOverlay: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)',
+  };
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -190,8 +201,8 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]} edges={['top', 'left', 'right']}>
-      <View style={styles.background}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.fundo }]} edges={['top', 'left', 'right']}>
+      <View style={[styles.background, { backgroundColor: palette.fundo }]}>
         <View style={styles.centeredContent}>
           <Animated.View style={styles.header}>
             <Image
@@ -200,7 +211,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               resizeMode="contain"
             />
             <View style={styles.welcomeContainer}>
-              <Text style={[styles.subtitleText, { color: COLORS.textoSecundario }]}>
+              <Text style={[styles.subtitleText, { color: palette.textoSecundario }]}>
                 Crie sua conta para começar
               </Text>
             </View>
@@ -209,6 +220,8 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
             style={[
               styles.formContainer,
               {
+                backgroundColor: palette.cartao,
+                borderColor: palette.borda,
                 opacity: fadeAnim,
                 transform: [
                   { translateY: slideAnim },
@@ -222,23 +235,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               <View style={[
                 styles.inputContainer,
                 {
-                  backgroundColor: COLORS.fundo,
-                  borderColor: nameError ? COLORS.erro : COLORS.borda,
+                  backgroundColor: palette.input,
+                  borderColor: nameError ? COLORS.erro : palette.borda,
                 }
               ]}>
                 <MaterialIcons
                   name="person"
                   size={22}
-                  color={nameError ? COLORS.erro : COLORS.textoSecundario}
+                  color={nameError ? COLORS.erro : palette.textoSecundario}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
                     styles.input,
-                    { color: COLORS.textoPrincipal }
+                    { color: palette.textoPrincipal }
                   ]}
                   placeholder="Nome completo"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={palette.placeholder}
                   value={name}
                   onChangeText={(text) => {
                     setName(text);
@@ -260,23 +273,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               <View style={[
                 styles.inputContainer,
                 {
-                  backgroundColor: COLORS.fundo,
-                  borderColor: emailError ? COLORS.erro : COLORS.borda,
+                  backgroundColor: palette.input,
+                  borderColor: emailError ? COLORS.erro : palette.borda,
                 }
               ]}>
                 <MaterialIcons
                   name="email"
                   size={22}
-                  color={emailError ? COLORS.erro : COLORS.textoSecundario}
+                  color={emailError ? COLORS.erro : palette.textoSecundario}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
                     styles.input,
-                    { color: COLORS.textoPrincipal }
+                    { color: palette.textoPrincipal }
                   ]}
                   placeholder="Digite seu email"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={palette.placeholder}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -300,23 +313,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               <View style={[
                 styles.inputContainer,
                 {
-                  backgroundColor: COLORS.fundo,
-                  borderColor: passwordError ? COLORS.erro : COLORS.borda,
+                  backgroundColor: palette.input,
+                  borderColor: passwordError ? COLORS.erro : palette.borda,
                 }
               ]}>
                 <MaterialIcons
                   name="lock"
                   size={22}
-                  color={passwordError ? COLORS.erro : COLORS.textoSecundario}
+                  color={passwordError ? COLORS.erro : palette.textoSecundario}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
                     styles.input,
-                    { color: COLORS.textoPrincipal }
+                    { color: palette.textoPrincipal }
                   ]}
                   placeholder="Digite sua senha"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={palette.placeholder}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -336,7 +349,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   <MaterialIcons
                     name={secureText ? "visibility" : "visibility-off"}
                     size={22}
-                    color={COLORS.textoSecundario}
+                    color={palette.textoSecundario}
                   />
                 </TouchableOpacity>
               </View>
@@ -353,23 +366,23 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               <View style={[
                 styles.inputContainer,
                 {
-                  backgroundColor: COLORS.fundo,
-                  borderColor: confirmPasswordError ? COLORS.erro : COLORS.borda,
+                  backgroundColor: palette.input,
+                  borderColor: confirmPasswordError ? COLORS.erro : palette.borda,
                 }
               ]}>
                 <MaterialIcons
                   name="lock-outline"
                   size={22}
-                  color={confirmPasswordError ? COLORS.erro : COLORS.textoSecundario}
+                  color={confirmPasswordError ? COLORS.erro : palette.textoSecundario}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
                     styles.input,
-                    { color: COLORS.textoPrincipal }
+                    { color: palette.textoPrincipal }
                   ]}
                   placeholder="Confirme sua senha"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={palette.placeholder}
                   value={confirmPassword}
                   onChangeText={(text) => {
                     setConfirmPassword(text);
@@ -389,7 +402,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
                   <MaterialIcons
                     name={secureConfirmText ? "visibility" : "visibility-off"}
                     size={22}
-                    color={COLORS.textoSecundario}
+                    color={palette.textoSecundario}
                   />
                 </TouchableOpacity>
               </View>
@@ -413,15 +426,19 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               <View style={[
                 styles.termsCheckbox,
                 {
-                  backgroundColor: termsAccepted ? COLORS.textoPrincipal : 'transparent',
-                  borderColor: termsAccepted ? COLORS.textoPrincipal : COLORS.borda,
+                  backgroundColor: termsAccepted ? palette.textoPrincipal : 'transparent',
+                  borderColor: termsAccepted ? palette.textoPrincipal : palette.borda,
                 }
               ]}>
                 {termsAccepted && (
-                  <MaterialIcons name="check" size={16} color={COLORS.branco} />
+                  <MaterialIcons
+                    name="check"
+                    size={16}
+                    color={isDarkMode ? palette.cartao : COLORS.branco}
+                  />
                 )}
               </View>
-              <Text style={styles.termsText}>
+              <Text style={[styles.termsText, { color: palette.textoSecundario }]}>
                 Li e aceito os{' '}
                 <Text style={styles.termsLink} onPress={() => openTerms('terms')}>Termos de Uso</Text>
                 {' '}e a{' '}
@@ -436,6 +453,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
             <TouchableOpacity
               style={[
                 styles.registerButton,
+                { backgroundColor: palette.textoPrincipal },
                 pressedButton && styles.registerButtonPressed,
               ]}
               activeOpacity={0.9}
@@ -445,11 +463,11 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color={COLORS.branco} />
+                <ActivityIndicator size="small" color={isDarkMode ? palette.cartao : COLORS.branco} />
               ) : (
                 <>
-                  <MaterialIcons name="person-add" size={20} color={COLORS.branco} />
-                  <Text style={styles.registerButtonText}>Cadastrar</Text>
+                  <MaterialIcons name="person-add" size={20} color={isDarkMode ? palette.cartao : COLORS.branco} />
+                  <Text style={[styles.registerButtonText, { color: isDarkMode ? palette.cartao : COLORS.branco }]}>Cadastrar</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -461,7 +479,7 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
             >
               <Text style={[
                 styles.loginLinkText,
-                { color: COLORS.textoSecundario }
+                { color: palette.textoSecundario }
               ]}>
                 Já tem uma conta?{' '}
                 <Text style={styles.loginLinkTextBold}>Faça login</Text>
@@ -476,43 +494,43 @@ const RegisterScreen = ({ navigation, isDarkMode }) => {
         transparent
         onRequestClose={() => setTermsVisible(false)}
       >
-        <View style={styles.termsModalOverlay}>
-          <View style={styles.termsModalCard}>
+        <View style={[styles.termsModalOverlay, { backgroundColor: palette.modalOverlay }]}>
+          <View style={[styles.termsModalCard, { backgroundColor: palette.cartao }]}>
             <View style={styles.termsModalHeader}>
-              <Text style={styles.termsModalTitle}>Termos e Privacidade</Text>
+              <Text style={[styles.termsModalTitle, { color: palette.textoPrincipal }]}>Termos e Privacidade</Text>
               <TouchableOpacity onPress={() => setTermsVisible(false)}>
-                <MaterialIcons name="close" size={22} color={COLORS.textoSecundario} />
+                <MaterialIcons name="close" size={22} color={palette.textoSecundario} />
               </TouchableOpacity>
             </View>
             <ScrollView ref={termsScrollRef} showsVerticalScrollIndicator={false}>
               <Text
-                style={styles.termsSectionTitle}
+                style={[styles.termsSectionTitle, { color: palette.textoPrincipal }]}
                 onLayout={(e) => setTermsAnchorY(e.nativeEvent.layout.y)}
               >
                 Termos de Uso
               </Text>
-              <Text style={styles.termsSectionText}>
+              <Text style={[styles.termsSectionText, { color: palette.textoSecundario }]}>
                 Ao criar sua conta, você concorda em utilizar o aplicativo de forma responsável,
                 respeitando as políticas internas e a legislação vigente. Você é responsável pelas
                 informações cadastradas e pela segurança do seu acesso.
               </Text>
-              <Text style={styles.termsSectionText}>
+              <Text style={[styles.termsSectionText, { color: palette.textoSecundario }]}>
                 É proibido utilizar o aplicativo para fins ilícitos, inserir dados falsos ou
                 comprometer o funcionamento do sistema. Podemos suspender ou encerrar contas que
                 violem estes termos.
               </Text>
 
               <Text
-                style={styles.termsSectionTitle}
+                style={[styles.termsSectionTitle, { color: palette.textoPrincipal }]}
                 onLayout={(e) => setPrivacyAnchorY(e.nativeEvent.layout.y)}
               >
                 Política de Privacidade
               </Text>
-              <Text style={styles.termsSectionText}>
+              <Text style={[styles.termsSectionText, { color: palette.textoSecundario }]}>
                 Coletamos apenas os dados necessários para o funcionamento do aplicativo, como nome,
                 e-mail e informações de produtos cadastrados. Seus dados não são vendidos a terceiros.
               </Text>
-              <Text style={styles.termsSectionText}>
+              <Text style={[styles.termsSectionText, { color: palette.textoSecundario }]}>
                 Você pode solicitar a atualização ou exclusão dos seus dados a qualquer momento.
                 Utilizamos medidas de segurança para proteger suas informações.
               </Text>

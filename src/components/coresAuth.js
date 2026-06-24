@@ -1,5 +1,13 @@
 // Compatibility bridge. Prefer tokens from `src/theme/*` in new or migrated code.
 export const CORESLOGIN = {
+  // Modo escuro (mesma convenção do app; fundoDark já definido abaixo)
+  cartaoDark: '#262d47',
+  bordaDark: '#3a4265',
+  textoPrincipalDark: '#f3f5ff',
+  textoSecundarioDark: '#aab1cf',
+  inputDark: '#2b3350',
+  placeholderDark: '#9fa7c7',
+
   // Base da marca
   fundo: '#f4f6fb',
   textoPrincipal: '#2e3554',
@@ -25,6 +33,14 @@ export const CORESLOGIN = {
 };
 
 export const CORESREGISTER = {
+  // Modo escuro (mesma convenção do app; fundoDark já definido abaixo)
+  cartaoDark: '#262d47',
+  bordaDark: '#3a4265',
+  textoPrincipalDark: '#f3f5ff',
+  textoSecundarioDark: '#aab1cf',
+  inputDark: '#2b3350',
+  placeholderDark: '#9fa7c7',
+
   // Base da marca
   fundo: '#f4f6fb',
   textoPrincipal: '#2e3554',

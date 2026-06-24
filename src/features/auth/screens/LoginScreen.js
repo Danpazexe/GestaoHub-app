@@ -21,7 +21,23 @@ import haptics from '../../../utils/haptics';
 
 const COLORS = CORESLOGIN;
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, isDarkMode }) => {
+  const palette = {
+    // Superfícies
+    fundo: isDarkMode ? COLORS.fundoDark : COLORS.fundo,
+    cartao: isDarkMode ? COLORS.cartaoDark : COLORS.cartao,
+    input: isDarkMode ? COLORS.inputDark : COLORS.fundo,
+    borda: isDarkMode ? COLORS.bordaDark : COLORS.borda,
+    // Textos
+    textoPrincipal: isDarkMode ? COLORS.textoPrincipalDark : COLORS.textoPrincipal,
+    textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
+    placeholder: isDarkMode ? COLORS.placeholderDark : COLORS.placeholder,
+    // Botão primário: indigo mais claro/nítido no dark p/ manter contraste sobre fundo escuro
+    botaoPrimario: isDarkMode ? '#4a5599' : COLORS.textoPrincipal,
+    // Checkbox marcado acompanha o botão primário
+    destaque: isDarkMode ? '#4a5599' : COLORS.textoPrincipal,
+  };
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -207,9 +223,9 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.fundo }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.fundo }]} edges={['top', 'left', 'right']}>
       <KeyboardAwareScreen>
-      <View style={styles.background}>
+      <View style={[styles.background, { backgroundColor: palette.fundo }]}>
         <View style={styles.centeredContent}>
           <Animated.View style={styles.header}>
             <Animated.View style={{ transform: [{ scale: logoScale }] }}>
@@ -220,7 +236,7 @@ const LoginScreen = ({ navigation }) => {
               />
             </Animated.View>
             <View style={styles.welcomeContainer}>
-              <Text style={[styles.subtitleText, { color: COLORS.textoSecundario }]}>
+              <Text style={[styles.subtitleText, { color: palette.textoSecundario }]}>
                 Faça login para continuar
               </Text>
             </View>
@@ -229,6 +245,8 @@ const LoginScreen = ({ navigation }) => {
             style={[
               styles.formContainer,
               {
+                backgroundColor: palette.cartao,
+                borderColor: palette.borda,
                 opacity: fadeAnim,
                 transform: [
                   { translateY: slideAnim },
@@ -242,23 +260,23 @@ const LoginScreen = ({ navigation }) => {
               <View style={[
                 styles.inputContainer,
                 {
-                  backgroundColor: COLORS.fundo,
-                  borderColor: emailError ? COLORS.erro : COLORS.borda,
+                  backgroundColor: palette.input,
+                  borderColor: emailError ? COLORS.erro : palette.borda,
                 }
               ]}>
                 <MaterialIcons
                   name="email"
                   size={22}
-                  color={emailError ? COLORS.erro : COLORS.textoSecundario}
+                  color={emailError ? COLORS.erro : palette.textoSecundario}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
                     styles.input,
-                    { color: COLORS.textoPrincipal }
+                    { color: palette.textoPrincipal }
                   ]}
                   placeholder="Digite seu email"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={palette.placeholder}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -282,23 +300,23 @@ const LoginScreen = ({ navigation }) => {
               <View style={[
                 styles.inputContainer,
                 {
-                  backgroundColor: COLORS.fundo,
-                  borderColor: passwordError ? COLORS.erro : COLORS.borda,
+                  backgroundColor: palette.input,
+                  borderColor: passwordError ? COLORS.erro : palette.borda,
                 }
               ]}>
                 <MaterialIcons
                   name="lock"
                   size={22}
-                  color={passwordError ? COLORS.erro : COLORS.textoSecundario}
+                  color={passwordError ? COLORS.erro : palette.textoSecundario}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={[
                     styles.input,
-                    { color: COLORS.textoPrincipal }
+                    { color: palette.textoPrincipal }
                   ]}
                   placeholder="Digite sua senha"
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={palette.placeholder}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -314,7 +332,7 @@ const LoginScreen = ({ navigation }) => {
                   <MaterialIcons
                     name={secureText ? "visibility" : "visibility-off"}
                     size={22}
-                    color={COLORS.textoSecundario}
+                    color={palette.textoSecundario}
                   />
                 </TouchableOpacity>
               </View>
@@ -336,8 +354,8 @@ const LoginScreen = ({ navigation }) => {
                 <View style={[
                   styles.checkbox,
                   {
-                    backgroundColor: rememberMe ? COLORS.textoPrincipal : 'transparent',
-                    borderColor: rememberMe ? COLORS.textoPrincipal : COLORS.borda,
+                    backgroundColor: rememberMe ? palette.destaque : 'transparent',
+                    borderColor: rememberMe ? palette.destaque : palette.borda,
                   }
                 ]}>
                   {rememberMe && (
@@ -346,7 +364,7 @@ const LoginScreen = ({ navigation }) => {
                 </View>
                 <Text style={[
                   styles.checkboxText,
-                  { color: COLORS.textoPrincipal }
+                  { color: palette.textoPrincipal }
                 ]}>
                   Lembrar-me
                 </Text>
@@ -357,6 +375,7 @@ const LoginScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[
                 styles.loginButton,
+                { backgroundColor: palette.botaoPrimario },
                 pressedButton && styles.loginButtonPressed,
               ]}
               activeOpacity={0.9}
@@ -382,7 +401,7 @@ const LoginScreen = ({ navigation }) => {
             >
               <Text style={[
                 styles.registerLinkText,
-                { color: COLORS.textoSecundario }
+                { color: palette.textoSecundario }
               ]}>
                 Não tem uma conta?{' '}
                 <Text style={styles.registerLinkTextBold}>Cadastre-se</Text>
