@@ -474,7 +474,10 @@ select
   vp.treatment_quantity,
   vp.treatment_date,
   vp.created_at,
-  vp.updated_at
+  vp.updated_at,
+  -- Coluna APENDADA no fim (create or replace view exige manter a ordem das demais):
+  -- nota da tratativa, para o histórico/auditoria no painel.
+  vp.treatment_note
 from public.validade_products vp
 left join public.profiles p on p.user_id = vp.user_id
 order by vp.updated_at desc;
