@@ -9,6 +9,23 @@ let activeSessionId = null;
 let isCreatingSession = false;
 let cachedAppVersion = null;
 
+// Throttle dos updates de CONTEXTO (navegação rápida dispara muitos UPDATEs em
+// user_presence e gasta quota). Mudança de status e o heartbeat periódico passam direto.
+const PRESENCE_MIN_UPDATE_MS = 8000;
+let lastPresenceUpdateAt = 0;
+let pendingPresencePatch = null;
+let pendingPresenceTimer = null;
+
+const flushPresenceUpdate = async (supabase, patch) => {
+  lastPresenceUpdateAt = Date.now();
+  const { error } = await supabase
+    .from('user_presence')
+    .update(patch)
+    .eq('session_id', activeSessionId);
+  if (error) throw error;
+  return activeSessionId;
+};
+
 const getAppVersion = () => {
   if (cachedAppVersion) return cachedAppVersion;
   try {
@@ -99,12 +116,28 @@ export const reportPresence = async ({
     if (orderRef !== undefined) patch.current_order_ref = orderRef || null;
     if (batchRef !== undefined) patch.current_batch_ref = batchRef || null;
 
-    const { error } = await supabase
-      .from('user_presence')
-      .update(patch)
-      .eq('session_id', activeSessionId);
+    // Status (idle/offline/signed_out) e heartbeat após a janela passam direto; updates de
+    // contexto em rajada são coalescidos no máx. 1 a cada 8s, enviando o ESTADO MAIS RECENTE.
+    const now = Date.now();
+    if (status !== 'online' || now - lastPresenceUpdateAt >= PRESENCE_MIN_UPDATE_MS) {
+      if (pendingPresenceTimer) { clearTimeout(pendingPresenceTimer); pendingPresenceTimer = null; }
+      pendingPresencePatch = null;
+      return await flushPresenceUpdate(supabase, patch);
+    }
 
-    if (error) throw error;
+    pendingPresencePatch = patch;
+    if (!pendingPresenceTimer) {
+      pendingPresenceTimer = setTimeout(() => {
+        pendingPresenceTimer = null;
+        const queued = pendingPresencePatch;
+        pendingPresencePatch = null;
+        // activeSessionId nulo (após endPresence) cancela o envio — não ressuscita a presença.
+        if (queued && activeSessionId) {
+          flushPresenceUpdate(supabase, { ...queued, last_heartbeat_at: new Date().toISOString() })
+            .catch((error) => console.warn('[presence] Falha no envio adiado de presença.', error?.message || error));
+        }
+      }, Math.max(0, PRESENCE_MIN_UPDATE_MS - (now - lastPresenceUpdateAt)));
+    }
     return activeSessionId;
   } catch (error) {
     console.warn('[presence] Falha ao reportar presença.', error?.message || error);
@@ -117,6 +150,8 @@ export const setPresenceStatus = async (status) => reportPresence({ status });
 // Encerra a presença. Deve rodar ANTES do signOut (depois do signOut a RLS
 // rejeita o update porque auth.uid() fica nulo).
 export const endPresence = async () => {
+  if (pendingPresenceTimer) { clearTimeout(pendingPresenceTimer); pendingPresenceTimer = null; }
+  pendingPresencePatch = null;
   const supabase = getSupabaseClient();
   if (!supabase || !activeSessionId) {
     activeSessionId = null;

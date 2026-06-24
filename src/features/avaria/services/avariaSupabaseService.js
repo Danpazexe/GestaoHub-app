@@ -51,17 +51,30 @@ export const upsertAvariaBatchRemote = async (batch) => {
   }
 
   // Remove órfãos: itens remotos do lote que não estão mais na lista local.
-  const keepIds = items.map((item) => String(item.id));
-  let orphanQuery = supabase
+  // Em vez de montar um filtro `not in (...)` por string (frágil e perigoso se um id
+  // tiver vírgula/aspas — DELETE poderia atingir linhas erradas), lemos os ids remotos
+  // e apagamos APENAS os que sumiram, com `.in()` nativo (escapado pelo supabase-js).
+  const keepIds = new Set(items.map((item) => String(item.id)));
+  const { data: remoteItems, error: listError } = await supabase
     .from(ITEMS_TABLE)
-    .delete()
+    .select('id')
     .eq('user_id', userId)
     .eq('batch_id', String(batch.id));
-  if (keepIds.length > 0) {
-    orphanQuery = orphanQuery.not('id', 'in', `(${keepIds.map((id) => `"${id}"`).join(',')})`);
+  if (listError) throw new Error(listError.message || 'Falha ao listar itens de avaria');
+
+  const orphanIds = (remoteItems || [])
+    .map((row) => String(row.id))
+    .filter((id) => !keepIds.has(id));
+
+  if (orphanIds.length > 0) {
+    const { error: orphanError } = await supabase
+      .from(ITEMS_TABLE)
+      .delete()
+      .eq('user_id', userId)
+      .eq('batch_id', String(batch.id))
+      .in('id', orphanIds);
+    if (orphanError) throw new Error(orphanError.message || 'Falha ao limpar itens de avaria removidos');
   }
-  const { error: orphanError } = await orphanQuery;
-  if (orphanError) throw new Error(orphanError.message || 'Falha ao limpar itens de avaria removidos');
 
   return batch;
 };
