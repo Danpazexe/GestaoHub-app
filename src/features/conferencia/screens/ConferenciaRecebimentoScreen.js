@@ -1233,7 +1233,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       <>
         <View style={styles.searchCard}>
           <View style={styles.sectionTopRow}>
-            <View style={[styles.sectionIconWrap, { backgroundColor: colors.warm }]}>
+            <View style={[styles.sectionIconWrap, { backgroundColor: colors.primary }]}>
               <MaterialIcons name="inventory-2" size={18} color="#ffffff" />
             </View>
             <View style={{ flex: 1 }}>
@@ -1703,7 +1703,7 @@ const getStyles = (colors) =>
       borderWidth: 1,
       borderColor: colors.border,
       borderLeftWidth: 4,
-      borderLeftColor: colors.warm,
+      borderLeftColor: colors.primary,
       padding: 14,
       marginBottom: 14,
     },
