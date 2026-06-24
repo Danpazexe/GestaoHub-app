@@ -7,18 +7,25 @@ import React, {
   useState,
 } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
 import HapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ScreenLayout, {
+  createHeaderActionsTemplate,
   createHeaderTitleTemplate,
   createScreenHeaderTemplate,
 } from '../../../components/ScreenLayout';
@@ -47,6 +54,11 @@ import { conferenciaRecebimentoTheme } from '../../../theme/domains/conferencia'
 
 // ─── Highlight duration for scanned item (ms) ────────────────────────────────
 const HIGHLIGHT_DURATION = 2200;
+
+// Status "terminais": bônus que já encerrou o ciclo (conferido / entrada dada)
+// não aparece para o conferente — fica só no painel do admin.
+const TERMINAL_BONUS_STATUSES = ['finalizada', 'entrada_realizada'];
+const isTerminalBonusStatus = (status) => TERMINAL_BONUS_STATUSES.includes(status);
 const HEADER_SUPPLIER_MAX = 34;
 const truncateText = (value, max = HEADER_SUPPLIER_MAX) => {
   const text = String(value || '').trim();
@@ -55,7 +67,9 @@ const truncateText = (value, max = HEADER_SUPPLIER_MAX) => {
 };
 
 // ─── Compact summary bar shown during active conference ───────────────────────
-const CompactSummaryBar = ({ invoice, supplier, pendingCount, doneCount, divergenceCount, colors, styles }) => (
+// Conferência CEGA: a barra mostra só a identidade da NF e um progresso por
+// ITENS tocados (não por quantidade — não revela o esperado).
+const CompactSummaryBar = ({ invoice, supplier, countedCount, totalCount, colors, styles }) => (
   <View style={styles.compactBar}>
     <View style={styles.compactBarLeft}>
       <View style={styles.compactHeaderRow}>
@@ -64,26 +78,28 @@ const CompactSummaryBar = ({ invoice, supplier, pendingCount, doneCount, diverge
       </View>
       <Text style={styles.compactSupplier} numberOfLines={1}>{supplier}</Text>
     </View>
-    <View style={styles.compactPills}>
-      <View style={[styles.miniPill, { backgroundColor: colors.goldSoft, borderColor: 'rgba(245,158,11,0.22)' }]}>
-        <Text style={[styles.miniPillText, { color: colors.warm }]}>{pendingCount}</Text>
-        <Text style={[styles.miniPillCaption, { color: colors.warm }]}>pend.</Text>
-        <MaterialIcons name="schedule" size={11} color={colors.warm} />
-      </View>
-      <View style={[styles.miniPill, { backgroundColor: colors.successSoft, borderColor: 'rgba(16,185,129,0.22)' }]}>
-        <Text style={[styles.miniPillText, { color: colors.success }]}>{doneCount}</Text>
-        <Text style={[styles.miniPillCaption, { color: colors.success }]}>ok</Text>
-        <MaterialIcons name="check-circle-outline" size={11} color={colors.success} />
-      </View>
-      {divergenceCount > 0 && (
-        <View style={[styles.miniPill, { backgroundColor: colors.dangerSoft, borderColor: 'rgba(220,38,38,0.22)' }]}>
-          <Text style={[styles.miniPillText, { color: colors.danger }]}>{divergenceCount}</Text>
-          <Text style={[styles.miniPillCaption, { color: colors.danger }]}>div.</Text>
-          <MaterialIcons name="error-outline" size={11} color={colors.danger} />
-        </View>
-      )}
+    <View style={[styles.miniPill, { backgroundColor: colors.slateSoft, borderColor: colors.border }]}>
+      <MaterialIcons name="inventory-2" size={12} color={colors.textMuted} />
+      <Text style={[styles.miniPillText, { color: colors.text }]}>{countedCount}/{totalCount}</Text>
+      <Text style={[styles.miniPillCaption, { color: colors.textMuted }]}>itens</Text>
     </View>
   </View>
+);
+
+// Aba (A conferir / Conferido) — contagem por itens, cego-safe.
+const TabButton = ({ label, count, active, onPress, colors, styles }) => (
+  <Pressable
+    onPress={onPress}
+    style={[styles.tabButton, active && styles.tabButtonActive]}
+    accessibilityRole="tab"
+    accessibilityState={{ selected: active }}
+    accessibilityLabel={`${label}, ${count} ${count === 1 ? 'item' : 'itens'}`}
+  >
+    <Text style={[styles.tabButtonText, { color: active ? colors.primary : colors.textMuted }]}>{label}</Text>
+    <View style={[styles.tabBadge, { backgroundColor: active ? colors.primary : colors.slateSoft }]}>
+      <Text style={[styles.tabBadgeText, { color: active ? '#ffffff' : colors.textMuted }]}>{count}</Text>
+    </View>
+  </Pressable>
 );
 
 // ─── Animated scan input row ──────────────────────────────────────────────────
@@ -165,7 +181,28 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   const [catalogAvailable, setCatalogAvailable] = useState(false);
   const [remoteQueue, setRemoteQueue] = useState([]);
   const [activeRemoteQueueId, setActiveRemoteQueueId] = useState(null);
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [openingQueueId, setOpeningQueueId] = useState(null);
+  const [finalizedInfo, setFinalizedInfo] = useState(null);
+  const [tab, setTab] = useState(0); // 0 = A conferir, 1 = Conferido
+  // Largura/altura REAIS do pager (descontam padding + safe-area). Derivar de
+  // windowWidth desalinharia o snap em landscape/notch.
+  const [pagerSize, setPagerSize] = useState({ width: 0, height: 0 });
   const codeInputRef = useRef(null);
+  const pagerRef = useRef(null);
+
+  const goToTab = (index) => {
+    setTab(index);
+    pagerRef.current?.scrollToOffset({ offset: index * pagerSize.width, animated: true });
+  };
+
+  // Re-sincroniza o offset quando a largura muda (rotação/teclado) — senão a
+  // viewport fica num offset que não corresponde mais a uma aba inteira.
+  useEffect(() => {
+    if (pagerSize.width > 0) {
+      pagerRef.current?.scrollToOffset({ offset: tab * pagerSize.width, animated: false });
+    }
+  }, [pagerSize.width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus recovery — re-focus input whenever screen comes to foreground during active conference
   useEffect(() => {
@@ -219,8 +256,28 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     upsertDraftDebounced,
     upsertDraftImmediate,
     removeByKey,
+    clearDrafts,
     findByKey,
   } = useConferenciaRecebimentoDrafts();
+
+  const handleClearDrafts = useCallback(() => {
+    if (!drafts.length) return;
+    Alert.alert(
+      'Limpar rascunhos',
+      `Remover ${drafts.length} ${drafts.length === 1 ? 'rascunho' : 'rascunhos'} de conferência em andamento? Conferências já finalizadas não são afetadas.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Limpar',
+          style: 'destructive',
+          onPress: async () => {
+            await clearDrafts();
+            await loadDrafts();
+          },
+        },
+      ],
+    );
+  }, [drafts.length, clearDrafts, loadDrafts]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -239,8 +296,28 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
           iconName: 'inventory',
           tintColor: '#ffffff',
         }),
+      // Botão "Atualizar" no header (estilo Produtos), só na fila (não-iniciado).
+      headerRight: started
+        ? undefined
+        : () => createHeaderActionsTemplate({
+            isDarkMode,
+            actions: [
+              {
+                key: 'refresh-queue',
+                iconName: 'sync',
+                accessibilityLabel: 'Atualizar fila',
+                onPress: () => handleRefreshQueue(),
+                isActive: queueLoading,
+                iconColor: '#ffffff',
+                iconSize: 20,
+              },
+            ],
+          }),
     });
-  }, [navigation, isDarkMode, colors.primary, started, invoice, supplier]);
+    // handleRefreshQueue é estável (useCallback) — referenciado por closure,
+    // fora das deps de propósito (evita TDZ e re-render desnecessário).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, isDarkMode, colors.primary, started, invoice, supplier, queueLoading]);
 
   // ── Scanner return ──
   useEffect(() => {
@@ -257,14 +334,25 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     applyScanPayload(payload);
   }, [route.params?.scanConfirm, navigation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadRemoteQueue = useCallback(async () => {
+  const loadRemoteQueue = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setQueueLoading(true);
     try {
       const queue = await listRemoteConferenciaBonusQueue();
       setRemoteQueue(Array.isArray(queue) ? queue : []);
     } catch {
       setRemoteQueue([]);
+    } finally {
+      if (!silent) setQueueLoading(false);
     }
   }, []);
+
+  const handleRefreshQueue = useCallback(() => {
+    loadDrafts();
+    loadRemoteQueue();
+    listConferenciaRecebimentos()
+      .then((list) => setFinalizedReceipts(Array.isArray(list) ? list : []))
+      .catch(() => {});
+  }, [loadDrafts, loadRemoteQueue]);
 
   // ── Operator load ──
   useEffect(() => {
@@ -294,7 +382,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       hasConferenceCatalog()
         .then(setCatalogAvailable)
         .catch(() => setCatalogAvailable(false));
-      loadRemoteQueue();
+      loadRemoteQueue({ silent: true });
     });
     return unsub;
   }, [navigation, loadDrafts, loadRemoteQueue]);
@@ -337,12 +425,24 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       .filter(Boolean);
 
     const mergedMap = new Map();
+    const isTerminalRemote = (entry) => entry?.source === 'remote' && isTerminalBonusStatus(entry?.status);
 
     [...draftsQueue, ...remoteQueueItems].forEach((item) => {
       const key = normalizeInvoice(item?.invoice || '');
       if (!key) return;
       const existing = mergedMap.get(key);
-      if (!existing || (item.source === 'draft' && existing.source !== 'draft')) {
+      if (!existing) {
+        mergedMap.set(key, item);
+        return;
+      }
+      // Um bônus terminal no servidor (finalizado/entrada dada) vence qualquer
+      // rascunho local stale (senão um rascunho antigo manteria o card aberto).
+      if (isTerminalRemote(existing)) return;
+      if (isTerminalRemote(item)) {
+        mergedMap.set(key, item);
+        return;
+      }
+      if (item.source === 'draft' && existing.source !== 'draft') {
         mergedMap.set(key, item);
       }
     });
@@ -417,6 +517,38 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     return map;
   }, [finalizedReceipts, normalizeInvoice]);
 
+  // Status efetivo do card. Terminal (local OU remoto) vence o rascunho local —
+  // um rascunho stale não pode mascarar um bônus já encerrado no servidor.
+  const resolveCardStatus = useCallback((item) => {
+    const key = normalizeInvoice(item?.invoice || '');
+    if (finalizedStatusByInvoice.get(key) === 'finalizada') return 'finalizada';
+    if (isTerminalBonusStatus(item?.status)) return item.status;
+    return draftStatusByInvoice.get(key) || item?.status || 'nao_iniciado';
+  }, [finalizedStatusByInvoice, draftStatusByInvoice, normalizeInvoice]);
+
+  // Conferência CONCLUÍDA sai da lista do conferente — finalizados passam a
+  // existir só para o admin no painel web (que pode reabrir). O operador vê
+  // apenas bônus em aberto (em andamento primeiro, depois não iniciados).
+  const sortedQueue = useMemo(() => {
+    const openOnly = queueFiltered.filter((item) => !isTerminalBonusStatus(resolveCardStatus(item)));
+    const rank = (item) => (resolveCardStatus(item) === 'em_conferencia' ? 0 : 1);
+    return openOnly.sort((a, b) => {
+      const diff = rank(a) - rank(b);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [queueFiltered, resolveCardStatus]);
+
+  const queueCounts = useMemo(() => {
+    let open = 0;
+    let finished = 0;
+    queueFiltered.forEach((item) => {
+      if (isTerminalBonusStatus(resolveCardStatus(item))) finished += 1;
+      else open += 1;
+    });
+    return { total: queueFiltered.length, open, finished };
+  }, [queueFiltered, resolveCardStatus]);
+
   const buildDraftPayload = useCallback((itemsValue = items) => ({
     invoice: invoice.trim(),
     supplier: supplier.trim(),
@@ -427,29 +559,36 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   }), [invoice, supplier, conferente, items, activeRemoteQueueId]);
 
   // ── Item lists ──
-  const itemsToCheck = useMemo(() => {
+  // Conferência CEGA: as abas separam por "ainda não contei" (checkedQty===0)
+  // vs "já contei" (checkedQty>0) — sem revelar a quantidade esperada.
+  const notCountedItems = useMemo(
+    () => items
+      .filter((i) => Number(i.checkedQty || 0) === 0)
+      .slice()
+      .sort((a, b) => String(a.description).localeCompare(String(b.description))),
+    [items],
+  );
+
+  const countedItems = useMemo(() => {
     const key = String(lastScanned || '').trim();
     return items
-      .filter((i) => i.checkedQty < i.expectedQty)
+      .filter((i) => Number(i.checkedQty || 0) > 0)
       .slice()
       .sort((a, b) => {
         const aHit = key && (a.code === key || a.ean === key) ? 1 : 0;
         const bHit = key && (b.code === key || b.ean === key) ? 1 : 0;
         if (aHit !== bHit) return bHit - aHit;
-        const aRead = a.checkedQty > 0 ? 1 : 0;
-        const bRead = b.checkedQty > 0 ? 1 : 0;
-        if (aRead !== bRead) return bRead - aRead;
+        const aAt = a.lastMeta?.at || '';
+        const bAt = b.lastMeta?.at || '';
+        if (aAt !== bAt) return aAt < bAt ? 1 : -1;
         return String(a.description).localeCompare(String(b.description));
       });
   }, [items, lastScanned]);
 
-  const itemsChecked = useMemo(
-    () => items.filter((i) => i.checkedQty >= i.expectedQty),
-    [items],
-  );
-
-  const divergenceCount = useMemo(
-    () => items.filter((i) => Number(i.checkedQty || 0) !== Number(i.expectedQty || 0)).length,
+  // Semântica de FECHAMENTO: todo item com checked != expected (item nunca
+  // tocado conta como falta). Revelado só no aviso de finalizar / pós-fechamento.
+  const divergentItems = useMemo(
+    () => items.filter((i) => Number(i.checkedQty || 0) !== Number(i.expectedQty || 0)),
     [items],
   );
 
@@ -496,6 +635,18 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     const finalizedStatus = finalizedStatusByInvoice.get(key);
     const draft = drafts.find((entry) => normalizeInvoice(entry?.invoice || '') === key);
 
+    // Finalizado (local ou remoto) vem ANTES do rascunho: se o bônus já foi
+    // finalizado no servidor, um rascunho local stale não deve reabri-lo vazio.
+    const isFinalized = finalizedStatus === 'finalizada' || item?.status === 'finalizada';
+    if (isFinalized) {
+      setFinalizedInfo({
+        invoice: item?.invoice || '-',
+        supplier: item?.supplierName || '',
+        conferente: item?.assignedUserName || '',
+      });
+      return;
+    }
+
     if (draft) {
       const remoteMatch = remoteQueue.find((entry) => normalizeInvoice(entry?.invoice || '') === key);
       resumeDraft({
@@ -506,24 +657,37 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     }
 
     if (item?.source === 'remote') {
-      loadRemoteConferenciaBonusItems(item.id)
-        .then(async (remoteItems) => {
-          if (!Array.isArray(remoteItems) || remoteItems.length === 0) {
-            Alert.alert('NF sem itens', 'O XML foi importado, mas nao gerou itens para conferencia.');
-            return;
-          }
+      if (openingQueueId) return; // evita toque duplo enquanto carrega
+      const openRemote = () => {
+        setOpeningQueueId(item.id);
+        loadRemoteConferenciaBonusItems(item.id)
+          .then((remoteItems) => {
+            if (!Array.isArray(remoteItems) || remoteItems.length === 0) {
+              Alert.alert('NF sem itens', 'O XML foi importado, mas nao gerou itens para conferencia.');
+              return;
+            }
 
-          setActiveRemoteQueueId(item.id);
-          setSupplier(item?.supplierName || '');
-          setInvoice(item?.invoice || '');
-          setConferente(operatorName || '');
-          setItems(remoteItems);
-          setStarted(true);
-          loadRemoteQueue();
-        })
-        .catch(() => {
-          Alert.alert('Erro', 'Nao foi possivel carregar os itens da NF importada.');
-        });
+            setActiveRemoteQueueId(item.id);
+            setSupplier(item?.supplierName || '');
+            setInvoice(item?.invoice || '');
+            setConferente(operatorName || '');
+            setItems(remoteItems);
+            setStarted(true);
+            loadRemoteQueue({ silent: true });
+          })
+          .catch(() => {
+            Alert.alert(
+              'Erro ao carregar',
+              'Não foi possível carregar os itens da NF importada.',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Tentar de novo', onPress: openRemote },
+              ],
+            );
+          })
+          .finally(() => setOpeningQueueId(null));
+      };
+      openRemote();
       return;
     }
 
@@ -539,7 +703,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       supplierOverride: item?.supplierName,
       invoiceOverride: item?.invoice,
     });
-  }, [drafts, finalizedStatusByInvoice, normalizeInvoice, resumeDraft, startConference, operatorName, loadRemoteQueue]);
+  }, [drafts, finalizedStatusByInvoice, normalizeInvoice, resumeDraft, startConference, operatorName, loadRemoteQueue, openingQueueId]);
 
   const openScanner = useCallback(() => {
     if (!started) {
@@ -576,7 +740,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     }
     const remaining = (Number(match.item.expectedQty) || 0) - (Number(match.item.checkedQty) || 0);
     if (remaining <= 0) {
-      Alert.alert('Item já completo', 'Quantidade desse item já foi totalmente conferida.');
+      handleItemAlreadyFull(match.item);
       return;
     }
     navigation.navigate('ConferenciaScanScreen', {
@@ -722,6 +886,113 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     });
   }, [activeRemoteQueueId, buildDraftPayload, invoice, started, upsertDraftImmediate]);
 
+  // Desfaz a ÚLTIMA leitura do item: remove o read e subtrai exatamente o
+  // effectiveQty dele (não um -1 cego), reapontando o lastMeta para o anterior.
+  const undoLastRead = useCallback((itemId) => {
+    setItems((prev) => {
+      const nextItems = prev.map((it) => {
+        if (it.id !== itemId) return it;
+        const reads = Array.isArray(it.reads) ? [...it.reads] : [];
+        if (reads.length === 0) {
+          return { ...it, checkedQty: Math.max(0, Number(it.checkedQty || 0) - 1) };
+        }
+        const last = reads.pop();
+        const dec = Math.max(1, Number(last?.effectiveQty || 1));
+        const nextChecked = Math.max(0, Number(it.checkedQty || 0) - dec);
+        const nextLastMeta = reads.length > 0 ? reads[reads.length - 1] : null;
+        return { ...it, checkedQty: nextChecked, reads, lastMeta: nextLastMeta };
+      });
+      if (started && invoice.trim()) {
+        upsertDraftImmediate(buildDraftPayload(nextItems));
+      }
+      if (activeRemoteQueueId) {
+        const checkedItems = nextItems.filter((item) => Number(item?.checkedQty || 0) > 0).length;
+        const checkedQty = nextItems.reduce((sum, item) => sum + Number(item?.checkedQty || 0), 0);
+        syncRemoteConferenciaBonusProgress(activeRemoteQueueId, { checkedItems, checkedQty });
+      }
+      return nextItems;
+    });
+  }, [activeRemoteQueueId, buildDraftPayload, invoice, started, upsertDraftImmediate]);
+
+  // Ajuste rápido inline (+/-). Opera sobre reads para manter o invariante
+  // checkedQty == soma(reads.effectiveQty) — do qual undoLastRead e a edição da
+  // última leitura dependem: o '+' registra uma leitura manual de 1 unidade; o
+  // '-' consome 1 unidade do fim (quebra uma leitura de embalagem em avulsa se
+  // preciso). Clampa em [0, expectedQty] para não criar overflow por toque.
+  const handleItemAdjust = useCallback((item, delta) => {
+    if (!item?.id) return;
+    const step = Number(delta || 0);
+    const current = Number(item.checkedQty || 0);
+    const expected = Number(item.expectedQty || 0);
+    const willChange = (step > 0 && current < expected) || (step < 0 && current > 0);
+    if (!willChange) {
+      HapticFeedback.trigger('notificationWarning', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
+      return;
+    }
+    HapticFeedback.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
+
+    setItems((prev) => {
+      const nextItems = prev.map((it) => {
+        if (it.id !== item.id) return it;
+        let checked = Number(it.checkedQty || 0);
+        let reads = Array.isArray(it.reads) ? [...it.reads] : [];
+
+        if (step > 0) {
+          if (checked >= Number(it.expectedQty || 0)) return it;
+          reads.push({
+            at: new Date().toISOString(),
+            scannedValue: '',
+            lote: '',
+            validade: '',
+            embalagem: '',
+            packagingId: 'un',
+            packagingLabel: 'UN',
+            packagingFactor: 1,
+            qty: 1,
+            effectiveQty: 1,
+            manual: true,
+            ean: it.ean || '',
+            dun: it.dun || '',
+          });
+          checked += 1;
+        } else {
+          if (checked <= 0) return it;
+          checked -= 1;
+          if (reads.length > 0) {
+            const last = reads[reads.length - 1];
+            const lastEff = Math.max(1, Number(last?.effectiveQty || 1));
+            if (lastEff <= 1) {
+              reads.pop();
+            } else {
+              reads[reads.length - 1] = {
+                ...last,
+                effectiveQty: lastEff - 1,
+                qty: lastEff - 1,
+                packagingId: 'un',
+                packagingLabel: 'UN',
+                packagingFactor: 1,
+                manual: true,
+              };
+            }
+          }
+        }
+
+        reads = reads.slice(-50);
+        return { ...it, checkedQty: checked, reads, lastMeta: reads.length > 0 ? reads[reads.length - 1] : null };
+      });
+
+      if (started && invoice.trim()) {
+        upsertDraftImmediate(buildDraftPayload(nextItems));
+      }
+      if (activeRemoteQueueId) {
+        const checkedItems = nextItems.filter((i) => Number(i?.checkedQty || 0) > 0).length;
+        const checkedQty = nextItems.reduce((s, i) => s + Number(i?.checkedQty || 0), 0);
+        syncRemoteConferenciaBonusProgress(activeRemoteQueueId, { checkedItems, checkedQty });
+      }
+      return nextItems;
+    });
+  }, [activeRemoteQueueId, buildDraftPayload, invoice, started, upsertDraftImmediate]);
+
   const openEditItem = useCallback((item) => {
     if (!item?.id || Number(item.checkedQty || 0) <= 0) {
       return;
@@ -750,6 +1021,21 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       editMode: 'last_read',
     });
   }, [navigation]);
+
+  // Scan de item já completo: em vez de um beco sem saída, oferece desfazer a
+  // última leitura ou corrigi-la — sem precisar zerar tudo.
+  const handleItemAlreadyFull = useCallback((item) => {
+    HapticFeedback.trigger('notificationWarning', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
+    Alert.alert(
+      'Item já atingiu a contagem',
+      `${item.code}${item.ean ? ` / ${item.ean}` : ''}\n${item.description}\n\nEste item já atingiu a quantidade prevista. Deseja desfazer a última leitura ou corrigi-la?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Desfazer última', onPress: () => undoLastRead(item.id) },
+        { text: 'Corrigir última', onPress: () => openEditItem(item) },
+      ],
+    );
+  }, [undoLastRead, openEditItem]);
 
   const buildTratativaPrefill = useCallback((item) => {
     const latestRead = Array.isArray(item.reads) && item.reads.length > 0
@@ -793,18 +1079,19 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
 
   const handleItemLongPress = useCallback((item) => {
     const canUndo = (item.checkedQty || 0) > 0;
-    const hasDivergence = Number(item.checkedQty || 0) !== Number(item.expectedQty || 0);
+    // "Abrir tratativa" fica sempre disponível (não gatilhamos por divergência,
+    // que numa conferência cega revelaria que o item diverge).
     Alert.alert(
       'Ajustar leitura',
       `${item.code}${item.ean ? ` / ${item.ean}` : ''}\n${item.description}`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        canUndo ? { text: 'Desfazer 1', onPress: () => updateItemReadCount(item.id, (item.checkedQty || 0) - 1) } : null,
+        canUndo ? { text: 'Desfazer última', onPress: () => undoLastRead(item.id) } : null,
         canUndo ? { text: 'Zerar leituras', style: 'destructive', onPress: () => updateItemReadCount(item.id, 0) } : null,
-        hasDivergence ? { text: 'Abrir tratativa', onPress: () => navigation.navigate('EspelhoRecebimentoScreen', { prefill: buildTratativaPrefill(item) }) } : null,
+        { text: 'Abrir tratativa', onPress: () => navigation.navigate('EspelhoRecebimentoScreen', { prefill: buildTratativaPrefill(item) }) },
       ].filter(Boolean),
     );
-  }, [updateItemReadCount, buildTratativaPrefill, navigation]);
+  }, [updateItemReadCount, undoLastRead, buildTratativaPrefill, navigation]);
 
   const handleItemEdit = useCallback((item) => {
     openEditItem(item);
@@ -905,9 +1192,16 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     const nowTotals = computeTotals(items);
     if (nowTotals.divergences > 0) {
       const label = pluralize(nowTotals.divergences, 'item', 'itens');
+      const detail = divergentItems.slice(0, 6).map((it) => {
+        const diff = Number(it.checkedQty || 0) - Number(it.expectedQty || 0);
+        const sign = diff > 0 ? `+${diff}` : `${diff}`;
+        const desc = String(it.description || '').slice(0, 26);
+        return `• ${it.code} ${desc} (${it.checkedQty}/${it.expectedQty}, ${sign})`;
+      }).join('\n');
+      const more = divergentItems.length > 6 ? `\n… e mais ${divergentItems.length - 6}.` : '';
       Alert.alert(
         'Fechar com divergência?',
-        `Existem ${nowTotals.divergences} ${label} com divergência. Deseja realmente finalizar assim?`,
+        `${nowTotals.divergences} ${label} com divergência:\n${detail}${more}\n\nFinalizar assim?`,
         [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Finalizar', style: 'destructive', onPress: persistConference },
@@ -916,7 +1210,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
       return;
     }
     persistConference();
-  }, [items, persistConference]);
+  }, [items, divergentItems, persistConference]);
 
   // ── Draft auto-save ──
   useEffect(() => {
@@ -944,22 +1238,24 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>Fila do painel</Text>
+              <Text style={styles.cardSubtitle}>
+                {queueCounts.open === 0
+                  ? 'Nenhum bônus para conferir'
+                  : `${queueCounts.open} bônus para conferir`}
+              </Text>
             </View>
+            {drafts.length > 0 ? (
+              <Pressable
+                style={styles.clearDraftsBtn}
+                onPress={handleClearDrafts}
+                accessibilityRole="button"
+                accessibilityLabel="Limpar rascunhos"
+              >
+                <MaterialIcons name="delete-sweep" size={16} color={colors.danger} />
+                <Text style={styles.clearDraftsText}>Limpar</Text>
+              </Pressable>
+            ) : null}
           </View>
-          {remoteLinkedDrafts.length > 0 && (
-            <View style={styles.draftRow}>
-              {remoteLinkedDrafts.slice(0, 3).map((draft) => (
-                <Pressable
-                  key={`${draft.remoteQueueId}-${draft.invoice}`}
-                  style={styles.draftChip}
-                  onPress={() => resumeDraft(draft)}
-                >
-                  <MaterialIcons name="restore" size={14} color={colors.primary} />
-                  <Text style={styles.draftChipText}>{draft.invoice}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
           <View style={styles.searchShell}>
             <MaterialIcons name="search" size={20} color={colors.textMuted} />
             <TextInput
@@ -980,7 +1276,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
     return (
       <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
         <FlatList
-          data={queueFiltered}
+          data={sortedQueue}
           keyExtractor={(item) => String(item.id)}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -989,19 +1285,74 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
             <ConferenciaBonusCard
               item={item}
               colors={colors}
-              status={finalizedStatusByInvoice.get(normalizeInvoice(item.invoice))
-                || draftStatusByInvoice.get(normalizeInvoice(item.invoice))
-                || item.status
-                || 'nao_iniciado'}
+              status={resolveCardStatus(item)}
               onPress={() => handleQueueCardPress(item)}
             />
           )}
           ListEmptyComponent={
-            <View style={styles.card}>
-              <Text style={styles.emptyText}>Nenhum bônus remoto disponível na fila.</Text>
-            </View>
+            queueLoading ? (
+              <View style={[styles.card, styles.queueLoadingCard]}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.emptyText, { marginTop: 10 }]}>Carregando fila…</Text>
+              </View>
+            ) : (
+              <View style={styles.card}>
+                <Text style={styles.emptyText}>Nenhum bônus remoto disponível na fila.</Text>
+              </View>
+            )
           }
         />
+        {openingQueueId ? (
+          <View style={styles.openingOverlay} pointerEvents="auto">
+            <View style={styles.openingCard}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.openingText}>Abrindo conferência…</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* ── Modal: conferência finalizada ── */}
+        <Modal
+          visible={!!finalizedInfo}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setFinalizedInfo(null)}
+        >
+          <Pressable style={styles.finBackdrop} onPress={() => setFinalizedInfo(null)}>
+            <Animatable.View animation="zoomIn" duration={220} easing="ease-out" useNativeDriver style={styles.finAnim}>
+              <Pressable style={styles.finCard} onPress={() => {}}>
+                <View style={styles.finIconWrap}>
+                  <MaterialIcons name="check-circle" size={30} color={colors.doneAccent} />
+                </View>
+                <Text style={styles.finTitle}>Conferência finalizada</Text>
+                <View style={styles.finNfChip}>
+                  <MaterialIcons name="inventory-2" size={13} color={colors.primary} />
+                  <Text style={styles.finNfChipText}>NF {finalizedInfo?.invoice}</Text>
+                </View>
+                {finalizedInfo?.supplier ? (
+                  <Text style={styles.finSupplier} numberOfLines={2}>{finalizedInfo.supplier}</Text>
+                ) : null}
+                {finalizedInfo?.conferente ? (
+                  <View style={styles.finMetaRow}>
+                    <MaterialIcons name="person" size={14} color={colors.textMuted} />
+                    <Text style={styles.finMetaText}>Finalizada por {finalizedInfo.conferente}</Text>
+                  </View>
+                ) : null}
+                <Text style={styles.finBody}>
+                  As contagens não ficam armazenadas no bônus para reabrir. Consulte o histórico/divergências para os detalhes.
+                </Text>
+                <Pressable
+                  style={styles.finButton}
+                  onPress={() => setFinalizedInfo(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Entendi"
+                >
+                  <Text style={styles.finButtonText}>Entendi</Text>
+                </Pressable>
+              </Pressable>
+            </Animatable.View>
+          </Pressable>
+        </Modal>
       </ScreenLayout>
     );
   }
@@ -1009,121 +1360,131 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER — active conference
   // ─────────────────────────────────────────────────────────────────────────────
-  const listData = ['scan', 'toCheck', 'checked'];
+  const renderBlindRow = (row, index, arr) => (
+    <ConferenciaItemRow
+      key={row.id}
+      row={row}
+      colors={colors}
+      lastScanned={lastScanned}
+      lastScannedAt={lastScannedAt}
+      isLast={index === arr.length - 1}
+      blind
+      onLongPress={handleItemLongPress}
+      onEdit={handleItemEdit}
+      onClear={handleItemClear}
+      onAdjust={handleItemAdjust}
+      doneColor={colors.success}
+    />
+  );
+
+  const renderTabPage = (pageItems, emptyIcon, emptyText) => (
+    <ScrollView
+      style={styles.tabScroll}
+      contentContainerStyle={styles.tabListContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.card}>
+        {pageItems.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name={emptyIcon} size={30} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { marginTop: 8, textAlign: 'center' }]}>{emptyText}</Text>
+          </View>
+        ) : (
+          pageItems.map((row, index) => renderBlindRow(row, index, pageItems))
+        )}
+      </View>
+    </ScrollView>
+  );
 
   return (
     <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
-      {/* ── Compact sticky bar ── */}
+     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* ── Compact sticky bar (cega: só identidade + progresso por itens) ── */}
       <CompactSummaryBar
         invoice={invoice}
         supplier={supplier}
-        pendingCount={itemsToCheck.length}
-        doneCount={itemsChecked.length}
-        divergenceCount={divergenceCount}
+        countedCount={countedItems.length}
+        totalCount={items.length}
         colors={colors}
         styles={styles}
       />
 
-      <FlatList
-        data={listData}
-        keyExtractor={(k) => k}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => {
-          // ── Scan card ──
-          if (item === 'scan') {
-            return (
-              <ScanInputRow
-                codeInputRef={codeInputRef}
-                manualCode={manualCode}
-                setManualCode={setManualCode}
-                onSubmit={handleCodeSubmit}
-                onOpenScanner={openScanner}
-                colors={colors}
-                styles={styles}
-                lastScanned={lastScanned}
-              />
-            );
-          }
-
-          // ── Pending items ──
-          if (item === 'toCheck') {
-            return (
-              <View style={styles.card}>
-                <SectionDivider
-                  label="A conferir"
-                  count={itemsToCheck.length}
-                  accent={colors.pendingAccent}
-                  colors={colors}
-                  styles={styles}
-                />
-                {itemsToCheck.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <MaterialIcons name="check-circle" size={32} color={colors.success} />
-                    <Text style={[styles.emptyText, { marginTop: 8 }]}>Todos os itens conferidos!</Text>
-                  </View>
-                ) : (
-                  itemsToCheck.map((row) => (
-                    <ConferenciaItemRow
-                      key={row.id}
-                      row={row}
-                      colors={colors}
-                      lastScanned={lastScanned}
-                      lastScannedAt={lastScannedAt}
-                      highlightDuration={HIGHLIGHT_DURATION}
-                    onLongPress={handleItemLongPress}
-                    onEdit={handleItemEdit}
-                    onClear={handleItemClear}
-                    doneColor={colors.success}
-                    variant="pending"
-                  />
-                  ))
-                )}
-              </View>
-            );
-          }
-
-          // ── Checked items ──
-          return (
-            <View style={styles.card}>
-              <SectionDivider
-                label="Conferidos"
-                count={itemsChecked.length}
-                accent={colors.doneAccent}
-                colors={colors}
-                styles={styles}
-              />
-              {itemsChecked.length === 0 ? (
-                <Text style={styles.emptyText}>Nenhum item totalmente conferido ainda.</Text>
-              ) : (
-                itemsChecked.map((row) => (
-                  <ConferenciaItemRow
-                    key={row.id}
-                    row={row}
-                    colors={colors}
-                    lastScanned={lastScanned}
-                    lastScannedAt={lastScannedAt}
-                    highlightDuration={HIGHLIGHT_DURATION}
-                    onLongPress={handleItemLongPress}
-                    onEdit={handleItemEdit}
-                    onClear={handleItemClear}
-                    doneColor={colors.success}
-                    variant="done"
-                  />
-                ))
-              )}
-
-              {itemsChecked.length > 0 || itemsToCheck.length === 0 ? (
-                <Pressable style={styles.finishButton} onPress={saveConference}>
-                  <MaterialIcons name="check-circle" size={20} color="#fff" />
-                  <Text style={styles.finishButtonText}>Finalizar conferência</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          );
-        }}
+      <ScanInputRow
+        codeInputRef={codeInputRef}
+        manualCode={manualCode}
+        setManualCode={setManualCode}
+        onSubmit={handleCodeSubmit}
+        onOpenScanner={openScanner}
+        colors={colors}
+        styles={styles}
+        lastScanned={lastScanned}
       />
+
+      {/* ── Abas A conferir / Conferido ── */}
+      <View style={styles.tabBar}>
+        <TabButton label="A conferir" count={notCountedItems.length} active={tab === 0} onPress={() => goToTab(0)} colors={colors} styles={styles} />
+        <TabButton label="Conferido" count={countedItems.length} active={tab === 1} onPress={() => goToTab(1)} colors={colors} styles={styles} />
+      </View>
+
+      {/* ── Pager com swipe entre as abas ── */}
+      <View
+        style={styles.pagerWrap}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setPagerSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+        }}
+      >
+        {pagerSize.width > 0 && pagerSize.height > 0 ? (
+          <FlatList
+            ref={pagerRef}
+            style={styles.flex}
+            data={[0, 1]}
+            keyExtractor={(p) => String(p)}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            getItemLayout={(_, index) => ({ length: pagerSize.width, offset: pagerSize.width * index, index })}
+            onMomentumScrollEnd={(e) => {
+              const i = Math.round(e.nativeEvent.contentOffset.x / pagerSize.width);
+              if (i !== tab) setTab(i);
+            }}
+            renderItem={({ item: page }) => (
+              <View style={{ width: pagerSize.width, height: pagerSize.height }}>
+                {page === 0
+                  ? renderTabPage(
+                      notCountedItems,
+                      'inventory',
+                      items.length === 0 ? 'Sem itens nesta conferência.' : 'Tudo já foi contado ao menos uma vez. Veja a aba Conferido.',
+                    )
+                  : renderTabPage(
+                      countedItems,
+                      'qr-code-scanner',
+                      'Nenhum item contado ainda. Bipe um código para começar.',
+                    )}
+              </View>
+            )}
+          />
+        ) : (
+          // Fallback: se ainda não medimos, mostra a aba ativa direto (sem swipe)
+          renderTabPage(
+            tab === 0 ? notCountedItems : countedItems,
+            tab === 0 ? 'inventory' : 'qr-code-scanner',
+            tab === 0
+              ? (items.length === 0 ? 'Sem itens nesta conferência.' : 'Tudo já foi contado ao menos uma vez. Veja a aba Conferido.')
+              : 'Nenhum item contado ainda. Bipe um código para começar.',
+          )
+        )}
+      </View>
+
+      {countedItems.length > 0 ? (
+        <Pressable style={styles.finishButton} onPress={saveConference}>
+          <MaterialIcons name="check-circle" size={20} color="#fff" />
+          <Text style={styles.finishButtonText}>Finalizar conferência</Text>
+        </Pressable>
+      ) : null}
+     </KeyboardAvoidingView>
     </ScreenLayout>
   );
 };
@@ -1131,6 +1492,7 @@ const ConferenciaRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const getStyles = (colors) =>
   StyleSheet.create({
+    flex: { flex: 1 },
     content: { flex: 1, paddingHorizontal: 16, paddingTop: 10 },
     scrollContent: { paddingBottom: 32 },
 
@@ -1304,7 +1666,20 @@ const getStyles = (colors) =>
     draftChipText: { color: colors.text, fontSize: 12, fontWeight: '800' },
 
     // ── Misc ──
-    cardTitle: { fontSize: 17, fontWeight: '900', color: colors.text, marginBottom: 8 },
+    cardTitle: { fontSize: 17, fontWeight: '900', color: colors.text, marginBottom: 2 },
+    cardSubtitle: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
+    clearDraftsBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.dangerSoft,
+      backgroundColor: colors.dangerSoft,
+    },
+    clearDraftsText: { color: colors.danger, fontSize: 12, fontWeight: '800' },
     searchSubtitle: { color: colors.textMuted, fontSize: 12, lineHeight: 18, fontWeight: '700', marginBottom: 10 },
     sectionTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 4 },
     sectionIconWrap: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
@@ -1372,6 +1747,126 @@ const getStyles = (colors) =>
       marginTop: 14,
     },
     finishButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
+
+    // ── Loading / opening (#8) ──
+    queueLoadingCard: { alignItems: 'center', paddingVertical: 22 },
+    openingOverlay: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0, bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(15,23,42,0.18)',
+    },
+    openingCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
+    openingText: { color: colors.text, fontSize: 13, fontWeight: '800' },
+
+    // ── Modal: conferência finalizada ──
+    finBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(15,23,42,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 28,
+    },
+    finAnim: { width: '100%', maxWidth: 360 },
+    finCard: {
+      width: '100%',
+      backgroundColor: colors.surface,
+      borderRadius: 24,
+      paddingVertical: 22,
+      paddingHorizontal: 22,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: 0.16,
+      shadowRadius: 22,
+      elevation: 14,
+    },
+    finIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.successSoft,
+      marginBottom: 12,
+    },
+    finTitle: { fontSize: 18, fontWeight: '900', color: colors.text, textAlign: 'center' },
+    finNfChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      marginTop: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+      backgroundColor: colors.chipBg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    finNfChipText: { color: colors.primary, fontSize: 12.5, fontWeight: '900', letterSpacing: 0.3 },
+    finSupplier: { marginTop: 8, fontSize: 13, fontWeight: '700', color: colors.textMuted, textAlign: 'center' },
+    finMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+    finMetaText: { fontSize: 12.5, fontWeight: '700', color: colors.textMuted },
+    finBody: { marginTop: 12, fontSize: 13, lineHeight: 19, color: colors.textMuted, textAlign: 'center' },
+    finButton: {
+      marginTop: 18,
+      alignSelf: 'stretch',
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 13,
+      alignItems: 'center',
+    },
+    finButtonText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
+
+    // ── Abas + pager (conferência cega) ──
+    tabBar: {
+      flexDirection: 'row',
+      gap: 6,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 4,
+      marginBottom: 8,
+    },
+    tabButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 9,
+      borderRadius: 10,
+    },
+    tabButtonActive: {
+      backgroundColor: colors.primary + '14',
+    },
+    tabButtonText: { fontSize: 13, fontWeight: '900' },
+    tabBadge: {
+      minWidth: 22,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabBadgeText: { fontSize: 11, fontWeight: '900' },
+    pagerWrap: { flex: 1 },
+    tabScroll: { flex: 1 },
+    tabListContent: { paddingBottom: 12 },
   });
 
 export default ConferenciaRecebimentoScreen;

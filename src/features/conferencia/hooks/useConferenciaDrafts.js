@@ -91,6 +91,14 @@ export const useConferenciaDrafts = ({
     [getKey, normalize, readDrafts, writeDrafts],
   );
 
+  const clearDrafts = useCallback(async () => {
+    try {
+      await writeDrafts([]);
+    } catch {
+      // ignore
+    }
+  }, [writeDrafts]);
+
   const findByKey = useCallback(
     async (keyValue) => {
       const key = normalize(keyValue);
@@ -120,6 +128,7 @@ export const useConferenciaDrafts = ({
     upsertDraftDebounced,
     upsertDraftImmediate,
     removeByKey,
+    clearDrafts,
     findByKey,
   }), [
     drafts,
@@ -127,6 +136,7 @@ export const useConferenciaDrafts = ({
     upsertDraftDebounced,
     upsertDraftImmediate,
     removeByKey,
+    clearDrafts,
     findByKey,
   ]);
 };

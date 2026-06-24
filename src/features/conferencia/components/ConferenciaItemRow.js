@@ -102,6 +102,19 @@ const getStyles = (colors) =>
       fontSize: 11,
       fontWeight: '800',
     },
+    stepperBtn: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface2,
+    },
+    stepperBtnDisabled: {
+      opacity: 0.45,
+    },
 
     // ── Right: qty block ──
     qtyBlock: {
@@ -130,8 +143,10 @@ export const ConferenciaItemRow = ({
   onLongPress,
   onEdit,
   onClear,
+  onAdjust,
   doneColor,
   isLast = false,
+  blind = false,
 }) => {
   const styles = getStyles(colors);
   const highlightAnim = useRef(new Animated.Value(0)).current;
@@ -169,8 +184,13 @@ export const ConferenciaItemRow = ({
   const meta = row.lastMeta || null;
   const pendingAccent = colors.pendingAccent || colors.warning || '#ea580c';
   const doneAccent = doneColor || colors.success;
-  const accentColor = done ? doneAccent : pendingAccent;
-  const canAdjust = Number(row.checkedQty || 0) > 0;
+  const counted = Number(row.checkedQty || 0) > 0;
+  // Na conferência cega o acento NÃO indica "completo" (revelaria o esperado):
+  // apenas distingue item já contado de não contado.
+  const accentColor = blind
+    ? (counted ? (colors.primary || colors.sky || pendingAccent) : pendingAccent)
+    : (done ? doneAccent : pendingAccent);
+  const canAdjust = counted;
 
   return (
     <Pressable onLongPress={() => onLongPress?.(row)}>
@@ -183,7 +203,7 @@ export const ConferenciaItemRow = ({
         ]}
       >
         {/* Left accent bar */}
-        <View style={[styles.accentBar, { backgroundColor: accentColor + (done ? 'ff' : '99') }]} />
+        <View style={[styles.accentBar, { backgroundColor: accentColor + ((blind ? counted : done) ? 'ff' : '99') }]} />
 
         {/* Content */}
         <View style={styles.itemLeft}>
@@ -208,33 +228,72 @@ export const ConferenciaItemRow = ({
               ) : null}
             </View>
           ) : null}
-          {canAdjust ? (
+          {canAdjust && (onAdjust || onEdit || onClear) ? (
             <View style={styles.itemActionsRow}>
-              <Pressable style={styles.itemActionButton} onPress={() => onEdit?.(row)}>
-                <MaterialIcons name="edit" size={13} color={colors.primary} />
-                <Text style={styles.itemActionText}>Editar</Text>
-              </Pressable>
-              <Pressable style={styles.itemActionButton} onPress={() => onClear?.(row)}>
-                <MaterialIcons name="backspace" size={13} color={colors.danger} />
-                <Text style={styles.itemActionText}>Limpar</Text>
-              </Pressable>
+              {onAdjust ? (
+                <>
+                  <Pressable
+                    style={styles.stepperBtn}
+                    onPress={() => onAdjust(row, -1)}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel="Diminuir 1"
+                  >
+                    <MaterialIcons name="remove" size={16} color={colors.danger} />
+                  </Pressable>
+                  <Pressable
+                    style={[styles.stepperBtn, (done && !blind) && styles.stepperBtnDisabled]}
+                    onPress={() => onAdjust(row, 1)}
+                    disabled={done && !blind}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel="Aumentar 1"
+                    accessibilityState={{ disabled: done && !blind }}
+                  >
+                    <MaterialIcons name="add" size={16} color={(done && !blind) ? colors.textMuted : colors.success} />
+                  </Pressable>
+                </>
+              ) : null}
+              {onEdit ? (
+                <Pressable style={styles.itemActionButton} onPress={() => onEdit(row)}>
+                  <MaterialIcons name="edit" size={13} color={colors.primary} />
+                  <Text style={styles.itemActionText}>Editar</Text>
+                </Pressable>
+              ) : null}
+              {onClear ? (
+                <Pressable style={styles.itemActionButton} onPress={() => onClear(row)}>
+                  <MaterialIcons name="backspace" size={13} color={colors.danger} />
+                  <Text style={styles.itemActionText}>Limpar</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
         </View>
 
         {/* Right: qty */}
         <View style={styles.qtyBlock}>
-          <Text style={[styles.qtyMain, { color: done ? doneAccent : colors.text }]}>
-            {row.checkedQty}<Text style={{ color: colors.textMuted, fontWeight: '600', fontSize: 12 }}>/{row.expectedQty}</Text>
-          </Text>
-          {!done && remaining > 0 ? (
-            <Text style={styles.qtyRemaining}>−{remaining} restante{remaining !== 1 ? 's' : ''}</Text>
-          ) : null}
-          {done ? (
-            <View style={styles.qtyDoneIcon}>
-              <MaterialIcons name="check-circle" size={16} color={doneAccent} />
-            </View>
-          ) : null}
+          {blind ? (
+            <>
+              <Text style={[styles.qtyMain, { color: counted ? (colors.primary || colors.text) : colors.textMuted }]}>
+                {row.checkedQty}
+              </Text>
+              <Text style={styles.qtyRemaining}>contado{row.checkedQty !== 1 ? 's' : ''}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.qtyMain, { color: done ? doneAccent : colors.text }]}>
+                {row.checkedQty}<Text style={{ color: colors.textMuted, fontWeight: '600', fontSize: 12 }}>/{row.expectedQty}</Text>
+              </Text>
+              {!done && remaining > 0 ? (
+                <Text style={styles.qtyRemaining}>−{remaining} restante{remaining !== 1 ? 's' : ''}</Text>
+              ) : null}
+              {done ? (
+                <View style={styles.qtyDoneIcon}>
+                  <MaterialIcons name="check-circle" size={16} color={doneAccent} />
+                </View>
+              ) : null}
+            </>
+          )}
         </View>
       </Animated.View>
     </Pressable>

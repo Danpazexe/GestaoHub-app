@@ -16,6 +16,12 @@ import {
 
 const TABLE = 'recebimento_treatment_cases';
 
+// Codigo de fornecedor de reserva: garante doc_number sequencial e rastreavel
+// mesmo quando a tratativa nasce sem fornecedor (ex.: divergencia de NF sem
+// supplier_code). Antes, sem fornecedor, o caso ficava sem doc_number — so com
+// id aleatorio — e quebrava o rastreio no painel web.
+const FALLBACK_SUPPLIER_CODE = 'S/F';
+
 const formatTratativaNumber = (supplierCode, sequenceNumber) =>
   `TR ${String(supplierCode).trim()} - ${String(sequenceNumber).padStart(4, '0')}`;
 
@@ -57,14 +63,15 @@ const readSequenceBaseCases = async () => {
 };
 
 const getNextSequenceForSupplier = async (supplierCode, currentCaseId = null) => {
-  const normalizedSupplierCode = String(supplierCode || '').trim();
+  const normalizedSupplierCode = String(supplierCode || '').trim() || FALLBACK_SUPPLIER_CODE;
   const cases = await readSequenceBaseCases();
 
   const maxSequence = cases.reduce((highest, item) => {
     if (item.id === currentCaseId) {
       return highest;
     }
-    if (String(item.supplier_code || '').trim() !== normalizedSupplierCode) {
+    const itemSupplierCode = String(item.supplier_code || '').trim() || FALLBACK_SUPPLIER_CODE;
+    if (itemSupplierCode !== normalizedSupplierCode) {
       return highest;
     }
 
@@ -181,12 +188,15 @@ export const saveTratativaCase = async (caseInput) => {
       doc_sequence_number: existingCase.doc_sequence_number || normalized.doc_sequence_number,
       doc_number: existingCase.doc_number,
     });
-  } else if (!normalized.doc_number && normalized.supplier_code) {
+  } else if (!normalized.doc_number) {
+    // Gera doc_number mesmo sem supplier_code (usa o fornecedor de reserva no
+    // rotulo, mas o sequencial continua agrupado de forma consistente).
+    const supplierForLabel = String(normalized.supplier_code || '').trim() || FALLBACK_SUPPLIER_CODE;
     const nextSequence = await getNextSequenceForSupplier(normalized.supplier_code, normalized.id);
     normalized = normalizeTratativaCase({
       ...normalized,
       doc_sequence_number: nextSequence,
-      doc_number: formatTratativaNumber(normalized.supplier_code, nextSequence),
+      doc_number: formatTratativaNumber(supplierForLabel, nextSequence),
     });
   }
 

@@ -42,15 +42,19 @@ const toItemModel = (row = {}, detail = {}) => {
   const packagingOptions = buildPackagingOptions(row, detail);
   const primaryPackaging = packagingOptions[0] || sanitizePackagingOption();
 
+  // A tabela conferencia_bonus_queue_items (row) e a fonte da verdade dos campos
+  // escalares; o imported_payload (detail) so complementa (ex.: packaging_options)
+  // e serve de fallback. Antes detail sobrescrevia row e um payload divergente
+  // corrompia code/qty silenciosamente.
   return {
     id: row.id,
-    lineNumber: Number(detail.line_number || row.line_number || 0),
-    code: String(detail.code || row.code || '').trim(),
-    ean: String(detail.ean || row.ean || primaryPackaging.ean || '').trim(),
-    dun: String(detail.dun || row.dun || primaryPackaging.dun || '').trim(),
-    description: String(detail.description || row.description || '').trim(),
-    unit: String(detail.unit || row.unit || primaryPackaging.label || '').trim(),
-    expectedQty: Number(detail.expected_qty || row.expected_qty || 0),
+    lineNumber: Number(row.line_number || detail.line_number || 0),
+    code: String(row.code || detail.code || '').trim(),
+    ean: String(row.ean || detail.ean || primaryPackaging.ean || '').trim(),
+    dun: String(row.dun || detail.dun || primaryPackaging.dun || '').trim(),
+    description: String(row.description || detail.description || '').trim(),
+    unit: String(row.unit || detail.unit || primaryPackaging.label || '').trim(),
+    expectedQty: Number(row.expected_qty || detail.expected_qty || 0),
     checkedQty: 0,
     packagingOptions,
     lastMeta: null,
@@ -81,7 +85,7 @@ export const listRemoteConferenciaBonusQueue = async () => {
   const { data, error } = await supabase
     .from(QUEUE_TABLE)
     .select('*')
-    .in('status', ['nao_iniciado', 'em_conferencia', 'finalizada'])
+    .in('status', ['nao_iniciado', 'em_conferencia', 'finalizada', 'entrada_realizada'])
     .order('created_at', { ascending: false })
     .limit(80);
 
@@ -124,12 +128,20 @@ export const loadRemoteConferenciaBonusItems = async (queueId) => {
     ? queueData.imported_payload.items
     : [];
 
-  const detailsByLine = new Map(
-    importedItems.map((item) => [Number(item?.line_number || 0), item]),
-  );
+  // Casa os detalhes do payload por line_number. Linhas sem line_number valido
+  // (0/ausente) sao ignoradas no merge para nao colapsarem todas na chave 0 e
+  // se sobrescreverem entre si.
+  const detailsByLine = new Map();
+  importedItems.forEach((item) => {
+    const lineNumber = Number(item?.line_number || 0);
+    if (lineNumber > 0 && !detailsByLine.has(lineNumber)) {
+      detailsByLine.set(lineNumber, item);
+    }
+  });
 
   return (itemsData || []).map((row) => {
-    const detail = detailsByLine.get(Number(row.line_number || 0)) || {};
+    const lineNumber = Number(row.line_number || 0);
+    const detail = lineNumber > 0 ? (detailsByLine.get(lineNumber) || {}) : {};
     return toItemModel(row, detail);
   });
 };

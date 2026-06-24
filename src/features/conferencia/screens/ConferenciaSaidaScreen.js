@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import HapticFeedback from 'react-native-haptic-feedback';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ScreenLayout, {
@@ -11,7 +11,6 @@ import { finalizeConferenciaSaida } from '../services/conferenciaRecordsService'
 import { readStoredUserName } from '../../../services/userSessionStorageService';
 import {
   buildConferenceEvent,
-  computeProgress,
   computeTotals,
   normalizeKey,
   pluralize,
@@ -20,32 +19,35 @@ import { useConferenciaSaidaDrafts } from '../hooks/useConferenciaSaidaDrafts';
 import { hasConferenceCatalog } from '../services/conferenciaCatalogService';
 import { conferenciaSaidaTheme } from '../../../theme/domains/conferencia';
 
-// ─── Compact summary bar (same pattern as Recebimento) ────────────────────────
-const CompactSummaryBar = ({ orderCode, progress, pendingCount, doneCount, divergenceCount, colors, styles }) => (
+// ─── Compact summary bar (conferência CEGA: só identidade + progresso por
+// ITENS tocados — sem barra de % vs esperado, que vazaria o alvo) ─────────────
+const CompactSummaryBar = ({ orderCode, countedCount, totalCount, colors, styles }) => (
   <View style={styles.compactBar}>
     <View style={styles.compactBarLeft}>
       <Text style={styles.compactInvoice} numberOfLines={1}>Pedido {orderCode}</Text>
-      <View style={styles.progressTrackInline}>
-        <View style={[styles.progressFillInline, { width: `${progress}%` }]} />
-      </View>
     </View>
-    <View style={styles.compactPills}>
-      <View style={[styles.miniPill, { backgroundColor: colors.goldSoft, borderColor: 'rgba(245,158,11,0.22)' }]}>
-        <Text style={[styles.miniPillText, { color: colors.warning }]}>{pendingCount}</Text>
-        <MaterialIcons name="schedule" size={11} color={colors.warning} />
-      </View>
-      <View style={[styles.miniPill, { backgroundColor: colors.successSoft, borderColor: 'rgba(16,185,129,0.22)' }]}>
-        <Text style={[styles.miniPillText, { color: colors.success }]}>{doneCount}</Text>
-        <MaterialIcons name="check-circle-outline" size={11} color={colors.success} />
-      </View>
-      {divergenceCount > 0 && (
-        <View style={[styles.miniPill, { backgroundColor: colors.dangerSoft, borderColor: 'rgba(220,38,38,0.22)' }]}>
-          <Text style={[styles.miniPillText, { color: colors.danger }]}>{divergenceCount}</Text>
-          <MaterialIcons name="error-outline" size={11} color={colors.danger} />
-        </View>
-      )}
+    <View style={[styles.miniPill, { backgroundColor: colors.slateSoft, borderColor: colors.border }]}>
+      <MaterialIcons name="inventory-2" size={12} color={colors.textMuted} />
+      <Text style={[styles.miniPillText, { color: colors.text }]}>{countedCount}/{totalCount}</Text>
+      <Text style={[styles.miniPillCaption, { color: colors.textMuted }]}>itens</Text>
     </View>
   </View>
+);
+
+// Aba (A conferir / Conferido) — contagem por itens, cego-safe.
+const TabButton = ({ label, count, active, onPress, colors, styles }) => (
+  <Pressable
+    onPress={onPress}
+    style={[styles.tabButton, active && styles.tabButtonActive]}
+    accessibilityRole="tab"
+    accessibilityState={{ selected: active }}
+    accessibilityLabel={`${label}, ${count} ${count === 1 ? 'item' : 'itens'}`}
+  >
+    <Text style={[styles.tabButtonText, { color: active ? colors.primary : colors.textMuted }]}>{label}</Text>
+    <View style={[styles.tabBadge, { backgroundColor: active ? colors.primary : colors.slateSoft }]}>
+      <Text style={[styles.tabBadgeText, { color: active ? '#ffffff' : colors.textMuted }]}>{count}</Text>
+    </View>
+  </Pressable>
 );
 
 // ─── Section divider ──────────────────────────────────────────────────────────
@@ -70,7 +72,21 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
   const [lastScanned, setLastScanned] = useState('');
   const [lastScannedAt, setLastScannedAt] = useState(0);
   const [catalogAvailable, setCatalogAvailable] = useState(false);
+  const [tab, setTab] = useState(0); // 0 = A conferir, 1 = Conferido
+  const [pagerSize, setPagerSize] = useState({ width: 0, height: 0 });
   const codeInputRef = useRef(null);
+  const pagerRef = useRef(null);
+
+  const goToTab = (index) => {
+    setTab(index);
+    pagerRef.current?.scrollToOffset({ offset: index * pagerSize.width, animated: true });
+  };
+
+  useEffect(() => {
+    if (pagerSize.width > 0) {
+      pagerRef.current?.scrollToOffset({ offset: tab * pagerSize.width, animated: false });
+    }
+  }, [pagerSize.width]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const colors = useMemo(() => {
     const base = conferenciaSaidaTheme;
@@ -96,6 +112,7 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
       dangerSoft: dark ? 'rgba(220,38,38,0.16)' : 'rgba(220,38,38,0.10)',
       warning: '#f59e0b',
       goldSoft: dark ? 'rgba(251,191,36,0.18)' : 'rgba(245,158,11,0.14)',
+      slateSoft: dark ? 'rgba(148,163,184,0.16)' : 'rgba(100,116,139,0.10)',
       pendingAccent: dark ? '#fb923c' : '#ea580c',
       doneAccent: dark ? '#34d399' : '#059669',
     };
@@ -170,29 +187,32 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
     return unsub;
   }, [navigation, draftApi]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const totals = useMemo(() => computeTotals(items), [items]);
-  const progress = useMemo(() => computeProgress(totals), [totals]);
 
-  const itemsToCheck = useMemo(() => {
+  // Conferência CEGA: abas por "ainda não contei" (checkedQty===0) vs "já
+  // contei" (checkedQty>0) — sem revelar a quantidade esperada.
+  const notCountedItems = useMemo(
+    () => items
+      .filter((i) => Number(i.checkedQty || 0) === 0)
+      .slice()
+      .sort((a, b) => String(a.description).localeCompare(String(b.description))),
+    [items],
+  );
+
+  const countedItems = useMemo(() => {
     const key = String(lastScanned || '').trim();
     return items
-      .filter((i) => i.checkedQty < i.expectedQty)
+      .filter((i) => Number(i.checkedQty || 0) > 0)
       .slice()
       .sort((a, b) => {
         const aHit = key && (a.code === key || a.ean === key) ? 1 : 0;
         const bHit = key && (b.code === key || b.ean === key) ? 1 : 0;
         if (aHit !== bHit) return bHit - aHit;
-        const aRead = a.checkedQty > 0 ? 1 : 0;
-        const bRead = b.checkedQty > 0 ? 1 : 0;
-        if (aRead !== bRead) return bRead - aRead;
+        const aAt = a.lastMeta?.at || '';
+        const bAt = b.lastMeta?.at || '';
+        if (aAt !== bAt) return aAt < bAt ? 1 : -1;
         return String(a.description).localeCompare(String(b.description));
       });
   }, [items, lastScanned]);
-
-  const itemsChecked = useMemo(
-    () => items.filter((i) => i.checkedQty >= i.expectedQty),
-    [items],
-  );
 
   const startConference = useCallback(async () => {
     if (!orderCode.trim()) {
@@ -523,146 +543,162 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
   }
 
   // ─── Active conference view ────────────────────────────────────────────────
-  const listData = ['scan', 'toCheck', 'checked'];
+  const renderBlindRow = (row, index, arr) => (
+    <ConferenciaItemRow
+      key={row.id}
+      row={row}
+      colors={colors}
+      lastScanned={lastScanned}
+      lastScannedAt={lastScannedAt}
+      isLast={index === arr.length - 1}
+      blind
+      onLongPress={handleItemLongPress}
+      doneColor={colors.success}
+    />
+  );
+
+  const renderTabPage = (pageItems, emptyIcon, emptyText) => (
+    <ScrollView
+      style={styles.tabScroll}
+      contentContainerStyle={styles.tabListContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.card}>
+        {pageItems.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name={emptyIcon} size={30} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { marginTop: 8, textAlign: 'center' }]}>{emptyText}</Text>
+          </View>
+        ) : (
+          pageItems.map((row, index) => renderBlindRow(row, index, pageItems))
+        )}
+      </View>
+    </ScrollView>
+  );
 
   return (
     <ScreenLayout isDarkMode={isDarkMode} lightBackground={colors.background} darkBackground={colors.background} contentStyle={styles.content}>
+     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <CompactSummaryBar
         orderCode={orderCode}
-        progress={progress}
-        pendingCount={itemsToCheck.length}
-        doneCount={itemsChecked.length}
-        divergenceCount={totals.divergences}
+        countedCount={countedItems.length}
+        totalCount={items.length}
         colors={colors}
         styles={styles}
       />
 
-      <FlatList
-        data={listData}
-        keyExtractor={(k) => k}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => {
-          // ── Scan card ──
-          if (item === 'scan') {
-            return (
-              <View style={styles.scanCard}>
-                <View style={styles.scanCardHeader}>
-                  <View style={[styles.sectionIconWrap, { backgroundColor: colors.primary, width: 30, height: 30, borderRadius: 10 }]}>
-                    <MaterialIcons name="qr-code-scanner" size={15} color="#ffffff" />
-                  </View>
-                  <Text style={styles.scanCardTitle}>Leitura</Text>
-                  {lastScanned ? (
-                    <Text style={styles.lastScannedBadge} numberOfLines={1}>↩ {lastScanned}</Text>
-                  ) : null}
-                </View>
-                <View style={styles.codeInputRow}>
-                  <TextInput
-                    ref={codeInputRef}
-                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                    placeholder="Código — pressione Enter"
-                    placeholderTextColor={colors.textMuted}
-                    value={manualCode}
-                    onChangeText={setManualCode}
-                    onSubmitEditing={handleCodeSubmit}
-                    returnKeyType="done"
-                    blurOnSubmit={false}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <TextInput
-                    style={[styles.input, styles.qtyInput, { marginBottom: 0 }]}
-                    placeholder="Qtd"
-                    placeholderTextColor={colors.textMuted}
-                    value={manualQty}
-                    onChangeText={(v) => setManualQty(v.replace(/[^0-9]/g, ''))}
-                    keyboardType="numeric"
-                    returnKeyType="done"
-                    onSubmitEditing={handleCodeSubmit}
-                  />
-                  <Pressable style={styles.scanIconButton} onPress={openScanner} accessibilityLabel="Abrir câmera">
-                    <MaterialIcons name="photo-camera" size={20} color="#ffffff" />
-                  </Pressable>
-                </View>
-              </View>
-            );
-          }
+      {/* Scan card */}
+      <View style={styles.scanCard}>
+        <View style={styles.scanCardHeader}>
+          <View style={[styles.sectionIconWrap, { backgroundColor: colors.primary, width: 30, height: 30, borderRadius: 10 }]}>
+            <MaterialIcons name="qr-code-scanner" size={15} color="#ffffff" />
+          </View>
+          <Text style={styles.scanCardTitle}>Leitura</Text>
+          {lastScanned ? (
+            <Text style={styles.lastScannedBadge} numberOfLines={1}>↩ {lastScanned}</Text>
+          ) : null}
+        </View>
+        <View style={styles.codeInputRow}>
+          <TextInput
+            ref={codeInputRef}
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="Código — pressione Enter"
+            placeholderTextColor={colors.textMuted}
+            value={manualCode}
+            onChangeText={setManualCode}
+            onSubmitEditing={handleCodeSubmit}
+            returnKeyType="done"
+            blurOnSubmit={false}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TextInput
+            style={[styles.input, styles.qtyInput, { marginBottom: 0 }]}
+            placeholder="Qtd"
+            placeholderTextColor={colors.textMuted}
+            value={manualQty}
+            onChangeText={(v) => setManualQty(v.replace(/[^0-9]/g, ''))}
+            keyboardType="numeric"
+            returnKeyType="done"
+            onSubmitEditing={handleCodeSubmit}
+          />
+          <Pressable style={styles.scanIconButton} onPress={openScanner} accessibilityLabel="Abrir câmera">
+            <MaterialIcons name="photo-camera" size={20} color="#ffffff" />
+          </Pressable>
+        </View>
+      </View>
 
-          // ── Pending items ──
-          if (item === 'toCheck') {
-            return (
-              <View style={styles.card}>
-                <SectionDivider
-                  label="A conferir"
-                  count={itemsToCheck.length}
-                  accent={colors.pendingAccent}
-                  styles={styles}
-                />
-                {itemsToCheck.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <MaterialIcons name="check-circle" size={32} color={colors.success} />
-                    <Text style={[styles.emptyText, { marginTop: 8 }]}>Todos os itens conferidos!</Text>
-                  </View>
-                ) : (
-                  itemsToCheck.map((row, idx) => (
-                    <ConferenciaItemRow
-                      key={row.id}
-                      row={row}
-                      colors={colors}
-                      lastScanned={lastScanned}
-                      lastScannedAt={lastScannedAt}
-                      onLongPress={handleItemLongPress}
-                      doneColor={colors.success}
-                      isLast={idx === itemsToCheck.length - 1}
-                    />
-                  ))
-                )}
-              </View>
-            );
-          }
+      {/* Abas A conferir / Conferido */}
+      <View style={styles.tabBar}>
+        <TabButton label="A conferir" count={notCountedItems.length} active={tab === 0} onPress={() => goToTab(0)} colors={colors} styles={styles} />
+        <TabButton label="Conferido" count={countedItems.length} active={tab === 1} onPress={() => goToTab(1)} colors={colors} styles={styles} />
+      </View>
 
-          // ── Checked items ──
-          return (
-            <View style={styles.card}>
-              <SectionDivider
-                label="Conferidos"
-                count={itemsChecked.length}
-                accent={colors.doneAccent}
-                styles={styles}
-              />
-              {itemsChecked.length === 0 ? (
-                <Text style={styles.emptyText}>Nenhum item conferido ainda.</Text>
-              ) : (
-                itemsChecked.map((row, idx) => (
-                  <ConferenciaItemRow
-                    key={row.id}
-                    row={row}
-                    colors={colors}
-                    lastScanned={lastScanned}
-                    lastScannedAt={lastScannedAt}
-                    onLongPress={handleItemLongPress}
-                    doneColor={colors.success}
-                    isLast={idx === itemsChecked.length - 1}
-                  />
-                ))
-              )}
-              {(itemsChecked.length > 0 || itemsToCheck.length === 0) && (
-                <Pressable style={styles.finishButton} onPress={saveConference}>
-                  <MaterialIcons name="check-circle" size={20} color="#ffffff" />
-                  <Text style={styles.finishButtonText}>Finalizar conferência</Text>
-                </Pressable>
-              )}
-            </View>
-          );
+      {/* Pager com swipe */}
+      <View
+        style={styles.pagerWrap}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setPagerSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
         }}
-      />
+      >
+        {pagerSize.width > 0 && pagerSize.height > 0 ? (
+          <FlatList
+            ref={pagerRef}
+            style={styles.flex}
+            data={[0, 1]}
+            keyExtractor={(p) => String(p)}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            getItemLayout={(_, index) => ({ length: pagerSize.width, offset: pagerSize.width * index, index })}
+            onMomentumScrollEnd={(e) => {
+              const i = Math.round(e.nativeEvent.contentOffset.x / pagerSize.width);
+              if (i !== tab) setTab(i);
+            }}
+            renderItem={({ item: page }) => (
+              <View style={{ width: pagerSize.width, height: pagerSize.height }}>
+                {page === 0
+                  ? renderTabPage(
+                      notCountedItems,
+                      'inventory',
+                      items.length === 0 ? 'Sem itens neste pedido.' : 'Tudo já foi contado ao menos uma vez. Veja a aba Conferido.',
+                    )
+                  : renderTabPage(
+                      countedItems,
+                      'qr-code-scanner',
+                      'Nenhum item contado ainda. Bipe um código para começar.',
+                    )}
+              </View>
+            )}
+          />
+        ) : (
+          renderTabPage(
+            tab === 0 ? notCountedItems : countedItems,
+            tab === 0 ? 'inventory' : 'qr-code-scanner',
+            tab === 0
+              ? (items.length === 0 ? 'Sem itens neste pedido.' : 'Tudo já foi contado ao menos uma vez. Veja a aba Conferido.')
+              : 'Nenhum item contado ainda. Bipe um código para começar.',
+          )
+        )}
+      </View>
+
+      {countedItems.length > 0 ? (
+        <Pressable style={styles.finishButton} onPress={saveConference}>
+          <MaterialIcons name="check-circle" size={20} color="#ffffff" />
+          <Text style={styles.finishButtonText}>Finalizar conferência</Text>
+        </Pressable>
+      ) : null}
+     </KeyboardAvoidingView>
     </ScreenLayout>
   );
 };
 
 const getStyles = (colors) =>
   StyleSheet.create({
+    flex: { flex: 1 },
     content: { flex: 1, paddingHorizontal: 16, paddingTop: 10 },
     scrollContent: { paddingBottom: 32 },
 
@@ -686,17 +722,6 @@ const getStyles = (colors) =>
     },
     compactBarLeft: { flex: 1, marginRight: 10, gap: 5 },
     compactInvoice: { color: colors.text, fontSize: 13, fontWeight: '900' },
-    progressTrackInline: {
-      height: 4,
-      borderRadius: 999,
-      backgroundColor: colors.surface2,
-      overflow: 'hidden',
-    },
-    progressFillInline: {
-      height: '100%',
-      backgroundColor: colors.primary,
-      borderRadius: 999,
-    },
     compactPills: { flexDirection: 'row', gap: 5, alignItems: 'center' },
     miniPill: {
       flexDirection: 'row',
@@ -708,6 +733,42 @@ const getStyles = (colors) =>
       borderWidth: 1,
     },
     miniPillText: { fontSize: 12, fontWeight: '900' },
+    miniPillCaption: { fontSize: 10, fontWeight: '800' },
+
+    // ── Abas + pager (conferência cega) ──
+    tabBar: {
+      flexDirection: 'row',
+      gap: 6,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 4,
+      marginBottom: 8,
+    },
+    tabButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 9,
+      borderRadius: 10,
+    },
+    tabButtonActive: { backgroundColor: colors.primary + '14' },
+    tabButtonText: { fontSize: 13, fontWeight: '900' },
+    tabBadge: {
+      minWidth: 22,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabBadgeText: { fontSize: 11, fontWeight: '900' },
+    pagerWrap: { flex: 1 },
+    tabScroll: { flex: 1 },
+    tabListContent: { paddingBottom: 12 },
 
     // ── Scan card ──
     scanCard: {

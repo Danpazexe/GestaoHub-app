@@ -712,7 +712,7 @@ alter table if exists public.conferencia_bonus_queue
   drop constraint if exists ck_bonus_queue_status;
 alter table if exists public.conferencia_bonus_queue
   add constraint ck_bonus_queue_status
-  check (status in ('nao_iniciado','em_conferencia','finalizada','cancelada'))
+  check (status in ('nao_iniciado','em_conferencia','finalizada','entrada_realizada','cancelada'))
   not valid;
 
 alter table if exists public.conferencia_bonus_queue
