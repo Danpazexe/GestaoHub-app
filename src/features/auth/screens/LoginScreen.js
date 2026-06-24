@@ -17,7 +17,6 @@ import Toast from 'react-native-toast-message';
 import authService from '../../../services/authService';
 import { CORESLOGIN } from '../../../components/coresAuth';
 import KeyboardAwareScreen from '../../../components/KeyboardAwareScreen';
-import LinearGradient from 'react-native-linear-gradient';
 import haptics from '../../../utils/haptics';
 
 const COLORS = CORESLOGIN;
@@ -33,9 +32,7 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
     textoPrincipal: isDarkMode ? COLORS.textoPrincipalDark : COLORS.textoPrincipal,
     textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
     placeholder: isDarkMode ? COLORS.placeholderDark : COLORS.placeholder,
-    // Botão primário: gradiente índigo vivo no dark; navio sutil no claro (mantém o visual original)
-    botaoGradient: isDarkMode ? ['#6470E0', '#3C46AE'] : [COLORS.textoPrincipal, '#283049'],
-    // Checkbox marcado acompanha o botão primário
+    // Checkbox marcado
     destaque: isDarkMode ? '#6470E0' : COLORS.textoPrincipal,
     // Acento dourado da marca (mesma matiz da logo): claro no dark, fechado/legível no claro
     acento: isDarkMode ? '#f5cc85' : '#a8780f',
@@ -376,28 +373,25 @@ const LoginScreen = ({ navigation, isDarkMode }) => {
 
             {/* Botão de Login */}
             <TouchableOpacity
-              style={[styles.loginButton, pressedButton && styles.loginButtonPressed]}
+              style={[
+                styles.loginButton,
+                { backgroundColor: palette.textoPrincipal },
+                pressedButton && styles.loginButtonPressed,
+              ]}
               activeOpacity={0.9}
               onPressIn={() => setPressedButton(true)}
               onPressOut={() => setPressedButton(false)}
               onPress={handleLogin}
               disabled={isLoading}
             >
-              <LinearGradient
-                colors={palette.botaoGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.loginButtonFill}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.branco} />
-                ) : (
-                  <>
-                    <MaterialIcons name="login" size={20} color={COLORS.branco} />
-                    <Text style={styles.loginButtonText}>Entrar</Text>
-                  </>
-                )}
-              </LinearGradient>
+              {isLoading ? (
+                <ActivityIndicator size="small" color={isDarkMode ? palette.cartao : COLORS.branco} />
+              ) : (
+                <>
+                  <MaterialIcons name="login" size={20} color={isDarkMode ? palette.cartao : COLORS.branco} />
+                  <Text style={[styles.loginButtonText, { color: isDarkMode ? palette.cartao : COLORS.branco }]}>Entrar</Text>
+                </>
+              )}
             </TouchableOpacity>
 
             {/* Link para Registro */}
@@ -526,22 +520,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   loginButton: {
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  loginButtonFill: {
     height: 56,
     borderRadius: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 6,
   },
   loginButtonPressed: {
     opacity: 0.9,
