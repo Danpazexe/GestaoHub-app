@@ -1268,6 +1268,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNKeychain (8.2.0):
+    - React-Core
   - RNNotifee (7.9.0):
     - React-Core
     - RNNotifee/NotifeeCore (= 7.9.0)
@@ -1422,6 +1424,7 @@ DEPENDENCIES:
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
+  - RNKeychain (from `../node_modules/react-native-keychain`)
   - "RNNotifee (from `../node_modules/@notifee/react-native`)"
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -1571,6 +1574,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
+  RNKeychain:
+    :path: "../node_modules/react-native-keychain"
   RNNotifee:
     :path: "../node_modules/@notifee/react-native"
   RNReactNativeHapticFeedback:
@@ -1658,6 +1663,7 @@ SPEC CHECKSUMS:
   RNCPicker: 7de564dce1f90b53e386a24001aafc3578233dfe
   RNDateTimePicker: dde7ca9005d716f3efa9a63004b441679bca9a41
   RNGestureHandler: 326e35460fb6c8c64a435d5d739bea90d7ed4e49
+  RNKeychain: bbe2f6d5cc008920324acb49ef86ccc03d3b38e4
   RNNotifee: 271cfeb505183d2cd1b858c14c3968b6ca30a642
   RNReactNativeHapticFeedback: 1a788dc6e3b39e9a9c3131019c71af47835c5436
   RNScreens: a2d8a2555b4653d7a19706eb172f855657ac30d7
