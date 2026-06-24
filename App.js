@@ -159,7 +159,7 @@ export default function App() {
   const theme = isDarkMode ? DarkTheme : DefaultTheme;
   const isHomeRoute = currentRouteName === 'HomeScreen';
   const isScannerRoute = currentRouteName === 'BarcodeScannerScreen';
-  const statusBarStyle = getStatusBarStyle(currentRouteName);
+  const statusBarStyle = getStatusBarStyle(currentRouteName, isDarkMode);
   const statusBarColor = isHomeRoute ? 'transparent' : statusBarBackground;
   const statusBarTranslucent = Platform.OS === 'android' && isHomeRoute;
   const themed = {

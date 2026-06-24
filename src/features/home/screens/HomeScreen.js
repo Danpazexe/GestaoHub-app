@@ -208,7 +208,8 @@ const HomeScreen = ({ isDarkMode }) => {
     }, DEV_EASTER_EGG_TAP_WINDOW_MS);
   };
 
-  const getStyles = (isDarkMode) => {
+  const getStyles = (palette, isDarkMode) => {
+    // Sombra sempre baseada num tom escuro constante (não no texto, que clareia no dark).
     const shadowColor = withAlpha(COLORS.textoPrincipal, isDarkMode ? 0.5 : 0.25);
     const headerButtonShadow = Platform.select({
       ios: {
@@ -238,7 +239,7 @@ const HomeScreen = ({ isDarkMode }) => {
     return StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: COLORS.fundo,
+      backgroundColor: palette.fundo,
     },
     backgroundGlowTop: {
       position: 'absolute',
@@ -287,13 +288,13 @@ const HomeScreen = ({ isDarkMode }) => {
     greetingText: {
       fontSize: 20,
       fontWeight: '800',
-      color: COLORS.textoPrincipal,
+      color: palette.textoPrincipal,
       letterSpacing: 0.2,
     },
     greetingTitle: {
       fontSize: 20,
       fontWeight: '800',
-      color: COLORS.textoPrincipal,
+      color: palette.textoPrincipal,
       letterSpacing: 0.2,
     },
     headerButtons: {
@@ -307,9 +308,9 @@ const HomeScreen = ({ isDarkMode }) => {
       borderRadius: 22,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: COLORS.cartao,
+      backgroundColor: palette.cartao,
       borderWidth: 1,
-      borderColor: COLORS.borda,
+      borderColor: palette.borda,
       ...headerButtonShadow,
     },
     menuContainer: {
@@ -332,7 +333,7 @@ const HomeScreen = ({ isDarkMode }) => {
       borderRadius: 16,
       minHeight: 72,
       borderWidth: 1,
-      backgroundColor: COLORS.cartao,
+      backgroundColor: palette.cartao,
     },
     menuButtonTint: {
       position: 'absolute',
@@ -361,13 +362,13 @@ const HomeScreen = ({ isDarkMode }) => {
     menuButtonTitle: {
       fontSize: 15,
       fontWeight: '800',
-      color: COLORS.textoPrincipal,
+      color: palette.textoPrincipal,
       marginBottom: 2,
     },
     menuButtonSubtitle: {
       fontSize: 12,
       fontWeight: '600',
-      color: COLORS.textoSecundario,
+      color: palette.textoSecundario,
     },
     chevronBadge: {
       width: 32,
@@ -379,12 +380,12 @@ const HomeScreen = ({ isDarkMode }) => {
     userName: {
       fontSize: 14,
       fontWeight: '600',
-      color: COLORS.textoSecundario,
+      color: palette.textoSecundario,
     },
     sectionTitle: {
       fontSize: 14,
       fontWeight: '800',
-      color: COLORS.textoPrincipal,
+      color: palette.textoPrincipal,
       marginTop: 8,
       marginBottom: 10,
       letterSpacing: 0.2,
@@ -396,7 +397,18 @@ const HomeScreen = ({ isDarkMode }) => {
     });
   };
 
-  const styles = getStyles(isDarkMode);
+  // Paleta sensível ao tema — mesma convenção das demais telas (fundo/cartão/texto/borda).
+  const palette = {
+    fundo: isDarkMode ? COLORS.fundoDark : COLORS.fundo,
+    cartao: isDarkMode ? COLORS.cartaoDark : COLORS.cartao,
+    borda: isDarkMode ? COLORS.bordaDark : COLORS.borda,
+    textoPrincipal: isDarkMode ? COLORS.textoPrincipalDark : COLORS.textoPrincipal,
+    textoSecundario: isDarkMode ? COLORS.textoSecundarioDark : COLORS.textoSecundario,
+    destaqueAzul: isDarkMode ? COLORS.destaqueAzulDark : COLORS.destaqueAzul,
+    destaqueVerde: isDarkMode ? COLORS.destaqueVerdeDark : COLORS.destaqueVerde,
+  };
+
+  const styles = getStyles(palette, isDarkMode);
 
   return (
     <View style={styles.safeArea}>
@@ -427,7 +439,7 @@ const HomeScreen = ({ isDarkMode }) => {
                   <MaterialIcons
                     name="account-circle"
                     size={26}
-                    color={COLORS.destaqueAzul}
+                    color={palette.destaqueAzul}
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -437,7 +449,7 @@ const HomeScreen = ({ isDarkMode }) => {
                   <MaterialIcons
                     name="settings"
                     size={24}
-                    color={COLORS.destaqueVerde}
+                    color={palette.destaqueVerde}
                   />
                 </TouchableOpacity>
               </View>
@@ -463,7 +475,7 @@ const HomeScreen = ({ isDarkMode }) => {
           </Animatable.View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
             {modules.map((module, index) => {
-              const moduleColor = module.color || COLORS.destaqueAzul;
+              const moduleColor = module.color || palette.destaqueAzul;
               const onModuleColor = isDarkColor(moduleColor) ? '#ffffff' : '#1f2937';
               const tintedBackground = withAlpha(moduleColor, isDarkMode ? 0.18 : 0.09);
               const borderColor = withAlpha(moduleColor, isDarkMode ? 0.46 : 0.24);

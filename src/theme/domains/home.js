@@ -13,6 +13,15 @@ export const homeTheme = {
   iconeFundo: 'rgba(255, 255, 255, 0.32)',
   branco: '#ffffff',
   fundoDark: '#1f2438',
+  // Modo escuro — mesmos tokens usados pelo restante do app (ver moduleFunctionsTheme)
+  // para a Home ficar idêntica às demais telas no dark.
+  cartaoDark: '#262d47',
+  bordaDark: '#3a4265',
+  textoPrincipalDark: '#f3f5ff',
+  textoSecundarioDark: '#aab1cf',
+  // Versões mais claras dos destaques para os ícones do header ficarem legíveis no card escuro.
+  destaqueAzulDark: '#9aa3d4',
+  destaqueVerdeDark: '#9ec49e',
 };
 
 export const moduleFunctionsTheme = {

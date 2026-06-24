@@ -99,9 +99,10 @@ export const getRouteHeaderBackground = (route, isDarkMode) => {
   return palette[routeName] || (isDarkMode ? '#2f333a' : '#f7f7f8');
 };
 
-export const getStatusBarStyle = (routeName) => {
+export const getStatusBarStyle = (routeName, isDarkMode = false) => {
   if (routeName === 'HomeScreen') {
-    return 'dark-content';
+    // A Home tem fundo claro/escuro conforme o tema: ícones escuros no claro, claros no escuro.
+    return isDarkMode ? 'light-content' : 'dark-content';
   }
 
   return 'light-content';
@@ -121,7 +122,8 @@ export const shouldUseDarkNavigationBarIcons = (route, isDarkMode) => {
   const { routeName } = resolveRoute(route);
 
   if (routeName === 'HomeScreen') {
-    return true;
+    // Barra de navegação transparente sobre o fundo da Home: ícones escuros no claro, claros no escuro.
+    return !isDarkMode;
   }
 
   const navBarColor = getNavigationBarColor(route, isDarkMode);
