@@ -20,16 +20,16 @@ const TratativaTimeline = ({ caseItem, isDarkMode = false }) => {
         {TRATATIVA_TIMELINE_STEPS.map((step, index) => {
           const isDone = Boolean(caseItem?.[step.key]) && index < activeIndex;
           const isActive = index === activeIndex;
-          const circleStyle = isDone
-            ? styles.circleDone
+          const circleBackground = isDone
+            ? (isDarkMode ? '#1e7f74' : '#d1fae5')
             : isActive
-              ? styles.circleActive
-              : styles.circlePending;
+              ? (isDarkMode ? '#9a6b1c' : '#fff4cf')
+              : (isDarkMode ? '#3a4265' : '#eef2f7');
 
           return (
             <View key={step.key} style={styles.step}>
-              <View style={[styles.circle, circleStyle]}>
-                <Text style={styles.circleText}>{index + 1}</Text>
+              <View style={[styles.circle, { backgroundColor: circleBackground }]}>
+                <Text style={[styles.circleText, { color: isDarkMode ? '#f3f5ff' : '#1f2937' }]}>{index + 1}</Text>
               </View>
               <Text style={[styles.label, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>{step.label}</Text>
               <Text style={[styles.date, { color: isDarkMode ? TRATATIVA_THEME.textMutedDark : TRATATIVA_THEME.textMuted }]}>{formatDatePt(caseItem?.[step.key])}</Text>
@@ -38,7 +38,7 @@ const TratativaTimeline = ({ caseItem, isDarkMode = false }) => {
         })}
       </View>
 
-      <View style={[styles.progressShell, { backgroundColor: isDarkMode ? '#2f3654' : '#eef2f7' }]}>
+      <View style={[styles.progressShell, { backgroundColor: isDarkMode ? '#334155' : '#eef2f7' }]}>
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
       <Text style={[styles.progressText, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>{progress}%</Text>
@@ -63,15 +63,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-  },
-  circleDone: {
-    backgroundColor: '#d1fae5',
-  },
-  circleActive: {
-    backgroundColor: '#fff4cf',
-  },
-  circlePending: {
-    backgroundColor: '#eef2f7',
   },
   circleText: {
     fontWeight: '800',

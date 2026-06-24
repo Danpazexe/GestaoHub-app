@@ -637,10 +637,18 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
             return (
               <TouchableOpacity
                 key={`${selection.codprod}-${selection.codauxiliar}-${index}`}
-                style={styles.suggestionItem}
+                style={[
+                  styles.suggestionItem,
+                  isDarkMode && { borderBottomColor: '#3a4265' },
+                ]}
                 onPress={() => handleSelectProduct(item)}
               >
-                <View style={styles.suggestionIcon}>
+                <View
+                  style={[
+                    styles.suggestionIcon,
+                    isDarkMode && { backgroundColor: 'rgba(194,65,12,0.18)' },
+                  ]}
+                >
                   <MaterialCommunityIcons
                     name="package-variant-closed"
                     size={20}
@@ -739,19 +747,19 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
 
           <View style={styles.heroMetricsRow}>
             <View style={[styles.heroMetricCard, { backgroundColor: isDarkMode ? '#243146' : '#ffffff' }]}>
-              <Text style={styles.heroMetricLabel}>Recebida</Text>
+              <Text style={[styles.heroMetricLabel, isDarkMode && { color: TRATATIVA_THEME.textMutedDark }]}>Recebida</Text>
               <Text style={[styles.heroMetricValue, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
                 {Number(form.received_quantity || 0)}
               </Text>
             </View>
             <View style={[styles.heroMetricCard, { backgroundColor: isDarkMode ? '#243146' : '#ffffff' }]}>
-              <Text style={styles.heroMetricLabel}>{isShortage ? 'Esperada' : 'Com problema'}</Text>
+              <Text style={[styles.heroMetricLabel, isDarkMode && { color: TRATATIVA_THEME.textMutedDark }]}>{isShortage ? 'Esperada' : 'Com problema'}</Text>
               <Text style={[styles.heroMetricValue, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
                 {isShortage ? Number(form.expected_quantity || 0) : quantityWithProblem}
               </Text>
             </View>
             <View style={[styles.heroMetricCard, { backgroundColor: isDarkMode ? '#243146' : '#ffffff' }]}>
-              <Text style={styles.heroMetricLabel}>{isShortage ? 'Faltante' : 'Afetada'}</Text>
+              <Text style={[styles.heroMetricLabel, isDarkMode && { color: TRATATIVA_THEME.textMutedDark }]}>{isShortage ? 'Faltante' : 'Afetada'}</Text>
               <Text style={[styles.heroMetricValue, { color: isDarkMode ? TRATATIVA_THEME.textDark : TRATATIVA_THEME.text }]}>
                 {isShortage ? missingQuantity : quantityWithProblem}
               </Text>
@@ -1155,7 +1163,10 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
             Como deseja adicionar a imagem?
           </Text>
 
-          <TouchableOpacity style={styles.sheetButton} onPress={handleTakePhoto}>
+          <TouchableOpacity
+            style={[styles.sheetButton, isDarkMode && { backgroundColor: '#2b3350' }]}
+            onPress={handleTakePhoto}
+          >
             <View style={styles.sheetIconContainer}>
               <MaterialCommunityIcons name="camera" size={22} color={TRATATIVA_THEME.white} />
             </View>
@@ -1164,7 +1175,10 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sheetButton} onPress={handleChooseFromGallery}>
+          <TouchableOpacity
+            style={[styles.sheetButton, isDarkMode && { backgroundColor: '#2b3350' }]}
+            onPress={handleChooseFromGallery}
+          >
             <View style={styles.sheetIconContainer}>
               <MaterialCommunityIcons name="image-multiple" size={22} color={TRATATIVA_THEME.white} />
             </View>
@@ -1174,7 +1188,11 @@ const EspelhoRecebimentoScreen = ({ navigation, route, isDarkMode }) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.sheetButton, styles.sheetCancelButton]}
+            style={[
+              styles.sheetButton,
+              styles.sheetCancelButton,
+              isDarkMode && { backgroundColor: '#2b3350' },
+            ]}
             onPress={() => setShowImageOptions(false)}
           >
             <View style={[styles.sheetIconContainer, { backgroundColor: '#64748b' }]}>
