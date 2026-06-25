@@ -1661,6 +1661,40 @@ end$$;
 
 
 -- ==========================================================================
+-- REALTIME — publica as tabelas operacionais para o painel admin (ao vivo)
+-- Adiciona à publication supabase_realtime + REPLICA IDENTITY FULL (necessário
+-- para UPDATE/DELETE sob RLS). Idempotente e tolerante (pula o que já está /
+-- projeto sem realtime).
+-- ==========================================================================
+do $$
+declare
+  t text;
+  tbls text[] := array[
+    'user_presence',
+    'conferencia_bonus_queue',
+    'conferencia_saida_bonus_queue',
+    'conferencia_divergencias',
+    'recebimento_treatment_cases',
+    'avaria_items',
+    'validade_products',
+    'operational_events',
+    'purchase_orders'
+  ];
+begin
+  foreach t in array tbls loop
+    begin
+      execute format('alter table public.%I replica identity full;', t);
+      execute format('alter publication supabase_realtime add table public.%I;', t);
+    exception
+      when duplicate_object then null;           -- já está na publication
+      when undefined_object then                  -- publication ausente (projeto sem realtime)
+        raise notice 'publication supabase_realtime ausente, pulando %.', t;
+    end;
+  end loop;
+end$$;
+
+
+-- ==========================================================================
 -- BOOTSTRAP
 -- --------------------------------------------------------------------------
 -- Não há policy de INSERT em admin_users: promova o primeiro admin manualmente
