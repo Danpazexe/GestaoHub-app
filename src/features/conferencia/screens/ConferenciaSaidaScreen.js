@@ -507,7 +507,7 @@ const ConferenciaSaidaScreen = ({ navigation, route, isDarkMode }) => {
     }
   }, [drafts, remoteQueue, resumeDraft, openRemoteBonus, finalizedStatusByOrder]);
 
-  // Bipar/digitar o número do pedido → entra no bônus correspondente (Winthor 3854).
+  // Bipar/digitar o número do pedido → entra no bônus correspondente.
   const enterBonusByCode = useCallback((rawCode) => {
     const key = normalizeKey(rawCode || '');
     if (!key) return;
