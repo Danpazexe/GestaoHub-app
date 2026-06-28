@@ -35,3 +35,24 @@ jobs:
           --entry-file index.js
           --bundle-output /tmp/app.android.bundle
           --reset-cache
+
+  notificar:
+    name: Notificar Telegram
+    needs: [bundle]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      # Envia o status do CI pro Telegram (gratuito e oficial).
+      # Segredos do repo: TELEGRAM_TO (teu chat_id) e TELEGRAM_BOT_TOKEN.
+      - name: Enviar status para o Telegram
+        uses: appleboy/telegram-action@v1.0.1
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          disable_web_page_preview: true
+          message: |
+            📱 GestãoHub-app — ${{ needs.bundle.result == 'success' && '✅ passou' || '❌ falhou' }}
+            🌿 ${{ github.ref_name }} · 👤 ${{ github.actor }}
+            📝 ${{ github.event.head_commit.message || github.event.pull_request.title }}
+            🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
