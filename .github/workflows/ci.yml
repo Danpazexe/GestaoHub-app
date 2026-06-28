@@ -43,16 +43,41 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      # Envia o status do CI pro Telegram (gratuito e oficial).
-      # Segredos do repo: TELEGRAM_TO (teu chat_id) e TELEGRAM_BOT_TOKEN.
+      # Monta uma mensagem rica (HTML) e envia ao Telegram via API.
+      # Segredos: TELEGRAM_TO (teu chat_id) e TELEGRAM_BOT_TOKEN.
       - name: Enviar status para o Telegram
-        uses: appleboy/telegram-action@v1.0.1
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          disable_web_page_preview: true
-          message: |
-            📱 GestãoHub-app — ${{ needs.bundle.result == 'success' && '✅ passou' || '❌ falhou' }}
-            🌿 ${{ github.ref_name }} · 👤 ${{ github.actor }}
-            📝 ${{ github.event.head_commit.message || github.event.pull_request.title }}
-            🔗 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          BUNDLE: ${{ needs.bundle.result }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          icon() { case "$1" in
+            success) printf '✅';; failure) printf '❌';;
+            cancelled) printf '🚫';; skipped|"") printf '⏭️';; *) printf '❔';;
+          esac; }
+          esc() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+
+          if [ "$BUNDLE" = "success" ]; then HEAD="✅ CI passou"; else HEAD="❌ CI falhou"; fi
+          COMMIT_FIRST=${COMMIT_MSG%%$'\n'*}
+
+          MSG=$(printf '%s\n' \
+            "📱 <b>GestãoHub-app</b> · <b>${HEAD}</b>" \
+            "" \
+            "📦 Metro bundle (Android): $(icon "$BUNDLE")" \
+            "" \
+            "🌿 <code>$(esc "$BRANCH")</code> · 👤 $(esc "$ACTOR")" \
+            "📝 <code>${SHA:0:7}</code> $(esc "$COMMIT_FIRST")" \
+            "" \
+            "🔗 <a href=\"${RUN_URL}\">Ver execução no GitHub</a>")
+
+          PAYLOAD=$(jq -n --arg chat "$TELEGRAM_TO" --arg text "$MSG" \
+            '{chat_id:$chat, text:$text, parse_mode:"HTML", disable_web_page_preview:true}')
+          RESP=$(curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H 'Content-Type: application/json' -d "$PAYLOAD")
+          echo "Resposta do Telegram: $RESP"
+          echo "$RESP" | jq -e '.ok == true' > /dev/null
